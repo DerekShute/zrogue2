@@ -1,27 +1,35 @@
+//!
+//! zrogue as CLI application
+//!
+
 const std = @import("std");
-const zrogue2 = @import("zrogue");
+const lib = @import("roguelib");
+const ui = @import("ui");
+
+//
+// Local constants
+//
+
+const ui_config: ui.MockConfig = .{ .maxx = 80, .maxy = 24 };
+
+//
+// Main entrypoint of Linux single-player CLI using Curses
+//
 
 pub fn main() !void {
-    // Prints to stderr, ignoring potential errors.
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-    try zrogue2.bufferedPrint();
+
+    var m = ui.initMock(ui_config);
+    defer m.deinit();
 }
 
-test "simple test" {
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(i32) = .empty;
-    defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(gpa, 42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+//
+// Unit Tests
+//
+
+test "run the game" {
+    var m = ui.initMock(ui_config);
+    defer m.deinit();
 }
 
-test "fuzz example" {
-    const Context = struct {
-        fn testOne(context: @This(), input: []const u8) anyerror!void {
-            _ = context;
-            // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-            try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
-        }
-    };
-    try std.testing.fuzz(Context{}, Context.testOne, .{});
-}
+// EOF
