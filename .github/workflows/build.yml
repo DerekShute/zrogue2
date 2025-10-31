@@ -1,0 +1,26 @@
+name: Build and Test
+
+on:
+  pull_request:
+
+jobs:
+
+  # 2024-12-24 : kcov v42 wants libopcodes-2.38-system and this is no longer
+  # what is in place on the runners
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build and Test
+    steps:
+      - uses: actions/checkout@v4
+
+      # This is v2.0.5, July 22, 2025
+      - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f
+
+      - name: Build
+        run: zig build
+
+      - name: Test
+        run: zig build test
+
+# EOF
