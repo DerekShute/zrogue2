@@ -10,9 +10,17 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const mod = b.addModule("zrogue", .{
-        .root_source_file = b.path("src/root.zig"),
+    const roguelib_mod = b.addModule("roguelib", .{
+        .root_source_file = b.path("roguelib/root.zig"),
         .target = target,
+    });
+
+    const ui_mod = b.addModule("ui", .{
+        .root_source_file = b.path("ui/root.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "roguelib", .module = roguelib_mod },
+        },
     });
 
     const exe = b.addExecutable(.{
@@ -22,7 +30,8 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "zrogue", .module = mod },
+                .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "ui", .module = ui_mod },
             },
         }),
     });
@@ -42,18 +51,24 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
-    const mod_tests = b.addTest(.{
-        .root_module = mod,
+    const roguelib_tests = b.addTest(.{
+        .root_module = roguelib_mod,
     });
-    const run_mod_tests = b.addRunArtifact(mod_tests);
+    const run_roguelib_tests = b.addRunArtifact(roguelib_tests);
+
+    const ui_tests = b.addTest(.{
+        .root_module = ui_mod,
+    });
+    const run_ui_tests = b.addRunArtifact(ui_tests);
+
     const exe_tests = b.addTest(.{
         .root_module = exe.root_module,
     });
-
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_mod_tests.step);
+    test_step.dependOn(&run_roguelib_tests.step);
+    test_step.dependOn(&run_ui_tests.step);
     test_step.dependOn(&run_exe_tests.step);
 }
 
