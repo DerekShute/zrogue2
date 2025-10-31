@@ -43,10 +43,10 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "roguelib",
         "src",
-        // For example...
-        //"LICENSE",
-        //"README.md",
+        "ui",
+        "LICENSE",
     },
 }
 
