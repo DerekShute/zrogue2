@@ -8,7 +8,11 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+    // ziglang #24165: linker problems when the system library (ncurses) is a
+    // linker script.  For now hammer to ReleaseFast to avoid and move forward
+    //
+    //    const optimize = b.standardOptimizeOption(.{});
+    const optimize = .ReleaseFast;
 
     const roguelib_mod = b.addModule("roguelib", .{
         .root_source_file = b.path("roguelib/root.zig"),
@@ -36,6 +40,8 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    exe.linkLibC();
+    exe.linkSystemLibrary("ncursesw");
     b.installArtifact(exe);
 
     const run_step = b.step("run", "Run the app");
