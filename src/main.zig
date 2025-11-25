@@ -7,20 +7,27 @@ const lib = @import("roguelib");
 const ui = @import("ui");
 
 //
-// Local constants
-//
-
-const ui_config: ui.MockConfig = .{ .maxx = 80, .maxy = 24 };
-
-//
 // Main entrypoint of Linux single-player CLI using Curses
 //
 
 pub fn main() !void {
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var c = ui.initCurses(.{ .maxx = 80, .maxy = 24 }) catch |err| switch (err) {
+        error.DisplayTooSmall => {
+            std.debug.print("Zrogue requires an 80x24 display\n", .{});
+            std.process.exit(1);
+        },
+        else => {
+            std.debug.print("got error: {s}\n", .{@errorName(err)});
+            std.process.exit(1);
+        },
+    };
+    defer c.deinit();
 
-    var m = ui.initMock(ui_config);
-    defer m.deinit();
+    var p = c.provider();
+
+    // TODO: invoke game here
+
+    _ = p.getCommand();
 }
 
 //
@@ -28,8 +35,14 @@ pub fn main() !void {
 //
 
 test "run the game" {
-    var m = ui.initMock(ui_config);
+    var m = ui.initMock(.{ .maxx = 80, .maxy = 24 });
     defer m.deinit();
+
+    var p = m.provider();
+
+    // TODO: invoke game here
+
+    _ = p.getCommand();
 }
 
 // EOF
