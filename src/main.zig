@@ -11,7 +11,10 @@ const ui = @import("ui");
 //
 
 pub fn main() !void {
-    var c = ui.initCurses(.{ .maxx = 80, .maxy = 24 }) catch |err| switch (err) {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    var c = ui.initCurses(.{ .allocator = allocator, .maxx = 80, .maxy = 24 }) catch |err| switch (err) {
         error.DisplayTooSmall => {
             std.debug.print("Zrogue requires an 80x24 display\n", .{});
             std.process.exit(1);
@@ -21,7 +24,7 @@ pub fn main() !void {
             std.process.exit(1);
         },
     };
-    defer c.deinit();
+    defer c.deinit(allocator);
 
     var p = c.provider();
 
@@ -35,8 +38,8 @@ pub fn main() !void {
 //
 
 test "run the game" {
-    var m = ui.initMock(.{ .maxx = 80, .maxy = 24 });
-    defer m.deinit();
+    var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = 80, .maxy = 24 });
+    defer m.deinit(std.testing.allocator);
 
     var p = m.provider();
 

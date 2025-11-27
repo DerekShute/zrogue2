@@ -21,6 +21,7 @@ const Self = @This();
 //
 
 pub const Config = struct {
+    allocator: std.mem.Allocator,
     maxx: u8,
     maxy: u8,
 };
@@ -115,20 +116,22 @@ pub fn init(config: Config) Provider.Error!Self {
         return Provider.Error.DisplayTooSmall;
     }
 
-    return .{
-        .p = .{
-            .ptr = undefined,
-            .x = config.maxx,
-            .y = config.maxy,
-            .vtable = &.{
-                .getCommand = getCommand,
-            },
+    const pc: Provider.Config = .{
+        .allocator = config.allocator,
+        .maxx = config.maxx,
+        .maxy = config.maxy,
+        .vtable = &.{
+            .getCommand = getCommand,
         },
+    };
+
+    return .{
+        .p = try Provider.init(pc),
     };
 }
 
-pub fn deinit(self: *Self) void {
-    _ = self;
+pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+    self.p.deinit(allocator);
     global_win = null;
     _ = curses.endwin(); // Liberal shut-up-and-do-it
 }
@@ -215,8 +218,6 @@ fn displayScreen(self: *Self) !void {
     //
     // Top line: messages
     //
-    // TODO: too narrow
-    //
     mvaddstr(0, 0, "                                                  ");
     mvaddstr(0, 0, self.p.getMessage());
     self.p.clearMessage();
@@ -236,18 +237,15 @@ fn displayScreen(self: *Self) !void {
 
     // We know that error.NoSpaceLeft can't happen here
     const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
-    // TODO if too narrow
-    // TODO explicitly the bottom row, whatever the current screen height
-    mvaddstr(0, @intCast(self.p.y), line);
+    mvaddstr(0, @intCast(self.p.y - 1), line);
 
     //
     // Output map display
     //
-    // TODO off by one
-    // TODO iterator
+    // TODO iterator: note that map can't use the last line of the display
     //
     const map = self.p.display_map;
-    for (0..@intCast(self.p.y - 1)) |y| {
+    for (0..@intCast(self.p.y - 2)) |y| {
         for (0..@intCast(self.p.x)) |x| {
             const t = map.find(@intCast(x), @intCast(y)) catch unreachable;
             _ = paranoia(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile)));
@@ -264,17 +262,14 @@ fn displayScreen(self: *Self) !void {
 // the mock display also uses it to test for API correctness.
 
 fn getCommand(ptr: *anyopaque) Command {
-    _ = ptr;
-    //    const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Self = @ptrCast(@alignCast(ptr));
 
     if (global_win == null) {
         // Punish programmatic errors
         @panic("getCommand but not initialized");
     }
 
-    // TODO need to build this out
-    //    self.displayScreen() catch unreachable;
-    displayHelp();
+    self.displayScreen() catch unreachable;
 
     var cmd = readCommand();
     while (cmd == .help) {
@@ -287,8 +282,8 @@ fn getCommand(ptr: *anyopaque) Command {
 //
 // Unit Tests
 //
-const expectError = std.testing.expectError;
 
-// TODO alloc fail test
+// Avoid - this means dragging in ncurses to the test rig and cases where
+// error generation botches the display
 
 // EOF
