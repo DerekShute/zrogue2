@@ -56,12 +56,23 @@ pub const VTable = struct {
 };
 
 //
+// Config
+//
+
+pub const Config = struct {
+    allocator: std.mem.Allocator,
+    maxx: u8,
+    maxy: u8,
+    vtable: *const VTable,
+};
+
+//
 // Structure Members
 //
 //  Hiding 'initialized' here would require back pointers from interface ctx
 //  to the Provider containment
 
-ptr: *anyopaque,
+ptr: *anyopaque = undefined,
 vtable: *const VTable,
 display_map: DisplayMap = undefined,
 stats: VisibleStats = undefined,
@@ -73,10 +84,32 @@ log: *MessageLog = undefined,
 // Constructor and destructor
 //
 
-pub inline fn deinit(self: Self) void {
-    self.display_map.deinit();
+pub fn init(config: Config) !Self {
+    var p: Self = .{
+        .x = config.maxx,
+        .y = config.maxy,
+        .vtable = config.vtable,
+        .stats = .{
+            .depth = 0,
+            .purse = 0,
+        },
+    };
+
+    const dm = try DisplayMap.config(config.allocator, @intCast(p.x), @intCast(p.y));
+    errdefer dm.deinit(config.allocator);
+
+    const log = try MessageLog.init(config.allocator); // TODO consistency
+    errdefer log.deinit();
+
+    p.display_map = dm;
+    p.log = log;
+
+    return p;
+}
+
+pub inline fn deinit(self: Self, allocator: std.mem.Allocator) void {
+    self.display_map.deinit(allocator);
     self.log.deinit();
-    self.vtable.deinit(self.ptr);
 }
 
 //

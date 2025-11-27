@@ -23,7 +23,6 @@ pub fn Grid(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        allocator: std.mem.Allocator,
         i: []T,
         height: usize,
         width: usize,
@@ -54,15 +53,13 @@ pub fn Grid(comptime T: type) type {
             errdefer allocator.free(items);
 
             return .{
-                .allocator = allocator,
                 .i = items,
                 .height = height,
                 .width = width,
             };
         }
 
-        pub fn deinit(self: Self) void {
-            const allocator = self.allocator;
+        pub fn deinit(self: Self, allocator: std.mem.Allocator) void {
             allocator.free(self.i);
         }
 
@@ -90,7 +87,7 @@ const FrotzGrid = Grid(Frotz);
 
 test "basic tests" {
     var fg = try FrotzGrid.config(std.testing.allocator, 100, 100);
-    defer fg.deinit();
+    defer fg.deinit(std.testing.allocator);
 
     _ = try fg.find(10, 10);
     _ = try fg.find(0, 0);
@@ -100,7 +97,7 @@ test "basic tests" {
 
 test "iterator" {
     var fg = try FrotzGrid.config(std.testing.allocator, 100, 100);
-    defer fg.deinit();
+    defer fg.deinit(std.testing.allocator);
 
     var i = fg.iterator();
     var x: u32 = 0;
