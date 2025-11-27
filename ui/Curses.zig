@@ -39,6 +39,14 @@ fn checkError(res: c_int) Provider.Error!c_int {
     return res;
 }
 
+// We really don't expect this to fail.
+fn paranoia(res: c_int) c_int {
+    if (res == curses.ERR) {
+        unreachable;
+    }
+    return res;
+}
+
 //
 // Convert map location to what it is displayed as
 //
@@ -93,15 +101,15 @@ pub fn init(config: Config) Provider.Error!Self {
     // TODO Future: mouse events
 
     // raw/keypad/noecho: no defined error cases
-    _ = checkError(curses.raw()) catch unreachable;
-    _ = checkError(curses.keypad(global_win, true)) catch unreachable;
-    _ = checkError(curses.noecho()) catch unreachable;
+    _ = paranoia(curses.raw());
+    _ = paranoia(curses.keypad(global_win, true));
+    _ = paranoia(curses.noecho());
     // curs_set: ERR only if argument value is unsupported
-    _ = checkError(curses.curs_set(0)) catch unreachable;
+    _ = paranoia(curses.curs_set(0));
 
     // getmaxx/getmaxy ERR iff null window parameter
-    const display_maxx = checkError(curses.getmaxx(global_win)) catch unreachable;
-    const display_maxy = checkError(curses.getmaxy(global_win)) catch unreachable;
+    const display_maxx = paranoia(curses.getmaxx(global_win));
+    const display_maxy = paranoia(curses.getmaxy(global_win));
 
     if ((display_maxx < config.maxx) or (display_maxy < config.maxy)) {
         return Provider.Error.DisplayTooSmall;
@@ -142,13 +150,13 @@ fn mvaddstr(x: u16, y: u16, s: []const u8) void {
     // TODO errors here probably only because of display sizing
 
     if (s.len > 0) { // Interface apparently insists
-        _ = checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len))) catch unreachable;
+        _ = paranoia(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
     }
 }
 
 fn refresh() void {
     // refresh: no error cases defined
-    _ = checkError(curses.refresh()) catch unreachable;
+    _ = paranoia(curses.refresh());
 }
 
 //
@@ -158,7 +166,7 @@ fn refresh() void {
 fn readCommand() Command {
     // TODO Future: resize 'key'
 
-    const ch = checkError(curses.getch()) catch unreachable;
+    const ch = paranoia(curses.getch());
     return switch (ch) {
         curses.KEY_LEFT => .go_west,
         curses.KEY_RIGHT => .go_east,
@@ -218,7 +226,6 @@ fn displayScreen(self: *Self) !void {
     //
     // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
     //
-    // TODO: defined length, here
     var buf: [80]u8 = undefined; // does this need to be allocated?  size?
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
@@ -242,8 +249,8 @@ fn displayScreen(self: *Self) !void {
     const map = self.p.display_map;
     for (0..@intCast(self.p.y - 1)) |y| {
         for (0..@intCast(self.p.x)) |x| {
-            const t = map.find(@intCast(x), @intCast(y)) catch unreachable; // TODO
-            _ = checkError(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile))) catch unreachable;
+            const t = map.find(@intCast(x), @intCast(y)) catch unreachable;
+            _ = paranoia(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile)));
         }
     }
 
