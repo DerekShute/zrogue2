@@ -36,9 +36,12 @@ comptime {
     _ = @import("Entity.zig");
     _ = @import("grid.zig");
     _ = @import("maptile.zig");
+    _ = @import("Map.zig");
     _ = @import("MessageLog.zig");
     _ = @import("Pos.zig");
     _ = @import("Region.zig");
+    _ = @import("map/Place.zig");
+    _ = @import("map/Room.zig");
 }
 
 // EOF
