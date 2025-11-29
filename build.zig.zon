@@ -43,6 +43,7 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "game",
         "roguelib",
         "src",
         "ui",

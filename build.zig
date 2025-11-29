@@ -27,6 +27,15 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const game_mod = b.addModule("game", .{
+        .root_source_file = b.path("game/root.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "roguelib", .module = roguelib_mod },
+            .{ .name = "ui", .module = ui_mod },
+        },
+    });
+
     const exe = b.addExecutable(.{
         .name = "zrogue",
         .root_module = b.createModule(.{
@@ -34,7 +43,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "game", .module = game_mod },
                 .{ .name = "ui", .module = ui_mod },
             },
         }),

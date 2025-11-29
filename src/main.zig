@@ -6,6 +6,8 @@ const std = @import("std");
 const lib = @import("roguelib");
 const ui = @import("ui");
 
+const run_game = @import("game").run_game;
+
 //
 // Main entrypoint of Linux single-player CLI using Curses
 //
@@ -26,11 +28,7 @@ pub fn main() !void {
     };
     defer c.deinit(allocator);
 
-    var p = c.provider();
-
-    // TODO: invoke game here
-
-    _ = p.getCommand();
+    run_game(c.provider());
 }
 
 //
@@ -41,11 +39,7 @@ test "run the game" {
     var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = 80, .maxy = 24 });
     defer m.deinit(std.testing.allocator);
 
-    var p = m.provider();
-
-    // TODO: invoke game here
-
-    _ = p.getCommand();
+    run_game(m.provider());
 }
 
 // EOF
