@@ -2,6 +2,7 @@
 //! The game itself as a module to import from the various interfaces
 //!
 
+const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
 
 //
@@ -26,12 +27,21 @@ const ActionResult = enum {
 // Routines
 //
 
-pub fn run(player: *Player) void {
+// TODO: this probably goes in its own file
+pub fn run(player: *Player) !void {
     var state: State = .run;
     player.addMessage("Welcome to the Dungeon of Doom!");
 
+    const mapgen_config = mapgen.Config{
+        .allocator = allocator, // TODO <<<< NEED THIS
+        .mapgen = .TEST,
+    };
+
     while (state != .end) {
         var result: ActionResult = .continue_game;
+
+        var map = try mapgen.create(mapgen_config);
+        defer map.deinit();
 
         while (result == .continue_game) {
             // TODO this becomes a getAction

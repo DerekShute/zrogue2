@@ -18,7 +18,7 @@ pub const Config = @import("utils.zig").Config;
 // Interface Routine
 //
 
-pub fn createLevel(config: Config) !*Map {
+pub fn create(config: Config) !*Map {
     return switch (config.mapgen) {
         .TEST => try createTestLevel(config),
     };
@@ -38,7 +38,7 @@ test "create the test level" {
         .mapgen = .TEST,
     };
 
-    var map = try createLevel(config);
+    var map = try create(config);
     defer map.deinit();
 }
 

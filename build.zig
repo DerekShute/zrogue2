@@ -39,6 +39,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("game/root.zig"),
         .target = target,
         .imports = &.{
+            .{ .name = "mapgen", .module = mapgen_mod },
             .{ .name = "roguelib", .module = roguelib_mod },
             .{ .name = "ui", .module = ui_mod },
         },
