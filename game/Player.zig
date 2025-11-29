@@ -7,6 +7,7 @@ const std = @import("std");
 const Command = @import("roguelib").Command;
 const Entity = @import("roguelib").Entity;
 const MapTile = @import("roguelib").MapTile;
+const Pos = @import("roguelib").Pos;
 const Provider = @import("ui").Provider;
 
 //
@@ -65,6 +66,10 @@ pub fn getCommand(self: *Self) Command {
     return self.provider.getCommand();
 }
 
+pub fn setTileKnown(self: *Self, loc: Pos, tile: MapTile) void {
+    self.provider.setTile(@intCast(loc.getX()), @intCast(loc.getY()), tile);
+}
+
 //
 // Unit Tests
 //
@@ -88,7 +93,9 @@ test "create a player" {
         .maxy = 10,
     };
 
-    _ = init(config);
+    var player = init(config);
+
+    player.setTileKnown(Pos.config(0, 0), .floor);
 }
 
 // EOF

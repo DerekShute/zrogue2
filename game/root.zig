@@ -2,6 +2,9 @@
 //! The game itself as a module to import from the various interfaces
 //!
 
+const std = @import("std");
+const Pos = @import("roguelib").Pos;
+const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
 
 //
@@ -26,12 +29,29 @@ const ActionResult = enum {
 // Routines
 //
 
-pub fn run(player: *Player) void {
+// TODO: this probably goes in its own file
+pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
     var state: State = .run;
     player.addMessage("Welcome to the Dungeon of Doom!");
 
+    const mapgen_config: mapgen.Config = .{
+        .mapgen = .TEST,
+    };
+
     while (state != .end) {
         var result: ActionResult = .continue_game;
+
+        var map = try mapgen.create(mapgen_config, allocator);
+        defer map.deinit(allocator);
+
+        // TODO displaying map as mapgen convenience
+        for (0..@intCast(map.getHeight())) |y| {
+            for (0..@intCast(map.getWidth())) |x| {
+                const loc = Pos.config(@intCast(x), @intCast(y));
+                const t = try map.getFloorTile(loc);
+                player.setTileKnown(loc, t);
+            }
+        }
 
         while (result == .continue_game) {
             // TODO this becomes a getAction
