@@ -36,7 +36,7 @@ pub fn main() !void {
         .maxy = YSIZE,
     });
 
-    game.run(&player);
+    try game.run(&player, allocator);
 }
 
 //
@@ -62,7 +62,7 @@ test "run the game" {
         .maxy = YSIZE,
     });
 
-    game.run(&player);
+    try game.run(&player, std.testing.allocator);
 }
 
 // EOF
