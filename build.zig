@@ -44,6 +44,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
+                .{ .name = "roguelib", .module = roguelib_mod },
                 .{ .name = "ui", .module = ui_mod },
             },
         }),
