@@ -3,10 +3,11 @@
 //!
 
 const std = @import("std");
-const lib = @import("roguelib");
+const game = @import("game");
 const ui = @import("ui");
 
-const run_game = @import("game").run_game;
+const XSIZE = 80;
+const YSIZE = 24;
 
 //
 // Main entrypoint of Linux single-player CLI using Curses
@@ -16,7 +17,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    var c = ui.initCurses(.{ .allocator = allocator, .maxx = 80, .maxy = 24 }) catch |err| switch (err) {
+    var c = ui.initCurses(.{ .allocator = allocator, .maxx = XSIZE, .maxy = YSIZE }) catch |err| switch (err) {
         error.DisplayTooSmall => {
             std.debug.print("Zrogue requires an 80x24 display\n", .{});
             std.process.exit(1);
@@ -28,7 +29,14 @@ pub fn main() !void {
     };
     defer c.deinit(allocator);
 
-    run_game(c.provider());
+    var player = game.Player.init(.{
+        .provider = c.provider(),
+        .allocator = allocator,
+        .maxx = XSIZE,
+        .maxy = YSIZE,
+    });
+
+    game.run(&player);
 }
 
 //
@@ -36,10 +44,17 @@ pub fn main() !void {
 //
 
 test "run the game" {
-    var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = 80, .maxy = 24 });
+    var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = XSIZE, .maxy = YSIZE });
     defer m.deinit(std.testing.allocator);
 
-    run_game(m.provider());
+    var player = game.Player.init(.{
+        .provider = m.provider(),
+        .allocator = std.testing.allocator,
+        .maxx = XSIZE,
+        .maxy = YSIZE,
+    });
+
+    game.run(&player);
 }
 
 // EOF
