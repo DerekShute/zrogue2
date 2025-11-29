@@ -43,8 +43,16 @@ pub fn main() !void {
 // Unit Tests
 //
 
+const Command = @import("roguelib").Command;
+
+var testlist = [_]Command{
+    .wait,
+    .go_west,
+    .quit,
+};
+
 test "run the game" {
-    var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = XSIZE, .maxy = YSIZE });
+    var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = XSIZE, .maxy = YSIZE, .commands = &testlist });
     defer m.deinit(std.testing.allocator);
 
     var player = game.Player.init(.{

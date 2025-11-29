@@ -18,7 +18,7 @@ pub const Config = struct {
     allocator: std.mem.Allocator,
     maxx: u8,
     maxy: u8,
-    // commands: []Command, // TODO
+    commands: []Command,
 };
 
 //
@@ -26,8 +26,8 @@ pub const Config = struct {
 //
 
 p: Provider = undefined,
-// command_list: []Command = undefined, // TODO
-// command_index: u16 = 0,  // TODO
+command_list: []Command = undefined,
+command_index: u16 = 0,
 
 //
 // Constructor / Destructor
@@ -45,7 +45,7 @@ pub fn init(config: Config) !Self {
 
     return .{
         .p = try Provider.init(pc),
-        // command list
+        .command_list = config.commands,
     };
 }
 
@@ -68,9 +68,13 @@ pub fn provider(self: *Self) *Provider {
 //
 
 fn getCommand(ptr: *anyopaque) Command {
-    // const self: *MockProvider = @ptrCast(@alignCast(ptr));
-    _ = ptr;
-    return .wait;
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    const i = self.command_index;
+    if (i >= self.command_list.len) {
+        @panic("No more mock commands to provide");
+    }
+    self.command_index += 1;
+    return self.command_list[i];
 }
 
 //
@@ -80,22 +84,27 @@ fn getCommand(ptr: *anyopaque) Command {
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 
+var testlist = [_]Command{
+    .go_west,
+    .quit,
+};
+
 test "try out mock" {
-    var m = try init(.{ .allocator = std.testing.allocator, .maxx = 40, .maxy = 60 });
+    var m = try init(.{ .allocator = std.testing.allocator, .maxx = 40, .maxy = 60, .commands = &testlist });
     defer m.deinit(std.testing.allocator);
 
     var p = m.provider();
-    try expect(p.getCommand() == .wait);
+    try expect(p.getCommand() == .go_west);
 }
 
 test "mock alloc does not work 0" {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60 }));
+    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60, .commands = &testlist }));
 }
 
 test "mock alloc does not work 1" {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
-    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60 }));
+    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60, .commands = &testlist }));
 }
 
 // EOF
