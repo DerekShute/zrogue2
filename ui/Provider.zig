@@ -128,9 +128,9 @@ pub inline fn clearMessage(self: Self) void {
     self.log.clear();
 }
 
-pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
+pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) void {
     var val = self.display_map.find(x, y) catch {
-        @panic("Bad pos sent to Provider.setTile"); // THINK: ignore?
+        @panic("Bad pos sent to Provider.setTile"); // THINK: error?
     };
     val.tile = t;
 }
