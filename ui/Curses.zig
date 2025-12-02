@@ -200,14 +200,14 @@ fn displayHelp() void {
     mvaddstr(0, 6, "                                                 ");
     mvaddstr(0, 7, " Commands include:                               ");
     mvaddstr(0, 8, "    ? - help (this)                              ");
-    mvaddstr(0, 9, "    > - descend stairs (\">\")                   ");
-    mvaddstr(0, 10, "    < - ascend stairs (\"<\")                   ");
-    mvaddstr(0, 11, "    , - pick up gold  (\"$\")                   ");
-    mvaddstr(0, 12, "    s - search for hidden doors                 ");
-    mvaddstr(0, 13, "    q - chicken out and quit                    ");
-    mvaddstr(0, 14, "                                                ");
-    mvaddstr(0, 15, " [type a command or any other key to continue]  ");
-    mvaddstr(0, 16, "                                                ");
+    mvaddstr(0, 9, "    > - descend stairs (\">\")                     ");
+    mvaddstr(0, 10, "    < - ascend stairs (\"<\")                      ");
+    mvaddstr(0, 11, "    , - pick up gold  (\"$\")                      ");
+    mvaddstr(0, 12, "    s - search for hidden doors                  ");
+    mvaddstr(0, 13, "    q - chicken out and quit                     ");
+    mvaddstr(0, 14, "                                                 ");
+    mvaddstr(0, 15, " [type a command or any other key to continue]   ");
+    mvaddstr(0, 16, "                                                 ");
     mvaddstr(0, 23, "*                                                                              *");
     refresh();
 }
