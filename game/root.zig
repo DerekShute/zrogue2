@@ -48,7 +48,7 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
         for (0..@intCast(map.getHeight())) |y| {
             for (0..@intCast(map.getWidth())) |x| {
                 const loc = Pos.config(@intCast(x), @intCast(y));
-                const t = try map.getFloorTile(loc);
+                const t = map.getFloorTile(loc);
                 player.setTileKnown(loc, t);
             }
         }
