@@ -83,8 +83,13 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 // Utility
 //
 
-fn toPlace(self: *Self, x: Pos.Dim, y: Pos.Dim) !*Place {
-    return try self.places.find(@intCast(x), @intCast(y));
+fn toPlace(self: *Self, p: Pos) *Place {
+    const x: usize = @intCast(p.getX());
+    const y: usize = @intCast(p.getY());
+    const place = self.places.find(x, y) catch {
+        @panic("Bad pos sent to Map.toPlace"); // Think: error?
+    };
+    return place;
 }
 
 //
@@ -103,19 +108,16 @@ pub fn getDepth(self: *Self) usize {
     return self.level;
 }
 
-pub fn getFloorTile(self: *Self, p: Pos) !MapTile {
-    const place = try self.toPlace(p.getX(), p.getY());
-    return place.getTile();
+pub fn getFloorTile(self: *Self, p: Pos) MapTile {
+    return self.toPlace(p).getTile();
 }
 
-pub fn setTile(self: *Self, p: Pos, tile: MapTile) !void {
-    const place = try self.toPlace(p.getX(), p.getY());
-    place.setTile(tile);
+pub fn setTile(self: *Self, p: Pos, tile: MapTile) void {
+    self.toPlace(p).setTile(tile);
 }
 
-pub fn passable(self: *Self, p: Pos) !bool {
-    const place = try self.toPlace(p.getX(), p.getY());
-    return place.passable();
+pub fn passable(self: *Self, p: Pos) bool {
+    return self.toPlace(p).passable();
 }
 
 //
@@ -244,10 +246,10 @@ test "map smoke test" {
     defer map.deinit(std.testing.allocator);
 
     map.addRoom(Room.config(Pos.config(10, 10), Pos.config(20, 20)));
-    try map.setTile(Pos.config(15, 15), .stairs_down);
-    try expect(try map.getFloorTile(Pos.config(15, 15)) == .stairs_down);
-    try map.setTile(Pos.config(16, 16), .stairs_up);
-    try expect(try map.getFloorTile(Pos.config(16, 16)) == .stairs_up);
+    map.setTile(Pos.config(15, 15), .stairs_down);
+    try expect(map.getFloorTile(Pos.config(15, 15)) == .stairs_down);
+    map.setTile(Pos.config(16, 16), .stairs_up);
+    try expect(map.getFloorTile(Pos.config(16, 16)) == .stairs_up);
 
     try expect(map.getHeight() == 50);
     try expect(map.getWidth() == 100);
@@ -276,13 +278,7 @@ test "fails to allocate rooms of map" { // third allocation attempt
 
 // Invalid size maps guarded by panic
 
-test "ask about invalid character on the map" {
-    var map = try init(std.testing.allocator, 10, 10, 1, 1);
-    defer map.deinit(std.testing.allocator);
-
-    try expectError(error.IndexOverflow, map.getFloorTile(Pos.config(20, 0)));
-    try expectError(error.IndexOverflow, map.getFloorTile(Pos.config(0, 20)));
-}
+// Invalid position on map guarded by panic
 
 //
 // Attempting to add an invalid room is prevented by a panic so we can get to

@@ -25,11 +25,11 @@ pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
     utils.addRoom(map, room);
 
     utils.addRoom(map, Room.config(Pos.config(27, 5), Pos.config(35, 10)));
-    try utils.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13);
+    utils.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13);
 
     utils.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)));
 
-    try utils.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10);
+    utils.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10);
 
     return map;
 }
