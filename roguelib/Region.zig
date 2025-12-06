@@ -19,8 +19,11 @@ to: Pos = undefined,
 //
 
 pub fn config(from: Pos, to: Pos) Self {
-    if ((from.getX() < 0) or (from.getY() < 0) or (to.getX() < 0) or (to.getY() < 0)) {
-        @panic("Region.config: Invalid position");
+    if ((from.getX() < 0) or (from.getY() < 0)) {
+        @panic("Region.config: Invalid low position");
+    }
+    if ((to.getX() < 0) or (to.getY() < 0)) {
+        @panic("Region.config: Invalid high position");
     }
 
     if ((from.getX() > to.getX()) or (from.getY() > to.getY())) {
@@ -131,9 +134,9 @@ test "Region iterator" {
     while (i.next()) |pos| {
         const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);
         try expect(pos.getX() >= 0);
-        try expect(pos.getX() <= ARRAYDIM);
+        try expect(pos.getX() < ARRAYDIM);
         try expect(pos.getY() >= 0);
-        try expect(pos.getY() <= ARRAYDIM);
+        try expect(pos.getY() < ARRAYDIM);
         a[f] = 1;
     }
 
@@ -147,6 +150,32 @@ test "Region iterator" {
             } else {
                 try expect(val == 0);
             }
+        }
+    }
+}
+
+test "Region iterator entire" {
+    const ARRAYDIM = 14;
+    var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
+
+    // Construct the iteration
+    var r = Self.config(Pos.config(0, 0), Pos.config(13, 13));
+    var i = r.iterator();
+    while (i.next()) |pos| {
+        const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);
+        try expect(pos.getX() >= 0);
+        try expect(pos.getX() < ARRAYDIM);
+        try expect(pos.getY() >= 0);
+        try expect(pos.getY() < ARRAYDIM);
+        a[f] = 1;
+    }
+
+    // Rigorously consider what should have been touched
+
+    for (0..ARRAYDIM) |y| {
+        for (0..ARRAYDIM) |x| {
+            const val = a[x + y * ARRAYDIM];
+            try expect(val == 1);
         }
     }
 }

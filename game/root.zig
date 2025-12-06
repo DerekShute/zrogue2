@@ -44,13 +44,11 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
 
-        // TODO displaying map as mapgen convenience
-        for (0..@intCast(map.getHeight())) |y| {
-            for (0..@intCast(map.getWidth())) |x| {
-                const loc = Pos.config(@intCast(x), @intCast(y));
-                const t = map.getFloorTile(loc);
-                player.setTileKnown(loc, t);
-            }
+        // TODO for now, reveal the map
+        var i = map.iterator();
+        while (i.next()) |loc| {
+            const t = map.getFloorTile(loc);
+            player.setTileKnown(loc, t);
         }
 
         while (result == .continue_game) {
