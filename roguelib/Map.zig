@@ -121,6 +121,39 @@ pub fn passable(self: *Self, p: Pos) bool {
 }
 
 //
+// Map Iterator
+//
+// Every location on the map
+//
+
+pub const Iterator = struct {
+    m: *Self = undefined,
+    x: Pos.Dim = 0,
+    y: Pos.Dim = 0,
+
+    // TODO: This could use a Region and its iterator but there's
+    // pointer and storage confusion...maybe a Region as part of the map?
+
+    pub fn next(self: *Iterator) ?Pos {
+        const oldx = self.x;
+        const oldy = self.y;
+        if (self.y > self.m.getHeight() - 1) {
+            return null;
+        } else if (self.x >= self.m.getWidth() - 1) { // next row
+            self.y = self.y + 1;
+            self.x = 0;
+        } else {
+            self.x = self.x + 1; // next column
+        }
+        return Pos.config(oldx, oldy);
+    }
+};
+
+pub fn iterator(self: *Self) Iterator {
+    return .{ .m = self };
+}
+
+//
 // rooms
 //
 
@@ -274,6 +307,34 @@ test "fails to allocate rooms of map" { // third allocation attempt
     const allocator = failing.allocator();
 
     try expectError(error.OutOfMemory, init(allocator, 10, 10, 10, 10));
+}
+
+test "Map Iterator" {
+    const ARRAYDIM = 14;
+    var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
+    var map = try init(std.testing.allocator, ARRAYDIM, ARRAYDIM, 1, 1);
+    defer map.deinit(std.testing.allocator);
+    var i = map.iterator();
+
+    // Just like the Region test but this covers the map
+
+    while (i.next()) |pos| {
+        const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);
+        try expect(pos.getX() >= 0);
+        try expect(pos.getX() < ARRAYDIM);
+        try expect(pos.getY() >= 0);
+        try expect(pos.getY() < ARRAYDIM);
+        a[f] = 1;
+        _ = map.getFloorTile(pos); // Doesn't panic?  Good for you!
+    }
+
+    // Everything should have been touched
+
+    for (0..ARRAYDIM) |y| {
+        for (0..ARRAYDIM) |x| {
+            try expect(a[x + y * ARRAYDIM] == 1);
+        }
+    }
 }
 
 // Invalid size maps guarded by panic
