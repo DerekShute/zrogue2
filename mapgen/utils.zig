@@ -61,6 +61,12 @@ pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
     m.addEntity(e, p);
 }
 
+// Items
+
+pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {
+    m.addItem(p, t);
+}
+
 // Rooms
 
 pub fn addRoom(m: *Map, room: Room) void {

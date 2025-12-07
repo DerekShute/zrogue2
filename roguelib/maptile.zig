@@ -2,10 +2,9 @@
 //! Visible thing at map space
 //!
 
-// TODO Future: union with monster types and objects?
-
 const std = @import("std");
 
+// TODO: break out item vs entity vs floor as separate tiles
 pub const MapTile = enum {
     unknown,
     floor,
@@ -37,6 +36,7 @@ pub const MapTile = enum {
 pub const Tileset = struct {
     floor: MapTile,
     entity: MapTile,
+    item: MapTile,
 };
 
 //

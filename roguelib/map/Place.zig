@@ -14,7 +14,8 @@ const Self = @This();
 
 floor: MapTile = .unknown,
 entity: ?*Entity = null,
-// TODO item
+// TODO this is unbelievably crude until there's droppable/interesting items
+item: MapTile = .unknown,
 // TODO feature
 
 //
@@ -25,6 +26,7 @@ entity: ?*Entity = null,
 pub fn config(self: *Self) void {
     self.floor = .wall;
     self.entity = null;
+    self.item = .unknown;
 }
 
 //
@@ -35,6 +37,7 @@ pub fn getTileset(self: *Self) Tileset {
     var ts: Tileset = .{
         .floor = self.floor,
         .entity = .unknown,
+        .item = self.item,
     };
 
     if (self.entity) |e| {
@@ -54,6 +57,19 @@ pub fn setEntity(self: *Self, to: *Entity) void {
 pub fn removeEntity(self: *Self) void {
     // TODO: validate that there is one?
     self.entity = null;
+}
+
+pub fn setItem(self: *Self, to: MapTile) void {
+    self.item = to;
+}
+
+pub fn getItem(self: *Self) MapTile {
+    return self.item;
+}
+
+pub fn removeItem(self: *Self) void {
+    // TODO: validate that there is one?
+    self.item = .unknown;
 }
 
 pub fn setFloorTile(self: *Self, to: MapTile) void {
@@ -81,6 +97,8 @@ test "basic tests" {
     place.setFloorTile(.wall);
     const ts = place.getTileset();
     try expect(ts.floor == .wall);
+    try expect(ts.entity == .unknown);
+    try expect(ts.item == .unknown);
     try expect(place.passable() == false);
 }
 

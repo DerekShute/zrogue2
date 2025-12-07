@@ -26,7 +26,6 @@ const State = enum {
 // Utilities
 //
 
-// TODO this goes in provider or something?
 fn render(player: *Player, ts: Tileset, p: Pos) void {
 
     // Eventual considerations:
@@ -34,9 +33,13 @@ fn render(player: *Player, ts: Tileset, p: Pos) void {
     //  * dark?
     //  * invisibility?
     //  * blindness?
+    //
+    // TODO: SetKnown should accept all three; let provider figure it out
 
     if (ts.entity != .unknown) {
         player.setTileKnown(p, ts.entity);
+    } else if (ts.item != .unknown) {
+        player.setTileKnown(p, ts.item);
     } else {
         player.setTileKnown(p, ts.floor);
     }
