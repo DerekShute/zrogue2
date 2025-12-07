@@ -94,9 +94,10 @@ fn doSearch(player: *Player, action: *Action, map: *Map) Action.Result {
 }
 
 fn doTake(player: *Player, action: *Action, map: *Map) Action.Result {
-    _ = action;
-    _ = map;
-    player.addMessage("Nothing here to take!");
+    const p = action.getPos();
+    const i = map.getItem(p);
+    map.removeItem(p);
+    player.takeItem(i);
     return .continue_game;
 }
 
