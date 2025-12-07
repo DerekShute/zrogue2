@@ -51,6 +51,11 @@ pub fn setEntity(self: *Self, to: *Entity) void {
     self.entity = to;
 }
 
+pub fn removeEntity(self: *Self) void {
+    // TODO: validate that there is one?
+    self.entity = null;
+}
+
 pub fn setFloorTile(self: *Self, to: MapTile) void {
     self.floor = to;
 }

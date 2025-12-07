@@ -61,15 +61,16 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
 
-        // TODO for now, reveal the map
-        var i = map.iterator();
-        while (i.next()) |loc| {
-            const ts = map.getTileset(loc);
-            render(player, ts, loc);
-        }
-
         // TODO: doPlayerAction goes into Player, eventually Entity vtable
         while (result == .continue_game) {
+            // TODO for now, reveal the map
+            // TODO: this is of course very hokey
+            var i = map.iterator();
+            while (i.next()) |loc| {
+                const ts = map.getTileset(loc);
+                render(player, ts, loc);
+            }
+
             var action = player.getAction();
             result = util.doPlayerAction(player, &action, map);
         }
