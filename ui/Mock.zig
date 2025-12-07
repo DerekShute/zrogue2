@@ -6,7 +6,6 @@
 
 const std = @import("std");
 const Provider = @import("Provider.zig");
-const Command = @import("roguelib").Command;
 
 const Self = @This();
 
@@ -18,7 +17,7 @@ pub const Config = struct {
     allocator: std.mem.Allocator,
     maxx: u8,
     maxy: u8,
-    commands: []Command,
+    commands: []Provider.Command,
 };
 
 //
@@ -26,7 +25,7 @@ pub const Config = struct {
 //
 
 p: Provider = undefined,
-command_list: []Command = undefined,
+command_list: []Provider.Command = undefined,
 command_index: u16 = 0,
 
 //
@@ -67,7 +66,7 @@ pub fn provider(self: *Self) *Provider {
 // Methods
 //
 
-fn getCommand(ptr: *anyopaque) Command {
+fn getCommand(ptr: *anyopaque) Provider.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
     const i = self.command_index;
     if (i >= self.command_list.len) {
@@ -84,7 +83,7 @@ fn getCommand(ptr: *anyopaque) Command {
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 
-var testlist = [_]Command{
+var testlist = [_]Provider.Command{
     .go_west,
     .quit,
 };

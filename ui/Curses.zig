@@ -11,7 +11,6 @@ const std = @import("std");
 const curses = @cImport(@cInclude("curses.h"));
 
 const Provider = @import("Provider.zig");
-const Command = @import("roguelib").Command;
 const MapTile = @import("roguelib").MapTile;
 
 const Self = @This();
@@ -166,7 +165,7 @@ fn refresh() void {
 // Input Utility
 //
 
-fn readCommand() Command {
+fn readCommand() Provider.Command {
     // TODO Future: resize 'key'
 
     const ch = paranoia(curses.getch());
@@ -191,6 +190,7 @@ fn readCommand() Command {
 
 fn displayHelp() void {
     // FIXME : This is horrible and adding to it is painful
+    //         Create a map of command <-> keypress for display here?
     mvaddstr(0, 0, "*                                                                              *");
     mvaddstr(0, 1, "         Welcome to the Dungeon of Doom          ");
     mvaddstr(0, 2, "                                                 ");
@@ -261,7 +261,7 @@ fn displayScreen(self: *Self) !void {
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
 
-fn getCommand(ptr: *anyopaque) Command {
+fn getCommand(ptr: *anyopaque) Provider.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     if (global_win == null) {

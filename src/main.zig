@@ -43,9 +43,9 @@ pub fn main() !void {
 // Unit Tests
 //
 
-const Command = @import("roguelib").Command;
+const Provider = @import("ui").Provider;
 
-var testlist = [_]Command{
+var testlist = [_]Provider.Command{
     .wait,
     .go_west,
     .quit,

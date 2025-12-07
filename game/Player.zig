@@ -4,7 +4,7 @@
 
 const std = @import("std");
 
-const Command = @import("roguelib").Command;
+const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
 const MapTile = @import("roguelib").MapTile;
 const Pos = @import("roguelib").Pos;
@@ -55,6 +55,14 @@ fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
 }
 
 //
+// Utility
+//
+
+fn getCommand(self: *Self) Provider.Command {
+    return self.provider.getCommand();
+}
+
+//
 // Methods
 //
 
@@ -62,8 +70,20 @@ pub fn addMessage(self: *Self, msg: []const u8) void {
     self.provider.addMessage(msg);
 }
 
-pub fn getCommand(self: *Self) Command {
-    return self.provider.getCommand();
+pub fn getAction(self: *Self) Action {
+    return switch (self.getCommand()) {
+        .help => Action.config(.none),
+        .quit => Action.config(.quit),
+        .go_north => Action.configDir(.move, .north),
+        .go_east => Action.configDir(.move, .east),
+        .go_south => Action.configDir(.move, .south),
+        .go_west => Action.configDir(.move, .west),
+        .ascend => Action.config(.ascend),
+        .descend => Action.config(.descend),
+        .search => Action.config(.search),
+        .take_item => Action.configPos(.take, self.getPos()),
+        else => Action.config(.wait),
+    };
 }
 
 pub fn getEntity(self: *Self) *Entity {

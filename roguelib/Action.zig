@@ -27,7 +27,7 @@ pub const Type = enum {
 // Members
 //
 
-kind: Type,
+kind: Type, // 'type' is a keyword
 pos: Pos, // MoveAction (delta)
 
 //
@@ -54,6 +54,10 @@ pub fn getPos(self: *Self) Pos {
     return self.pos;
 }
 
+pub fn getType(self: *Self) Type {
+    return self.kind;
+}
+
 //
 // Unit Tests
 //
@@ -67,6 +71,7 @@ test "entity action" {
 
     action = configDir(.move, .west);
     try expect(action.getPos().eql(Pos.config(-1, 0)));
+    try expect(action.getType() == .move);
 }
 
 // EOF

@@ -14,25 +14,6 @@ pub const Room = @import("map/Room.zig"); // TODO Not sure about this
 pub const Tileset = @import("maptile.zig").Tileset;
 
 //
-// Input abstraction
-//
-// REFACTOR: is this an input.zig thing?
-// REFACTOR: Partially duplicates ThingAction.type
-pub const Command = enum {
-    wait,
-    quit,
-    go_north, // 'up'/'down' confusing w/r/t stairs
-    go_east,
-    go_south,
-    go_west,
-    ascend,
-    descend,
-    help,
-    take_item,
-    search,
-};
-
-//
 // Unit Test Breakout
 //
 
