@@ -9,6 +9,7 @@ const Pos = @import("roguelib").Pos;
 const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
 const Tileset = @import("roguelib").Tileset;
+const util = @import("util.zig");
 
 //
 // Internals
@@ -18,14 +19,6 @@ const Tileset = @import("roguelib").Tileset;
 const State = enum {
     run,
     end,
-};
-
-// Return value from ActionGameHandler
-const ActionResult = enum {
-    continue_game, // Game still in progress
-    end_game, // Quit, death, etc.
-    ascend,
-    descend,
 };
 
 //
@@ -62,8 +55,8 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
         .mapgen = .TEST,
     };
 
-    while (state != .end) {
-        var result: ActionResult = .continue_game;
+    while (state == .run) {
+        var result: Action.Result = .continue_game;
 
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
@@ -75,16 +68,15 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
             render(player, ts, loc);
         }
 
+        // TODO: doPlayerAction goes into Player, eventually Entity vtable
         while (result == .continue_game) {
             var action = player.getAction();
-
-            if (action.getType() == .quit) {
-                result = .end_game;
-            }
+            result = util.doPlayerAction(player, &action, map);
         }
 
-        // TODO this is driven by action follow-through
-        state = .end;
+        if (result == .end_game) {
+            state = .end;
+        }
     }
 }
 
@@ -94,6 +86,7 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
 
 comptime {
     _ = @import("Player.zig");
+    _ = @import("util.zig");
 }
 
 // EOF
