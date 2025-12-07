@@ -3,6 +3,8 @@
 //!
 
 const std = @import("std");
+
+const Action = @import("roguelib").Action;
 const Pos = @import("roguelib").Pos;
 const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
@@ -74,9 +76,9 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
         }
 
         while (result == .continue_game) {
-            // TODO this becomes a getAction
-            const cmd = player.getCommand();
-            if (cmd == .quit) {
+            var action = player.getAction();
+
+            if (action.getType() == .quit) {
                 result = .end_game;
             }
         }

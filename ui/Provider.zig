@@ -9,7 +9,6 @@ const std = @import("std");
 const Grid = @import("roguelib").Grid;
 const MessageLog = @import("roguelib").MessageLog;
 const MapTile = @import("roguelib").MapTile;
-const Command = @import("roguelib").Command;
 
 const Self = @This();
 
@@ -22,6 +21,24 @@ pub const Error = error{
     ProviderError,
     DisplayTooSmall, // Curses
     OutOfMemory,
+};
+
+//
+// Input abstraction
+//
+
+pub const Command = enum {
+    wait,
+    quit,
+    go_north, // 'up'/'down' confusing w/r/t stairs
+    go_east,
+    go_south,
+    go_west,
+    ascend,
+    descend,
+    help,
+    take_item,
+    search,
 };
 
 // ===================
