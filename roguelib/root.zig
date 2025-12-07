@@ -2,6 +2,7 @@
 //! roguelib
 //!
 
+pub const Action = @import("Action.zig");
 pub const Entity = @import("Entity.zig");
 pub const Grid = @import("grid.zig").Grid;
 pub const Map = @import("Map.zig");
@@ -36,6 +37,7 @@ pub const Command = enum {
 //
 
 comptime {
+    _ = @import("Action.zig");
     _ = @import("Entity.zig");
     _ = @import("grid.zig");
     _ = @import("maptile.zig");
