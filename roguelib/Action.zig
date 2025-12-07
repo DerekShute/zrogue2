@@ -12,6 +12,8 @@ const Self = @This();
 // Types
 //
 
+// TODO: 'help' for more comprehensive handling
+// TODO: Use Provider.Command, or absorb it?
 pub const Type = enum {
     none,
     quit,
@@ -21,6 +23,14 @@ pub const Type = enum {
     search,
     take, // Positional
     wait,
+};
+
+// Return value of action handlers
+pub const Result = enum {
+    continue_game, // Game still in progress
+    end_game, // Quit, death, etc.
+    ascend,
+    descend,
 };
 
 //

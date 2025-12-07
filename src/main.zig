@@ -48,6 +48,13 @@ const Provider = @import("ui").Provider;
 var testlist = [_]Provider.Command{
     .wait,
     .go_west,
+    .go_east,
+    .go_north,
+    .go_south,
+    .ascend,
+    .descend,
+    .search,
+    .take_item,
     .quit,
 };
 
