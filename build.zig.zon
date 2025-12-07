@@ -46,6 +46,7 @@
         "game",
         "roguelib",
         "src",
+        "testing",
         "ui",
         "LICENSE",
     },

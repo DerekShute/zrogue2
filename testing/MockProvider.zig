@@ -1,11 +1,9 @@
 //!
-//! input/output Provider, plus Mock for testing
-//!
 //! Mock Input/Display provider for testing
 //!
 
 const std = @import("std");
-const Provider = @import("Provider.zig");
+const Provider = @import("ui").Provider;
 
 const Self = @This();
 
