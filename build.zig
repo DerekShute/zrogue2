@@ -13,6 +13,7 @@ pub fn build(b: *std.Build) void {
     //
     //    const optimize = b.standardOptimizeOption(.{});
     const optimize = .ReleaseFast;
+    const test_optimize = b.standardOptimizeOption(.{});
 
     const roguelib_mod = b.addModule("roguelib", .{
         .root_source_file = b.path("roguelib/root.zig"),
@@ -91,13 +92,28 @@ pub fn build(b: *std.Build) void {
     });
     const run_ui_tests = b.addRunArtifact(ui_tests);
 
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
+    const test_exe = b.addExecutable(.{
+        .name = "zrogue-tests",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("testing/tests_main.zig"),
+            .target = target,
+            .optimize = test_optimize,
+            .imports = &.{
+                .{ .name = "game", .module = game_mod },
+                .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "ui", .module = ui_mod },
+            },
+        }),
     });
-    const run_exe_tests = b.addRunArtifact(exe_tests);
+
+    // I am running out of ideas for names of all this
+    const testing_exe = b.addTest(.{
+        .root_module = test_exe.root_module,
+    });
+    const run_testing_exe = b.addRunArtifact(testing_exe);
 
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&run_testing_exe.step);
     test_step.dependOn(&run_mapgen_tests.step);
     test_step.dependOn(&run_roguelib_tests.step);
     test_step.dependOn(&run_ui_tests.step);

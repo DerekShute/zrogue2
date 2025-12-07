@@ -43,33 +43,6 @@ pub fn main() !void {
 // Unit Tests
 //
 
-const Provider = @import("ui").Provider;
-
-var testlist = [_]Provider.Command{
-    .wait,
-    .go_west,
-    .go_east,
-    .go_north,
-    .go_south,
-    .ascend,
-    .descend,
-    .search,
-    .take_item,
-    .quit,
-};
-
-test "run the game" {
-    var m = try ui.initMock(.{ .allocator = std.testing.allocator, .maxx = XSIZE, .maxy = YSIZE, .commands = &testlist });
-    defer m.deinit(std.testing.allocator);
-
-    var player = game.Player.init(.{
-        .provider = m.provider(),
-        .allocator = std.testing.allocator,
-        .maxx = XSIZE,
-        .maxy = YSIZE,
-    });
-
-    try game.run(&player, std.testing.allocator);
-}
+// Handled as part of the testing subdir rig
 
 // EOF

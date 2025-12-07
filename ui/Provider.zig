@@ -1,5 +1,5 @@
 //!
-//! input/output Provider, plus Mock for testing
+//! input/output Provider
 //!
 //! This module is transitional, on the way to having some Connector joining
 //! engine to user interface (websocket, etc.)
