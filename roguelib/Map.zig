@@ -121,12 +121,14 @@ pub fn getTileset(self: *Self, p: Pos) Tileset {
     return self.toPlace(p).getTileset();
 }
 
-pub fn getFloorTile(self: *Self, p: Pos) MapTile { // TODO deprecated
-    return self.toPlace(p).getTile();
+// Mostly convenience of testing
+pub fn getFloorTile(self: *Self, p: Pos) MapTile {
+    const ts = self.toPlace(p).getTileset();
+    return ts.floor;
 }
 
-pub fn setTile(self: *Self, p: Pos, tile: MapTile) void { // TODO deprecated
-    self.toPlace(p).setTile(tile);
+pub fn setFloorTile(self: *Self, p: Pos, tile: MapTile) void {
+    self.toPlace(p).setFloorTile(tile);
 }
 
 pub fn passable(self: *Self, p: Pos) bool {
@@ -292,9 +294,9 @@ test "map smoke test" {
     defer map.deinit(std.testing.allocator);
 
     map.addRoom(Room.config(Pos.config(10, 10), Pos.config(20, 20)));
-    map.setTile(Pos.config(15, 15), .stairs_down);
+    map.setFloorTile(Pos.config(15, 15), .stairs_down);
     try expect(map.getFloorTile(Pos.config(15, 15)) == .stairs_down);
-    map.setTile(Pos.config(16, 16), .stairs_up);
+    map.setFloorTile(Pos.config(16, 16), .stairs_up);
     try expect(map.getFloorTile(Pos.config(16, 16)) == .stairs_up);
 
     try expect(map.getHeight() == 50);

@@ -44,10 +44,6 @@ pub fn getTileset(self: *Self) Tileset {
     return ts;
 }
 
-pub fn getTile(self: *Self) MapTile { // TODO obsolete
-    return self.floor;
-}
-
 pub fn setEntity(self: *Self, to: *Entity) void {
     if (self.entity) |_| {
         @panic("Place.setEntity: already in use\n");
@@ -55,7 +51,7 @@ pub fn setEntity(self: *Self, to: *Entity) void {
     self.entity = to;
 }
 
-pub fn setTile(self: *Self, to: MapTile) void { // TODO obsolete
+pub fn setFloorTile(self: *Self, to: MapTile) void {
     self.floor = to;
 }
 
@@ -77,12 +73,10 @@ const expect = @import("std").testing.expect;
 test "basic tests" {
     var place: Self = .{};
 
-    place.setTile(.wall);
-    try expect(place.getTile() == .wall);
-    try expect(place.passable() == false);
-
+    place.setFloorTile(.wall);
     const ts = place.getTileset();
     try expect(ts.floor == .wall);
+    try expect(place.passable() == false);
 }
 
 // EOF
