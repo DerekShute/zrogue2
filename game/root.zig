@@ -6,6 +6,7 @@ const std = @import("std");
 
 const Action = @import("roguelib").Action;
 const Pos = @import("roguelib").Pos;
+const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
 const Tileset = @import("roguelib").Tileset;
@@ -45,6 +46,12 @@ fn render(player: *Player, ts: Tileset, p: Pos) void {
 // Run the game
 //
 
+// Public for use in testing
+pub fn step(player: *Player, map: *Map) Action.Result {
+    var action = player.getAction();
+    return util.doPlayerAction(player, &action, map);
+}
+
 // TODO: this probably goes in its own file
 pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
     var state: State = .run;
@@ -71,8 +78,7 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
                 render(player, ts, loc);
             }
 
-            var action = player.getAction();
-            result = util.doPlayerAction(player, &action, map);
+            result = step(player, map);
         }
 
         if (result == .end_game) {

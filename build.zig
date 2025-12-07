@@ -100,6 +100,7 @@ pub fn build(b: *std.Build) void {
             .optimize = test_optimize,
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
+                .{ .name = "mapgen", .module = mapgen_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
                 .{ .name = "ui", .module = ui_mod },
             },

@@ -33,6 +33,7 @@ test "run the game" {
         .maxx = XSIZE,
         .maxy = YSIZE,
         .commands = &testlist,
+    };
     var m = try MockProvider.init(p_config);
     defer m.deinit(std.testing.allocator);
 
@@ -51,6 +52,7 @@ test "run the game" {
 //
 
 comptime {
+    _ = @import("actions.zig");
     _ = @import("MockProvider.zig");
 }
 
