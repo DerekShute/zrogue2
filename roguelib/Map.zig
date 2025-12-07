@@ -4,12 +4,14 @@
 
 const std = @import("std");
 
+const Entity = @import("Entity.zig");
 const Grid = @import("grid.zig").Grid;
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
 const Place = @import("map/Place.zig");
 const Region = @import("Region.zig");
 const Room = @import("map/Room.zig");
+const Tileset = @import("maptile.zig").Tileset;
 
 const PlaceGrid = Grid(Place);
 
@@ -96,6 +98,13 @@ fn toPlace(self: *Self, p: Pos) *Place {
 // Methods
 //
 
+pub fn addEntity(self: *Self, e: *Entity, p: Pos) void {
+    if (!p.eql(e.getPos())) {
+        @panic("Map.addEntity: Entity not set to position\n");
+    }
+    self.toPlace(p).setEntity(e);
+}
+
 pub fn getHeight(self: *Self) Pos.Dim {
     return self.height;
 }
@@ -108,11 +117,15 @@ pub fn getDepth(self: *Self) usize {
     return self.level;
 }
 
-pub fn getFloorTile(self: *Self, p: Pos) MapTile {
+pub fn getTileset(self: *Self, p: Pos) Tileset {
+    return self.toPlace(p).getTileset();
+}
+
+pub fn getFloorTile(self: *Self, p: Pos) MapTile { // TODO deprecated
     return self.toPlace(p).getTile();
 }
 
-pub fn setTile(self: *Self, p: Pos, tile: MapTile) void {
+pub fn setTile(self: *Self, p: Pos, tile: MapTile) void { // TODO deprecated
     self.toPlace(p).setTile(tile);
 }
 

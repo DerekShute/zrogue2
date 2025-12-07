@@ -43,6 +43,14 @@ pub fn getTile(self: *Self) MapTile {
     return self.tile;
 }
 
+pub fn getPos(self: *Self) Pos {
+    return self.p;
+}
+
+pub fn setPos(self: *Self, p: Pos) void {
+    self.p = p;
+}
+
 // VTable
 
 pub fn addMessage(self: *Self, msg: []const u8) void {

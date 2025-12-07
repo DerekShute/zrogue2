@@ -10,6 +10,7 @@ pub const MessageLog = @import("MessageLog.zig");
 pub const Pos = @import("Pos.zig");
 pub const Region = @import("Region.zig");
 pub const Room = @import("map/Room.zig"); // TODO Not sure about this
+pub const Tileset = @import("maptile.zig").Tileset;
 
 //
 // Input abstraction

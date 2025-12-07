@@ -3,6 +3,7 @@
 //!
 
 const std = @import("std");
+const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
 const MapTile = @import("roguelib").MapTile;
 const Pos = @import("roguelib").Pos;
@@ -14,6 +15,7 @@ const Room = @import("roguelib").Room;
 //
 
 pub const Config = struct {
+    player: ?*Entity = null,
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,
     level: usize = 1,
@@ -50,6 +52,13 @@ pub fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     while (ri.next()) |pos| {
         m.setTile(pos, tile);
     }
+}
+
+// Entities
+
+pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
+    e.setPos(p);
+    m.addEntity(e, p);
 }
 
 // Rooms

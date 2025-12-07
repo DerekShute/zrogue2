@@ -31,6 +31,15 @@ pub const MapTile = enum {
 };
 
 //
+// Tileset - tiles at a location (floor, entity, feature)
+//
+
+pub const Tileset = struct {
+    floor: MapTile,
+    entity: MapTile,
+};
+
+//
 // Unit Tests
 //
 const expect = std.testing.expect;
