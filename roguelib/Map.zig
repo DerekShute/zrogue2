@@ -76,6 +76,7 @@ pub fn init(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, rooms
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+    // TODO: must demolish places and entities
     self.places.deinit(allocator);
     allocator.free(self.rooms);
     allocator.destroy(self);
@@ -107,6 +108,18 @@ pub fn addEntity(self: *Self, e: *Entity, p: Pos) void {
 
 pub fn removeEntity(self: *Self, p: Pos) void {
     self.toPlace(p).removeEntity();
+}
+
+pub fn addItem(self: *Self, p: Pos, i: MapTile) void {
+    self.toPlace(p).setItem(i);
+}
+
+pub fn getItem(self: *Self, p: Pos) MapTile {
+    return self.toPlace(p).getItem();
+}
+
+pub fn removeItem(self: *Self, p: Pos) void {
+    self.toPlace(p).removeItem();
 }
 
 pub fn getHeight(self: *Self) Pos.Dim {
