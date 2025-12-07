@@ -33,7 +33,7 @@ pub fn drawHorizLine(m: *Map, start: Pos, end_x: Pos.Dim, tile: MapTile) void {
     const minx = @min(start.getX(), end_x + 1);
     const maxx = @max(start.getX(), end_x + 1);
     for (@intCast(minx)..@intCast(maxx)) |x| {
-        m.setTile(Pos.config(@intCast(x), start.getY()), tile);
+        m.setFloorTile(Pos.config(@intCast(x), start.getY()), tile);
     }
 }
 
@@ -41,7 +41,7 @@ pub fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) void {
     const miny = @min(start.getY(), end_y + 1);
     const maxy = @max(start.getY(), end_y + 1);
     for (@intCast(miny)..@intCast(maxy)) |y| {
-        m.setTile(Pos.config(start.getX(), @intCast(y)), tile);
+        m.setFloorTile(Pos.config(start.getX(), @intCast(y)), tile);
     }
 }
 
@@ -50,7 +50,7 @@ pub fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     var r = Region.config(start, limit);
     var ri = r.iterator();
     while (ri.next()) |pos| {
-        m.setTile(pos, tile);
+        m.setFloorTile(pos, tile);
     }
 }
 
@@ -132,10 +132,10 @@ test "mapgen smoke test" {
     try expect(m.getFloorTile(Pos.config(10, 10)) == .wall);
 
     // Explicit set tile inside a known room
-    m.setTile(Pos.config(17, 17), .wall);
+    m.setFloorTile(Pos.config(17, 17), .wall);
     try expect(m.getFloorTile(Pos.config(17, 17)) == .wall);
 
-    m.setTile(Pos.config(18, 18), .door);
+    m.setFloorTile(Pos.config(18, 18), .door);
     try expect(m.getFloorTile(Pos.config(18, 18)) == .door);
 }
 
