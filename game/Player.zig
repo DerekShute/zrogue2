@@ -70,6 +70,10 @@ pub fn addMessage(self: *Self, msg: []const u8) void {
     self.provider.addMessage(msg);
 }
 
+pub fn getMessage(self: *Self) []const u8 {
+    return self.provider.getMessage();
+}
+
 pub fn getAction(self: *Self) Action {
     return switch (self.getCommand()) {
         .help => Action.config(.none),
@@ -100,6 +104,16 @@ pub fn getPos(self: *Self) Pos {
 
 pub fn setPos(self: *Self, p: Pos) void {
     self.entity.setPos(p);
+}
+
+pub fn takeItem(self: *Self, i: MapTile) void {
+    // TODO Assumes item, inventory, etc.
+    if (i == .gold) {
+        self.addMessage("You pick up the gold!");
+        // TODO: purse
+    } else {
+        self.addMessage("Nothing here to take!");
+    }
 }
 
 //

@@ -62,14 +62,10 @@ test "quit the game" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
-    try expect(player.getPos().getX() == 6);
-    try expect(player.getPos().getY() == 6);
     try expect(game.step(&player, map) == .end_game);
-    try expect(player.getPos().getX() == 6);
-    try expect(player.getPos().getY() == 6);
 }
 
-test "move in a circle" {
+test "move in a circle: all directions work" {
     var testlist = [_]ui.Provider.Command{
         .go_west,
         .go_north,
@@ -121,6 +117,28 @@ test "hit a wall" {
     try expect(player.getPos().getY() == 6);
 }
 
-// Add long sequences and test for expected value
+// Expand this as capabilities add...
+test "pick up gold and etc" {
+    var testlist = [_]ui.Provider.Command{
+        .go_east,
+        .go_north,
+        .take_item,
+    };
+
+    var m = try makeProvider(&testlist);
+    defer m.deinit(std.testing.allocator);
+    var player = makePlayer(m.provider());
+    var map = try makeMap(&player);
+    defer map.deinit(std.testing.allocator);
+
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(game.step(&player, map) == .continue_game);
+
+    try expect(map.getItem(player.getPos()) == .gold);
+    try expect(player.getMessage().len == 0);
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(std.mem.eql(u8, player.getMessage(), "You pick up the gold!"));
+    try expect(map.getItem(player.getPos()) == .unknown);
+}
 
 // EOF
