@@ -105,6 +105,10 @@ pub fn addEntity(self: *Self, e: *Entity, p: Pos) void {
     self.toPlace(p).setEntity(e);
 }
 
+pub fn removeEntity(self: *Self, p: Pos) void {
+    self.toPlace(p).removeEntity();
+}
+
 pub fn getHeight(self: *Self) Pos.Dim {
     return self.height;
 }

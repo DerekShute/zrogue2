@@ -7,6 +7,7 @@ const std = @import("std");
 const Action = @import("roguelib").Action;
 const Map = @import("roguelib").Map;
 const Player = @import("Player.zig");
+const Pos = @import("roguelib").Pos;
 
 //
 // Types
@@ -62,9 +63,18 @@ fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
 }
 
 fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
-    _ = action;
-    _ = map;
-    player.addMessage("Ouch!");
+    const pos = player.getPos();
+    const new_pos = Pos.add(pos, action.getPos());
+
+    if (map.passable(new_pos)) {
+        map.removeEntity(pos); // TODO: should it check if this is the one?
+        player.setPos(new_pos);
+        map.addEntity(player.getEntity(), new_pos);
+    } else {
+        // TODO: 'bump' callback
+        player.addMessage("Ouch!");
+    }
+
     return .continue_game;
 }
 
