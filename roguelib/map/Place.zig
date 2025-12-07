@@ -2,7 +2,9 @@
 //! Spot on the map and everything on it
 //!
 
+const Entity = @import("../Entity.zig");
 const MapTile = @import("../maptile.zig").MapTile;
+const Tileset = @import("../maptile.zig").Tileset;
 
 const Self = @This();
 
@@ -10,8 +12,8 @@ const Self = @This();
 // Members
 //
 
-tile: MapTile = .unknown,
-// TODO entity
+floor: MapTile = .unknown,
+entity: ?*Entity = null,
 // TODO item
 // TODO feature
 
@@ -21,23 +23,47 @@ tile: MapTile = .unknown,
 
 // TODO probably not
 pub fn config(self: *Self) void {
-    self.tile = .wall;
+    self.floor = .wall;
+    self.entity = null;
 }
 
 //
 // Methods
 //
 
-pub fn getTile(self: *Self) MapTile {
-    return self.tile;
+pub fn getTileset(self: *Self) Tileset {
+    var ts: Tileset = .{
+        .floor = self.floor,
+        .entity = .unknown,
+    };
+
+    if (self.entity) |e| {
+        ts.entity = e.getTile();
+    }
+
+    return ts;
+}
+
+pub fn getTile(self: *Self) MapTile { // TODO obsolete
+    return self.floor;
+}
+
+pub fn setEntity(self: *Self, to: *Entity) void {
+    if (self.entity) |_| {
+        @panic("Place.setEntity: already in use\n");
+    }
+    self.entity = to;
+}
+
+pub fn setTile(self: *Self, to: MapTile) void { // TODO obsolete
+    self.floor = to;
 }
 
 pub fn passable(self: *Self) bool {
-    return self.tile.isPassable();
-}
-
-pub fn setTile(self: *Self, to: MapTile) void {
-    self.tile = to;
+    if (self.entity) |_| {
+        return false;
+    }
+    return self.floor.isPassable();
 }
 
 //
@@ -46,12 +72,17 @@ pub fn setTile(self: *Self, to: MapTile) void {
 
 const expect = @import("std").testing.expect;
 
+// Need mock Entity to test
+
 test "basic tests" {
     var place: Self = .{};
 
     place.setTile(.wall);
     try expect(place.getTile() == .wall);
     try expect(place.passable() == false);
+
+    const ts = place.getTileset();
+    try expect(ts.floor == .wall);
 }
 
 // EOF

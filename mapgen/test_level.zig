@@ -16,7 +16,6 @@ const utils = @import("utils.zig");
 //
 
 pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
-    _ = config;
     var map = try Map.init(allocator, 80, 24, 3, 2);
     errdefer map.deinit(allocator);
 
@@ -30,6 +29,12 @@ pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
     utils.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)));
 
     utils.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10);
+
+    // FIXME: add stairs down, figure that into test regimen
+
+    if (config.player) |p| {
+        utils.addEntityToMap(map, p, Pos.config(6, 6));
+    }
 
     return map;
 }

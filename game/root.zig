@@ -6,6 +6,7 @@ const std = @import("std");
 const Pos = @import("roguelib").Pos;
 const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
+const Tileset = @import("roguelib").Tileset;
 
 //
 // Internals
@@ -26,7 +27,27 @@ const ActionResult = enum {
 };
 
 //
-// Routines
+// Utilities
+//
+
+// TODO this goes in provider or something?
+fn render(player: *Player, ts: Tileset, p: Pos) void {
+
+    // Eventual considerations:
+    //  * in room?
+    //  * dark?
+    //  * invisibility?
+    //  * blindness?
+
+    if (ts.entity != .unknown) {
+        player.setTileKnown(p, ts.entity);
+    } else {
+        player.setTileKnown(p, ts.floor);
+    }
+}
+
+//
+// Run the game
 //
 
 // TODO: this probably goes in its own file
@@ -35,6 +56,7 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
     player.addMessage("Welcome to the Dungeon of Doom!");
 
     const mapgen_config: mapgen.Config = .{
+        .player = player.getEntity(),
         .mapgen = .TEST,
     };
 
@@ -47,8 +69,8 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
         // TODO for now, reveal the map
         var i = map.iterator();
         while (i.next()) |loc| {
-            const t = map.getFloorTile(loc);
-            player.setTileKnown(loc, t);
+            const ts = map.getTileset(loc);
+            render(player, ts, loc);
         }
 
         while (result == .continue_game) {

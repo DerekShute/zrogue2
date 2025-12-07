@@ -66,14 +66,27 @@ pub fn getCommand(self: *Self) Command {
     return self.provider.getCommand();
 }
 
+pub fn getEntity(self: *Self) *Entity {
+    return &self.entity;
+}
+
 pub fn setTileKnown(self: *Self, loc: Pos, tile: MapTile) void {
     self.provider.setTile(@intCast(loc.getX()), @intCast(loc.getY()), tile);
+}
+
+pub fn getPos(self: *Self) Pos {
+    return self.entity.getPos();
+}
+
+pub fn setPos(self: *Self, p: Pos) void {
+    self.entity.setPos(p);
 }
 
 //
 // Unit Tests
 //
 
+const expect = std.testing.expect;
 const MockProvider = @import("ui").Mock;
 
 test "create a player" {
@@ -96,6 +109,12 @@ test "create a player" {
     var player = init(config);
 
     player.setTileKnown(Pos.config(0, 0), .floor);
+
+    // Position identity
+
+    const p = Pos.config(10, 10);
+    player.setPos(p);
+    try expect(p.eql(player.getPos()));
 }
 
 // EOF
