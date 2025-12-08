@@ -212,7 +212,7 @@ fn displayHelp() void {
     refresh();
 }
 
-fn displayScreen(self: *Self) !void {
+fn displayScreen(self: *Self, stats: Provider.Stats) !void {
     // TODO: only updates
 
     //
@@ -231,8 +231,8 @@ fn displayScreen(self: *Self) !void {
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
     const output = .{
-        self.p.stats.depth,
-        self.p.stats.purse,
+        stats.depth,
+        stats.purse,
     };
 
     // We know that error.NoSpaceLeft can't happen here
@@ -261,7 +261,7 @@ fn displayScreen(self: *Self) !void {
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
 
-fn getCommand(ptr: *anyopaque) Provider.Command {
+fn getCommand(ptr: *anyopaque, stats: Provider.Stats) Provider.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     if (global_win == null) {
@@ -269,7 +269,7 @@ fn getCommand(ptr: *anyopaque) Provider.Command {
         @panic("getCommand but not initialized");
     }
 
-    self.displayScreen() catch unreachable;
+    self.displayScreen(stats) catch unreachable;
 
     var cmd = readCommand();
     while (cmd == .help) {
