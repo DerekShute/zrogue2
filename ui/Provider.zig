@@ -43,12 +43,13 @@ pub const Command = enum {
 
 // ===================
 //
-// Exported player/game stats
+// Onscreen player/game stats
 //
 
-pub const VisibleStats = struct {
+pub const Stats = struct {
     depth: usize = 0,
     purse: u16 = 0,
+    // TODO: strength armor etc
 };
 
 // ===================
@@ -69,7 +70,7 @@ pub const DisplayMap = Grid(DisplayMapTile);
 //
 pub const VTable = struct {
     // input
-    getCommand: *const fn (ctx: *anyopaque) Command,
+    getCommand: *const fn (ctx: *anyopaque, stats: Stats) Command,
 };
 
 //
@@ -92,7 +93,6 @@ pub const Config = struct {
 ptr: *anyopaque = undefined,
 vtable: *const VTable,
 display_map: DisplayMap = undefined,
-stats: VisibleStats = undefined,
 x: i16 = 0,
 y: i16 = 0,
 log: *MessageLog = undefined,
@@ -106,10 +106,6 @@ pub fn init(config: Config) !Self {
         .x = config.maxx,
         .y = config.maxy,
         .vtable = config.vtable,
-        .stats = .{
-            .depth = 0,
-            .purse = 0,
-        },
     };
 
     const dm = try DisplayMap.config(config.allocator, @intCast(p.x), @intCast(p.y));
@@ -152,12 +148,8 @@ pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) void {
     val.tile = t;
 }
 
-pub fn updateStats(self: *Self, stats: VisibleStats) void {
-    self.stats = stats;
-}
-
-pub inline fn getCommand(self: Self) Command {
-    return self.vtable.getCommand(self.ptr);
+pub inline fn getCommand(self: Self, stats: Stats) Command {
+    return self.vtable.getCommand(self.ptr, stats);
 }
 
 // EOF

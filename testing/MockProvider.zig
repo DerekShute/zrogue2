@@ -25,6 +25,7 @@ pub const Config = struct {
 p: Provider = undefined,
 command_list: []Provider.Command = undefined,
 command_index: u16 = 0,
+stats: Provider.Stats = .{},
 
 //
 // Constructor / Destructor
@@ -64,13 +65,15 @@ pub fn provider(self: *Self) *Provider {
 // Methods
 //
 
-fn getCommand(ptr: *anyopaque) Provider.Command {
+fn getCommand(ptr: *anyopaque, stats: Provider.Stats) Provider.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
     const i = self.command_index;
     if (i >= self.command_list.len) {
         @panic("No more mock commands to provide");
     }
     self.command_index += 1;
+    self.stats.purse = stats.purse;
+    self.stats.depth = stats.depth;
     return self.command_list[i];
 }
 
@@ -87,11 +90,17 @@ var testlist = [_]Provider.Command{
 };
 
 test "try out mock" {
+    const stats: Provider.Stats = .{
+        .purse = 10,
+        .depth = 1,
+    };
     var m = try init(.{ .allocator = std.testing.allocator, .maxx = 40, .maxy = 60, .commands = &testlist });
     defer m.deinit(std.testing.allocator);
 
     var p = m.provider();
-    try expect(p.getCommand() == .go_west);
+    try expect(p.getCommand(stats) == .go_west);
+    try expect(m.stats.purse == 10);
+    try expect(m.stats.depth == 1);
 }
 
 test "mock alloc does not work 0" {

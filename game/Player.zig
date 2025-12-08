@@ -33,6 +33,8 @@ const Self = @This();
 
 entity: Entity = undefined,
 provider: *Provider = undefined,
+purse: u16 = 0,
+depth: u16 = 0,
 
 //
 // Constructor
@@ -59,7 +61,10 @@ fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
 //
 
 fn getCommand(self: *Self) Provider.Command {
-    return self.provider.getCommand();
+    return self.provider.getCommand(.{
+        .purse = self.purse,
+        .depth = self.depth,
+    });
 }
 
 //
@@ -110,7 +115,7 @@ pub fn takeItem(self: *Self, i: MapTile) void {
     // TODO Assumes item, inventory, etc.
     if (i == .gold) {
         self.addMessage("You pick up the gold!");
-        // TODO: purse
+        self.purse += 1;
     } else {
         self.addMessage("Nothing here to take!");
     }
