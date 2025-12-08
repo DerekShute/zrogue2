@@ -51,8 +51,11 @@ fn makeMap(player: *game.Player) !*Map {
 // Tests: consult the test_level map
 //
 
-test "quit the game" {
+test "in-place boring stuff then quit" {
     var testlist = [_]ui.Provider.Command{
+        .wait,
+        .ascend,
+        .descend,
         .quit,
     };
 
@@ -62,6 +65,9 @@ test "quit the game" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(game.step(&player, map) == .continue_game);
     try expect(game.step(&player, map) == .end_game);
 }
 
@@ -145,6 +151,9 @@ test "pick up gold and etc" {
     // Stat update appears at next getCommand
     try expect(game.step(&player, map) == .continue_game);
     try expect(m.stats.purse == 1);
+
+    // TODO: go up stairs
+    // TODO: go down stairs
 }
 
 // EOF

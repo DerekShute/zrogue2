@@ -50,15 +50,21 @@ fn doNothing(player: *Player, action: *Action, map: *Map) Action.Result {
 
 fn doAscend(player: *Player, action: *Action, map: *Map) Action.Result {
     _ = action;
-    _ = map;
-    player.addMessage("I see no way up");
+    if (map.getFloorTile(player.getPos()) == .stairs_up) {
+        player.addMessage("You trip!");
+    } else {
+        player.addMessage("I see no way up");
+    }
     return .continue_game;
 }
 
 fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
     _ = action;
-    _ = map;
-    player.addMessage("I see no way down");
+    if (map.getFloorTile(player.getPos()) == .stairs_down) {
+        player.addMessage("You trip!");
+    } else {
+        player.addMessage("I see no way down");
+    }
     return .continue_game;
 }
 
