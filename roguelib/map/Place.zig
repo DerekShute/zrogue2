@@ -3,6 +3,7 @@
 //!
 
 const Entity = @import("../Entity.zig");
+const Feature = @import("../maptile.zig").Feature;
 const MapTile = @import("../maptile.zig").MapTile;
 const Tileset = @import("../maptile.zig").Tileset;
 
@@ -13,10 +14,10 @@ const Self = @This();
 //
 
 floor: MapTile = .unknown,
-entity: ?*Entity = null,
+entity: ?*Entity = undefined,
 // TODO this is unbelievably crude until there's droppable/interesting items
 item: MapTile = .unknown,
-// TODO feature
+feature: Feature = .none,
 
 //
 // Constructor, probably not idiomatic
@@ -26,7 +27,7 @@ item: MapTile = .unknown,
 pub fn config(self: *Self) void {
     self.floor = .wall;
     self.entity = null;
-    self.item = .unknown;
+    self.feature = .none;
 }
 
 //
@@ -76,6 +77,14 @@ pub fn setFloorTile(self: *Self, to: MapTile) void {
     self.floor = to;
 }
 
+pub fn setFeature(self: *Self, to: Feature) void {
+    self.feature = to;
+}
+
+pub fn getFeature(self: *Self) Feature {
+    return self.feature;
+}
+
 pub fn passable(self: *Self) bool {
     if (self.entity) |_| {
         return false;
@@ -94,12 +103,14 @@ const expect = @import("std").testing.expect;
 test "basic tests" {
     var place: Self = .{};
 
+    place.config();
     place.setFloorTile(.wall);
     const ts = place.getTileset();
     try expect(ts.floor == .wall);
     try expect(ts.entity == .unknown);
     try expect(ts.item == .unknown);
     try expect(place.passable() == false);
+    // Not sure how to usefully test place.feature
 }
 
 // EOF

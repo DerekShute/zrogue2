@@ -4,12 +4,21 @@
 
 const std = @import("std");
 
+pub const Feature = enum {
+    none,
+    trap,
+    door,
+    secret_door,
+    stairs_down,
+    stairs_up,
+};
+
 // TODO: break out item vs entity vs floor as separate tiles
 pub const MapTile = enum {
     unknown,
     floor,
     wall, // Start of features
-    trap,
+    trap, // visible trap
     door,
     stairs_down,
     stairs_up, // Last feature

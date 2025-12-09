@@ -61,6 +61,18 @@ pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
     m.addEntity(e, p);
 }
 
+// Features
+
+pub fn addSecretDoor(m: *Map, p: Pos) void {
+    m.setFloorTile(p, .wall); // until discovered
+    m.setFeature(p, .secret_door);
+}
+
+pub fn addTrap(m: *Map, p: Pos) void {
+    m.setFloorTile(p, .floor); // until discovered or stomped on
+    m.setFeature(p, .trap);
+}
+
 // Items
 
 pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {

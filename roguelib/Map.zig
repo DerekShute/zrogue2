@@ -5,6 +5,7 @@
 const std = @import("std");
 
 const Entity = @import("Entity.zig");
+const Feature = @import("maptile.zig").Feature;
 const Grid = @import("grid.zig").Grid;
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
@@ -136,6 +137,14 @@ pub fn getDepth(self: *Self) usize {
 
 pub fn getTileset(self: *Self, p: Pos) Tileset {
     return self.toPlace(p).getTileset();
+}
+
+pub fn getFeature(self: *Self, p: Pos) Feature {
+    return self.toPlace(p).getFeature();
+}
+
+pub fn setFeature(self: *Self, p: Pos, f: Feature) void {
+    self.toPlace(p).setFeature(f);
 }
 
 // Mostly convenience of testing
