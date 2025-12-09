@@ -15,7 +15,7 @@ const YSIZE = 24;
 //
 
 var testlist = [_]ui.Provider.Command{
-    .wait,
+    .wait, // do nothing
     .go_west,
     .go_east,
     .go_north,
@@ -23,9 +23,14 @@ var testlist = [_]ui.Provider.Command{
     .ascend,
     .descend,
     .search,
-    .take_item, // gold
+    .take_item,
     .go_north,
     .go_east,
+    .take_item, // gold
+    .search, // find trap
+    .go_east, // step on trap
+    .search, // find secret door
+    .go_north,
     .descend, // "level two"
     .go_north,
     .go_north,

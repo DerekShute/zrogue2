@@ -5,9 +5,12 @@
 const std = @import("std");
 
 const Action = @import("roguelib").Action;
+const Feature = @import("roguelib").Feature;
 const Map = @import("roguelib").Map;
 const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
+const Region = @import("roguelib").Region;
+const features = @import("features.zig");
 
 //
 // Types
@@ -77,6 +80,10 @@ fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
         map.removeEntity(pos); // TODO: should it check if this is the one?
         player.setPos(new_pos);
         map.addEntity(player.getEntity(), new_pos);
+        const f = map.getFeature(new_pos);
+        if (f != .none) {
+            _ = features.enter(f, map, new_pos, player);
+        }
     } else {
         // TODO: 'bump' callback
         player.addMessage("Ouch!");
@@ -95,8 +102,23 @@ fn doQuit(player: *Player, action: *Action, map: *Map) Action.Result {
 
 fn doSearch(player: *Player, action: *Action, map: *Map) Action.Result {
     _ = action;
-    _ = map;
-    player.addMessage("You find nothing!");
+
+    var r = Region.configRadius(player.getPos(), 1);
+    var i = r.iterator();
+    var found: bool = false;
+    while (i.next()) |pos| {
+        const f = map.getFeature(pos);
+        if (f != .none) {
+            found |= features.find(f, map, pos, player); // aggregate result
+        }
+    }
+
+    if (found) {
+        player.addMessage("You find something!");
+    } else {
+        player.addMessage("You find nothing!");
+    }
+
     return .continue_game;
 }
 

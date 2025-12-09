@@ -6,6 +6,7 @@ const std = @import("std");
 const game = @import("game");
 const Action = @import("roguelib").Action;
 const Map = @import("roguelib").Map;
+const Pos = @import("roguelib").Pos;
 const mapgen = @import("mapgen");
 const ui = @import("ui");
 
@@ -45,6 +46,11 @@ fn makeMap(player: *game.Player) !*Map {
         },
         std.testing.allocator,
     );
+}
+
+fn actAndMessage(player: *game.Player, map: *Map, msg: []const u8) !void {
+    try expect(game.step(player, map) == .continue_game);
+    try expect(std.mem.eql(u8, player.getMessage(), msg));
 }
 
 //
@@ -125,13 +131,17 @@ test "hit a wall" {
 
 // Expand this as capabilities add...
 test "pick up gold and etc" {
+    // TODO: instrument the mock provider so you can insert/replace items, so
+    // changing this around is easier
     var testlist = [_]ui.Provider.Command{
+        .search, // find nothing
         .go_east,
         .go_north,
         .take_item,
         .wait,
+        .go_east, // on trap
+        .search, // find secret door
         .go_north,
-        .go_east,
         .descend,
         .go_north,
         .ascend,
@@ -143,21 +153,29 @@ test "pick up gold and etc" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
+    try expect(player.getMessage().len == 0);
+
+    try actAndMessage(&player, map, "You find nothing!"); // search
+
     try expect(game.step(&player, map) == .continue_game);
     try expect(game.step(&player, map) == .continue_game);
 
     try expect(map.getItem(player.getPos()) == .gold);
-    try expect(player.getMessage().len == 0);
     try expect(m.stats.purse == 0);
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(std.mem.eql(u8, player.getMessage(), "You pick up the gold!"));
+    try actAndMessage(&player, map, "You pick up the gold!"); // take
     try expect(map.getItem(player.getPos()) == .unknown);
-
     // Stat update appears at next getCommand
     try expect(game.step(&player, map) == .continue_game);
     try expect(m.stats.purse == 1);
 
-    try expect(game.step(&player, map) == .continue_game);
+    try actAndMessage(&player, map, "You step on a trap!"); // go east
+    try expect(map.getFloorTile(Pos.config(8, 5)) == .trap);
+
+    try expect(map.getFloorTile(Pos.config(9, 5)) == .wall);
+
+    try actAndMessage(&player, map, "You find something!"); // search
+    try expect(map.getFloorTile(Pos.config(9, 5)) == .door); // secret door
+
     try expect(game.step(&player, map) == .continue_game);
     try expect(game.step(&player, map) == .descend);
     try expect(std.mem.eql(
