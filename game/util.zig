@@ -51,20 +51,21 @@ fn doNothing(player: *Player, action: *Action, map: *Map) Action.Result {
 fn doAscend(player: *Player, action: *Action, map: *Map) Action.Result {
     _ = action;
     if (map.getFloorTile(player.getPos()) == .stairs_up) {
-        player.addMessage("You trip!");
-    } else {
-        player.addMessage("I see no way up");
+        player.addMessage("You ascend closer to the exit..."); // TODO stupid
+        return .ascend;
     }
+    player.addMessage("I see no way up");
     return .continue_game;
 }
 
 fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
     _ = action;
     if (map.getFloorTile(player.getPos()) == .stairs_down) {
-        player.addMessage("You trip!");
-    } else {
-        player.addMessage("I see no way down");
+        player.addMessage("You go ever deeper into the dungeon...");
+        return .descend;
     }
+
+    player.addMessage("I see no way down");
     return .continue_game;
 }
 

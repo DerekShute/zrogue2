@@ -60,7 +60,7 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
     var state: State = .run;
     player.addMessage("Welcome to the Dungeon of Doom!");
 
-    const mapgen_config: mapgen.Config = .{
+    var mapgen_config: mapgen.Config = .{
         .player = player.getEntity(),
         .mapgen = .TEST,
     };
@@ -70,6 +70,8 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
 
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
+
+        player.setDepth(mapgen_config.level);
 
         // TODO: doPlayerAction goes into Player, eventually Entity vtable
         while (result == .continue_game) {
@@ -82,12 +84,25 @@ pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
             }
 
             result = step(player, map);
-        }
+            switch (result) {
+                .continue_game => {}, // Do nothing, keep going
+                .end_game => {
+                    state = .end;
+                },
+                .descend => {
+                    mapgen_config.level += 1;
+                },
+                .ascend => {
+                    mapgen_config.level -= 1;
+                    if (mapgen_config.level < 1) {
+                        state = .end;
+                    }
+                },
+            }
+        } // Play on level loop
+    } // Game run loop
 
-        if (result == .end_game) {
-            state = .end;
-        }
-    }
+    // TODO : game endings go here
 }
 
 //

@@ -18,7 +18,7 @@ pub const Config = struct {
     player: ?*Entity = null,
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,
-    level: usize = 1,
+    level: u16 = 1,
     going_down: bool = true,
     mapgen: enum {
         TEST,
