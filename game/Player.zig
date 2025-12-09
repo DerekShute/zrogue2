@@ -121,6 +121,10 @@ pub fn takeItem(self: *Self, i: MapTile) void {
     }
 }
 
+pub fn setDepth(self: *Self, d: u16) void {
+    self.depth = d;
+}
+
 //
 // Unit Tests
 //

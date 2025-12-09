@@ -23,7 +23,16 @@ var testlist = [_]ui.Provider.Command{
     .ascend,
     .descend,
     .search,
-    .take_item,
+    .take_item, // gold
+    .go_north,
+    .go_east,
+    .descend, // "level two"
+    .go_north,
+    .go_north,
+    .go_north,
+    .go_east,
+    .go_east,
+    .ascend, // back to "level one"
     .quit,
 };
 

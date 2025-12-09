@@ -130,6 +130,11 @@ test "pick up gold and etc" {
         .go_north,
         .take_item,
         .wait,
+        .go_north,
+        .go_east,
+        .descend,
+        .go_north,
+        .ascend,
     };
 
     var m = try makeProvider(&testlist);
@@ -152,8 +157,22 @@ test "pick up gold and etc" {
     try expect(game.step(&player, map) == .continue_game);
     try expect(m.stats.purse == 1);
 
-    // TODO: go up stairs
-    // TODO: go down stairs
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(game.step(&player, map) == .descend);
+    try expect(std.mem.eql(
+        u8,
+        player.getMessage(),
+        "You go ever deeper into the dungeon...",
+    ));
+
+    try expect(game.step(&player, map) == .continue_game);
+    try expect(game.step(&player, map) == .ascend);
+    try expect(std.mem.eql(
+        u8,
+        player.getMessage(),
+        "You ascend closer to the exit...",
+    ));
 }
 
 // EOF
