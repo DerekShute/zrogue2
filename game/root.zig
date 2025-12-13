@@ -13,6 +13,16 @@ const Tileset = @import("roguelib").Tileset;
 const util = @import("util.zig");
 
 //
+// Configuration
+//
+
+pub const Config = struct {
+    player: *Player,
+    allocator: std.mem.Allocator,
+    gentype: mapgen.MapGenType,
+};
+
+//
 // Internals
 //
 
@@ -56,15 +66,24 @@ pub fn step(player: *Player, map: *Map) Action.Result {
 }
 
 // TODO: this probably goes in its own file
-pub fn run(player: *Player, allocator: std.mem.Allocator) !void {
-    var state: State = .run;
-    player.addMessage("Welcome to the Dungeon of Doom!");
+pub fn run(config: Config) !void {
+    const player = config.player;
+    const allocator = config.allocator;
+
+    const seed: u64 = @intCast(std.time.microTimestamp());
+    var prng = std.Random.DefaultPrng.init(seed);
+    var r = prng.random();
 
     var mapgen_config: mapgen.Config = .{
+        .rand = &r,
         .player = player.getEntity(),
-        .mapgen = .TEST,
+        .xSize = 80, // TODO, eventually other ideas
+        .ySize = 24,
+        .mapgen = config.gentype,
     };
 
+    var state: State = .run;
+    player.addMessage("Welcome to the Dungeon of Doom!");
     while (state == .run) {
         var result: Action.Result = .continue_game;
 

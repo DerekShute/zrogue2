@@ -58,7 +58,11 @@ test "run the game" {
         .maxy = YSIZE,
     });
 
-    try game.run(&player, std.testing.allocator);
+    try game.run(.{
+        .player = &player,
+        .allocator = std.testing.allocator,
+        .gentype = .TEST,
+    });
 }
 
 //

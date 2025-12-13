@@ -14,15 +14,19 @@ const Room = @import("roguelib").Room;
 // Map Configuration
 //
 
+pub const MapGenType = enum {
+    TEST, // Reserved word, so break convention
+    ROGUE,
+};
+
 pub const Config = struct {
+    rand: *std.Random = undefined,
     player: ?*Entity = null,
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,
     level: u16 = 1,
     going_down: bool = true,
-    mapgen: enum {
-        TEST,
-    },
+    mapgen: MapGenType = undefined,
 };
 
 //
