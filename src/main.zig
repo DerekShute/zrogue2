@@ -36,7 +36,11 @@ pub fn main() !void {
         .maxy = YSIZE,
     });
 
-    try game.run(&player, allocator);
+    try game.run(.{
+        .player = &player,
+        .allocator = allocator,
+        .gentype = .ROGUE,
+    });
 }
 
 //
