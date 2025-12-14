@@ -10,6 +10,7 @@ const Map = @import("roguelib").Map;
 const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
+const Tileset = @import("roguelib").Tileset;
 const features = @import("features.zig");
 
 //
@@ -37,6 +38,48 @@ pub fn doPlayerAction(player: *Player, action: *Action, map: *Map) Action.Result
     };
 
     return actFn(player, action, map);
+}
+
+fn renderTile(player: *Player, map: *Map, pos: Pos, visible: bool) void {
+    // TODO: SetKnown(ts, visible), let Provider work it out, including what
+    // to do with things that are not currently visible
+
+    const ts = map.getTileset(pos);
+    if (visible) {
+        if (ts.entity != .unknown) {
+            player.setTileKnown(pos, ts.entity);
+        } else if (ts.item != .unknown) {
+            player.setTileKnown(pos, ts.item);
+        } else {
+            player.setTileKnown(pos, ts.floor);
+        }
+    } else {
+        if (!ts.floor.isFeature()) {
+            player.setTileKnown(pos, .unknown);
+        } // else no update: you know it or you don't
+    }
+}
+
+fn renderRegion(player: *Player, map: *Map, r: Region, visible: bool) void {
+    var _r = r; // ditch const
+    var ri = _r.iterator();
+    while (ri.next()) |p| {
+        renderTile(player, map, p, visible);
+    }
+}
+
+// Pub for initial player placement on map
+pub fn revealMap(player: *Player, map: *Map, pos: Pos) void {
+    const at_loc = pos.eql(player.getPos()); // prior to new location
+
+    if (map.getRoomRegion(pos)) |r| { // In a room
+        const visible = at_loc and map.isLit(pos);
+        renderRegion(player, map, r, visible);
+    }
+
+    // At doorway, dark room, hallway, need union
+    const region = Region.configRadius(pos, 1);
+    renderRegion(player, map, region, at_loc);
 }
 
 //
@@ -72,21 +115,26 @@ fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
     return .continue_game;
 }
 
+// TODO: initial map placement on level
 fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
     const pos = player.getPos();
     const new_pos = Pos.add(pos, action.getPos());
 
     if (map.passable(new_pos)) {
-        map.removeEntity(pos); // TODO: should it check if this is the one?
+        map.removeEntity(pos);
         player.setPos(new_pos);
+
+        // TODO: one revealMap() that takes everything into account
+        revealMap(player, map, pos);
         map.addEntity(player.getEntity(), new_pos);
-        const f = map.getFeature(new_pos);
+        revealMap(player, map, new_pos);
+
+        const f = map.getFeature(new_pos); // TODO wrap
         if (f != .none) {
             _ = features.enter(f, map, new_pos, player);
         }
     } else {
-        // TODO: 'bump' callback
-        player.addMessage("Ouch!");
+        player.addMessage("Ouch!"); // Future: 'bump' callback
     }
 
     return .continue_game;

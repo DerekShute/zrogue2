@@ -220,7 +220,7 @@ fn getRoomNum(self: *Self, p: Pos) ?usize {
 
 // TODO Future: getRoomNum is a mapgen thing
 fn getRoom(self: *Self, p: Pos) ?*Room {
-    if (self.getRoomNum(p)) |loc| {
+    if (self.getRoomNum(p)) |loc| { // TODO does this make sense?
         return &self.rooms[loc];
     }
     return null;
@@ -244,11 +244,13 @@ pub fn inRoom(self: *Self, p: Pos) bool {
     return false; // TODO: ugh
 }
 
-pub fn getRoomRegion(self: *Self, p: Pos) !Region {
+pub fn getRoomRegion(self: *Self, p: Pos) ?Region {
     if (self.getRoom(p)) |room| {
-        return room.getRegion();
+        if (room.isInside(p)) {
+            return room.getRegion();
+        }
     }
-    return error.OutOfBounds;
+    return null; // p not in actual room
 }
 
 pub fn addRoom(self: *Self, room: Room) void {
@@ -396,8 +398,8 @@ test "inquire about room at invalid location" {
     var map = try init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit(std.testing.allocator);
 
-    try expectError(error.OutOfBounds, map.getRoomRegion(Pos.config(21, 21)));
-    try expectError(error.OutOfBounds, map.getRoomRegion(Pos.config(-1, -1)));
+    try expect(map.getRoomRegion(Pos.config(21, 21)) == null);
+    try expect(map.getRoomRegion(Pos.config(-1, -1)) == null);
 
     try expect(map.getRoomNum(Pos.config(19, 0)) == 0);
     try expect(map.getRoomNum(Pos.config(20, 0)) == null);
