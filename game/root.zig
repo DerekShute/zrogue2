@@ -36,25 +36,6 @@ const State = enum {
 // Utilities
 //
 
-fn render(player: *Player, ts: Tileset, p: Pos) void {
-
-    // Eventual considerations:
-    //  * in room?
-    //  * dark?
-    //  * invisibility?
-    //  * blindness?
-    //
-    // TODO: SetKnown should accept all three; let provider figure it out
-
-    if (ts.entity != .unknown) {
-        player.setTileKnown(p, ts.entity);
-    } else if (ts.item != .unknown) {
-        player.setTileKnown(p, ts.item);
-    } else {
-        player.setTileKnown(p, ts.floor);
-    }
-}
-
 //
 // Run the game
 //
@@ -90,18 +71,16 @@ pub fn run(config: Config) !void {
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
 
+        var i = map.iterator();
+        while (i.next()) |p| {
+            player.setTileKnown(p, .unknown);
+        }
+
         player.setDepth(mapgen_config.level);
+        util.revealMap(player, map, player.getPos()); // initial position
 
         // TODO: doPlayerAction goes into Player, eventually Entity vtable
         while (result == .continue_game) {
-            // TODO for now, reveal the map
-            // TODO: this is of course very hokey
-            var i = map.iterator();
-            while (i.next()) |loc| {
-                const ts = map.getTileset(loc);
-                render(player, ts, loc);
-            }
-
             result = step(player, map);
             switch (result) {
                 .continue_game => {}, // Do nothing, keep going
