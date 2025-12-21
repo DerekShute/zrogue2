@@ -9,6 +9,7 @@ const Entity = @import("roguelib").Entity;
 const MapTile = @import("roguelib").MapTile;
 const Pos = @import("roguelib").Pos;
 const Provider = @import("ui").Provider;
+const Tileset = @import("roguelib").Tileset;
 
 //
 // Types
@@ -67,6 +68,15 @@ fn getCommand(self: *Self) Provider.Command {
     });
 }
 
+fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
+    self.provider.setTile(
+        @intCast(loc.getX()),
+        @intCast(loc.getY()),
+        tileset,
+        visible,
+    );
+}
+
 //
 // Methods
 //
@@ -99,9 +109,23 @@ pub fn getEntity(self: *Self) *Entity {
     return &self.entity;
 }
 
-pub fn setTileKnown(self: *Self, loc: Pos, tile: MapTile) void {
-    self.provider.setTile(@intCast(loc.getX()), @intCast(loc.getY()), tile);
+// Map tile management
+
+pub fn setKnown(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
+    self.setTile(loc, tileset, visible);
 }
+
+pub fn setUnknown(self: *Self, loc: Pos) void {
+    const empty: Tileset = .{
+        .floor = .unknown,
+        .entity = .unknown,
+        .item = .unknown,
+    };
+
+    self.setTile(loc, empty, false);
+}
+
+// Position
 
 pub fn getPos(self: *Self) Pos {
     return self.entity.getPos();
@@ -111,8 +135,10 @@ pub fn setPos(self: *Self, p: Pos) void {
     self.entity.setPos(p);
 }
 
+// Misc
+
 pub fn takeItem(self: *Self, i: MapTile) void {
-    // TODO Assumes item, inventory, etc.
+    // FUTURE: no that maptile is an awful idea.  Item reference ID?
     if (i == .gold) {
         self.addMessage("You pick up the gold!");
         self.purse += 1;

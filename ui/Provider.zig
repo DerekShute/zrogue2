@@ -7,8 +7,9 @@
 
 const std = @import("std");
 const Grid = @import("roguelib").Grid;
-const MessageLog = @import("roguelib").MessageLog;
 const MapTile = @import("roguelib").MapTile;
+const MessageLog = @import("roguelib").MessageLog;
+const Tileset = @import("roguelib").Tileset;
 
 const Self = @This();
 
@@ -59,8 +60,10 @@ pub const Stats = struct {
 // Subset of map.Place
 //
 pub const DisplayMapTile = struct {
-    tile: MapTile,
-    // TODO: monster tile, item tile
+    entity: MapTile,
+    item: MapTile,
+    floor: MapTile,
+    visible: bool,
 };
 
 pub const DisplayMap = Grid(DisplayMapTile);
@@ -129,6 +132,8 @@ pub inline fn deinit(self: Self, allocator: std.mem.Allocator) void {
 // Methods
 //
 
+// Message
+
 pub inline fn addMessage(self: Self, msg: []const u8) void {
     self.log.add(msg);
 }
@@ -141,12 +146,26 @@ pub inline fn clearMessage(self: Self) void {
     self.log.clear();
 }
 
-pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) void {
+// DisplayMapTile
+
+pub fn getTile(self: Self, x: u16, y: u16) DisplayMapTile {
+    const tile = self.display_map.find(x, y) catch {
+        @panic("Bad pos sent to Provider.getTile"); // THINK: error?
+    };
+    return tile.*;
+}
+
+pub fn setTile(self: Self, x: u16, y: u16, set: Tileset, visible: bool) void {
     var val = self.display_map.find(x, y) catch {
         @panic("Bad pos sent to Provider.setTile"); // THINK: error?
     };
-    val.tile = t;
+    val.entity = set.entity;
+    val.floor = set.floor;
+    val.item = set.item;
+    val.visible = visible;
 }
+
+// Command
 
 pub inline fn getCommand(self: Self, stats: Stats) Command {
     return self.vtable.getCommand(self.ptr, stats);

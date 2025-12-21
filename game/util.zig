@@ -40,31 +40,11 @@ pub fn doPlayerAction(player: *Player, action: *Action, map: *Map) Action.Result
     return actFn(player, action, map);
 }
 
-fn renderTile(player: *Player, map: *Map, pos: Pos, visible: bool) void {
-    // TODO: SetKnown(ts, visible), let Provider work it out, including what
-    // to do with things that are not currently visible
-
-    const ts = map.getTileset(pos);
-    if (visible) {
-        if (ts.entity != .unknown) {
-            player.setTileKnown(pos, ts.entity);
-        } else if (ts.item != .unknown) {
-            player.setTileKnown(pos, ts.item);
-        } else {
-            player.setTileKnown(pos, ts.floor);
-        }
-    } else {
-        if (!ts.floor.isFeature()) {
-            player.setTileKnown(pos, .unknown);
-        } // else no update: you know it or you don't
-    }
-}
-
 fn renderRegion(player: *Player, map: *Map, r: Region, visible: bool) void {
     var _r = r; // ditch const
     var ri = _r.iterator();
     while (ri.next()) |p| {
-        renderTile(player, map, p, visible);
+        player.setKnown(p, map.getTileset(p), visible);
     }
 }
 

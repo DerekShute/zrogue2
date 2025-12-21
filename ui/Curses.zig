@@ -51,6 +51,7 @@ fn paranoia(res: c_int) c_int {
 // Convert map location to what it is displayed as
 //
 fn mapToChar(ch: MapTile) u8 {
+    // FUTURE: break out into types
     const c: u8 = switch (ch) {
         .unknown => ' ',
         .floor => '.',
@@ -63,6 +64,39 @@ fn mapToChar(ch: MapTile) u8 {
         .stairs_up => '<',
     };
     return c;
+}
+
+fn renderChar(tile: Provider.DisplayMapTile) u8 {
+    if (tile.visible) {
+        if (tile.entity != .unknown) {
+            return mapToChar(tile.entity);
+        }
+        if (tile.item != .unknown) {
+            return mapToChar(tile.item);
+        }
+        // Else floor
+    } else { // Not visible
+        // Provider option: can use dimmed version of last known, etc
+        if (!tile.floor.isFeature()) {
+            return mapToChar(.unknown);
+        }
+    }
+
+    return mapToChar(tile.floor);
+}
+
+fn renderMap(p: *Provider) void {
+    // TODO: iterator
+    for (0..@intCast(p.y - 2)) |y| {
+        for (0..@intCast(p.x)) |x| {
+            const char = renderChar(p.getTile(@intCast(x), @intCast(y)));
+            _ = paranoia(curses.mvaddch(
+                @intCast(y + 1),
+                @intCast(x),
+                char,
+            ));
+        }
+    }
 }
 
 //
@@ -240,17 +274,11 @@ fn displayScreen(self: *Self, stats: Provider.Stats) !void {
     mvaddstr(0, @intCast(self.p.y - 1), line);
 
     //
-    // Output map display
+    // Middle: the map
     //
-    // TODO iterator: note that map can't use the last line of the display
-    //
-    const map = self.p.display_map;
-    for (0..@intCast(self.p.y - 2)) |y| {
-        for (0..@intCast(self.p.x)) |x| {
-            const t = map.find(@intCast(x), @intCast(y)) catch unreachable;
-            _ = paranoia(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile)));
-        }
-    }
+    renderMap(&self.p);
+
+    // Regenerate display
 
     refresh();
 }
