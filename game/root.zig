@@ -16,6 +16,8 @@ const util = @import("util.zig");
 // Configuration
 //
 
+const MAX_DEPTH = 3;
+
 pub const Config = struct {
     player: *Player,
     allocator: std.mem.Allocator,
@@ -89,6 +91,9 @@ pub fn run(config: Config) !void {
                 },
                 .descend => {
                     mapgen_config.level += 1;
+                    if (mapgen_config.level >= MAX_DEPTH) {
+                        mapgen_config.going_down = false;
+                    }
                 },
                 .ascend => {
                     mapgen_config.level -= 1;
