@@ -72,6 +72,7 @@ test "run the game" {
 comptime {
     _ = @import("actions.zig");
     _ = @import("MockProvider.zig");
+    _ = @import("render.zig");
 }
 
 // EOF

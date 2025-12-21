@@ -13,6 +13,12 @@ const Tileset = @import("roguelib").Tileset;
 const util = @import("util.zig");
 
 //
+// Testing conveniences
+//
+
+pub const revealMap = util.revealMap;
+
+//
 // Configuration
 //
 
