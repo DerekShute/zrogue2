@@ -28,6 +28,7 @@ pub fn config(self: *Self) void {
     self.floor = .wall;
     self.entity = null;
     self.feature = .none;
+    self.item = .unknown;
 }
 
 //
