@@ -26,9 +26,9 @@ const VTable = struct {
 
 fn findSecretDoor(m: *Map, p: Pos, player: *Player) bool {
     // TODO: chance to succeed
-    _ = player;
     m.setFloorTile(p, .door);
     m.setFeature(p, .none);
+    player.setKnown(p, m.getTileset(p), true);
     // TODO message
     return true; // Found
 }
@@ -44,9 +44,9 @@ const secretdoor_vtable: VTable = .{
 
 fn findTrap(m: *Map, p: Pos, player: *Player) bool {
     // TODO: chance to succeed
-    _ = player;
     if (m.getFloorTile(p) == .floor) {
         m.setFloorTile(p, .trap);
+        player.setKnown(p, m.getTileset(p), true);
         return true; // Found
     }
     return false;

@@ -73,7 +73,7 @@ pub fn run(config: Config) !void {
 
         var i = map.iterator();
         while (i.next()) |p| {
-            player.setTileKnown(p, .unknown);
+            player.setUnknown(p);
         }
 
         player.setDepth(mapgen_config.level);
