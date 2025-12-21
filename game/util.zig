@@ -49,17 +49,31 @@ fn renderRegion(player: *Player, map: *Map, r: Region, visible: bool) void {
 }
 
 // Pub for initial player placement on map
-pub fn revealMap(player: *Player, map: *Map, pos: Pos) void {
-    const at_loc = pos.eql(player.getPos()); // prior to new location
+pub fn revealMap(player: *Player, map: *Map, old_pos: Pos) void {
+    // TODO: this can probably be crushed down
 
-    if (map.getRoomRegion(pos)) |r| { // In a room
-        const visible = at_loc and map.isLit(pos);
-        renderRegion(player, map, r, visible);
+    if (map.getRoomRegion(old_pos)) |former| {
+        // Leaving a lit room : update that it is not visible
+        if (map.isLit(old_pos)) {
+            renderRegion(player, map, former, false);
+        }
+    }
+    if (map.getRoomRegion(player.getPos())) |now| {
+        // Entering or already in a lit room : update
+        if (map.isLit(player.getPos())) {
+            renderRegion(player, map, now, true);
+        }
     }
 
-    // At doorway, dark room, hallway, need union
-    const region = Region.configRadius(pos, 1);
-    renderRegion(player, map, region, at_loc);
+    // If old position is dark, update
+    if (!map.isLit(old_pos)) {
+        const region = Region.configRadius(old_pos, 1);
+        renderRegion(player, map, region, false);
+    }
+
+    // Doorways and hallways need explicit
+    const region = Region.configRadius(player.getPos(), 1);
+    renderRegion(player, map, region, true);
 }
 
 //
@@ -97,17 +111,14 @@ fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
 
 // TODO: initial map placement on level
 fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
-    const pos = player.getPos();
-    const new_pos = Pos.add(pos, action.getPos());
+    const old_pos = player.getPos();
+    const new_pos = Pos.add(old_pos, action.getPos());
 
     if (map.passable(new_pos)) {
-        map.removeEntity(pos);
+        map.removeEntity(old_pos);
         player.setPos(new_pos);
-
-        // TODO: one revealMap() that takes everything into account
-        revealMap(player, map, pos);
         map.addEntity(player.getEntity(), new_pos);
-        revealMap(player, map, new_pos);
+        revealMap(player, map, old_pos);
 
         const f = map.getFeature(new_pos); // TODO wrap
         if (f != .none) {
