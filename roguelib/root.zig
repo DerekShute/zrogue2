@@ -26,6 +26,7 @@ comptime {
     _ = @import("Map.zig");
     _ = @import("MessageLog.zig");
     _ = @import("Pos.zig");
+    _ = @import("queue.zig");
     _ = @import("Region.zig");
     _ = @import("map/Place.zig");
     _ = @import("map/Room.zig");
