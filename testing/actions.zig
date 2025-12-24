@@ -48,8 +48,25 @@ fn makeMap(player: *game.Player) !*Map {
     );
 }
 
+fn step(player: *game.Player, map: *Map, val: Action.Result) !void {
+    var entity = player.getEntity();
+    try expect(entity.doAction(map) == val);
+}
+
+fn stepXY(
+    player: *game.Player,
+    map: *Map,
+    val: Action.Result,
+    x: Pos.Dim,
+    y: Pos.Dim,
+) !void {
+    try step(player, map, val);
+    try expect(player.getPos().getX() == x);
+    try expect(player.getPos().getY() == y);
+}
+
 fn actAndMessage(player: *game.Player, map: *Map, msg: []const u8) !void {
-    try expect(game.step(player, map) == .continue_game);
+    try step(player, map, .continue_game);
     try expect(std.mem.eql(u8, player.getMessage(), msg));
 }
 
@@ -71,10 +88,10 @@ test "in-place boring stuff then quit" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .end_game);
+    try step(&player, map, .continue_game);
+    try step(&player, map, .continue_game);
+    try step(&player, map, .continue_game);
+    try step(&player, map, .end_game);
 }
 
 test "move in a circle: all directions work" {
@@ -91,21 +108,10 @@ test "move in a circle: all directions work" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(player.getPos().getX() == 5);
-    try expect(player.getPos().getY() == 6);
-
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(player.getPos().getX() == 5);
-    try expect(player.getPos().getY() == 5);
-
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(player.getPos().getX() == 6);
-    try expect(player.getPos().getY() == 5);
-
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(player.getPos().getX() == 6);
-    try expect(player.getPos().getY() == 6);
+    try stepXY(&player, map, .continue_game, 5, 6);
+    try stepXY(&player, map, .continue_game, 5, 5);
+    try stepXY(&player, map, .continue_game, 6, 5);
+    try stepXY(&player, map, .continue_game, 6, 6);
 }
 
 test "hit a wall" {
@@ -121,12 +127,9 @@ test "hit a wall" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(player.getPos().getX() == 8);
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(player.getPos().getX() == 8); // Bonk
-    try expect(player.getPos().getY() == 6);
+    try stepXY(&player, map, .continue_game, 7, 6);
+    try stepXY(&player, map, .continue_game, 8, 6);
+    try stepXY(&player, map, .continue_game, 8, 6); // Bonk
 }
 
 // Expand this as capabilities add...
@@ -157,15 +160,15 @@ test "pick up gold and etc" {
 
     try actAndMessage(&player, map, "You find nothing!"); // search
 
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .continue_game);
+    try step(&player, map, .continue_game);
+    try step(&player, map, .continue_game);
 
     try expect(map.getItem(player.getPos()) == .gold);
     try expect(m.stats.purse == 0);
     try actAndMessage(&player, map, "You pick up the gold!"); // take
     try expect(map.getItem(player.getPos()) == .unknown);
     // Stat update appears at next getCommand
-    try expect(game.step(&player, map) == .continue_game);
+    try step(&player, map, .continue_game);
     try expect(m.stats.purse == 1);
 
     try actAndMessage(&player, map, "You step on a trap!"); // go east
@@ -176,16 +179,16 @@ test "pick up gold and etc" {
     try actAndMessage(&player, map, "You find something!"); // search
     try expect(map.getFloorTile(Pos.config(9, 5)) == .door); // secret door
 
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .descend);
+    try step(&player, map, .continue_game);
+    try step(&player, map, .descend);
     try expect(std.mem.eql(
         u8,
         player.getMessage(),
         "You go ever deeper into the dungeon...",
     ));
 
-    try expect(game.step(&player, map) == .continue_game);
-    try expect(game.step(&player, map) == .ascend);
+    try step(&player, map, .continue_game);
+    try step(&player, map, .ascend);
     try expect(std.mem.eql(
         u8,
         player.getMessage(),
