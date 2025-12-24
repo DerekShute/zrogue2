@@ -6,10 +6,13 @@ const std = @import("std");
 
 const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
+const Map = @import("roguelib").Map;
 const MapTile = @import("roguelib").MapTile;
 const Pos = @import("roguelib").Pos;
 const Provider = @import("ui").Provider;
 const Tileset = @import("roguelib").Tileset;
+
+const util = @import("util.zig");
 
 //
 // Types
@@ -24,6 +27,7 @@ pub const Config = struct {
 
 const player_vtable = Entity.VTable{
     .addMessage = playerAddMessage,
+    .doAction = playerDoAction,
 };
 
 const Self = @This();
@@ -32,7 +36,7 @@ const Self = @This();
 // Members
 //
 
-entity: Entity = undefined,
+entity: Entity = undefined, // Must be first for vtable magic
 provider: *Provider = undefined,
 purse: u16 = 0,
 depth: u16 = 0,
@@ -55,6 +59,13 @@ pub fn init(config: Config) Self {
 fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     self.addMessage(msg);
+}
+
+fn playerDoAction(ptr: *Entity, map: *Map) Action.Result {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+
+    var action = self.getAction();
+    return util.doPlayerAction(self, &action, map);
 }
 
 //

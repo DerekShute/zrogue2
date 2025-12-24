@@ -48,15 +48,9 @@ const State = enum {
 // Run the game
 //
 
-// Public for use in testing
-pub fn step(player: *Player, map: *Map) Action.Result {
-    var action = player.getAction();
-    return util.doPlayerAction(player, &action, map);
-}
-
-// TODO: this probably goes in its own file
 pub fn run(config: Config) !void {
     const player = config.player;
+    const entity = player.getEntity();
     const allocator = config.allocator;
 
     const seed: u64 = @intCast(std.time.microTimestamp());
@@ -65,7 +59,7 @@ pub fn run(config: Config) !void {
 
     var mapgen_config: mapgen.Config = .{
         .rand = &r,
-        .player = player.getEntity(),
+        .player = entity,
         .xSize = 80, // TODO, eventually other ideas
         .ySize = 24,
         .mapgen = config.gentype,
@@ -76,6 +70,7 @@ pub fn run(config: Config) !void {
     while (state == .run) {
         var result: Action.Result = .continue_game;
 
+        // TODO: mapgen stuff with vtable for 'set level'
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
 
@@ -87,9 +82,8 @@ pub fn run(config: Config) !void {
         player.setDepth(mapgen_config.level);
         util.revealMap(player, map, player.getPos()); // initial position
 
-        // TODO: doPlayerAction goes into Player, eventually Entity vtable
         while (result == .continue_game) {
-            result = step(player, map);
+            result = entity.doAction(map);
             switch (result) {
                 .continue_game => {}, // Do nothing, keep going
                 .end_game => {
