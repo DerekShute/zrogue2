@@ -6,11 +6,18 @@ const std = @import("std");
 
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
+const queue = @import("queue.zig");
 
 const Self = @This();
 
+//
+// Types
+//
+
+pub const EntityQueue = queue.Queue(Self, "node");
+
 pub const VTable = struct {
-    addMessage: ?*const fn (self: *Self, msg: []const u8) void,
+    addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
 };
 
 //
@@ -22,6 +29,7 @@ p: Pos = undefined,
 tile: MapTile = undefined,
 vtable: *const VTable = undefined,
 moves: i32 = 0,
+node: queue.Node = .{},
 
 //
 // Constructor
@@ -69,6 +77,16 @@ pub fn getMoves(self: *Self) i32 {
 // Unit Tests
 //
 
-// TODO: need a mock version
+const expect = std.testing.expect;
+
+test "entity queue" {
+    var eq = EntityQueue.config();
+    var vt: VTable = .{};
+
+    var e = Self.config(.player, &vt);
+
+    eq.enqueue(&e);
+    try expect(eq.next() == &e);
+}
 
 // EOF
