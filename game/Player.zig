@@ -69,11 +69,6 @@ fn playerDoAction(ptr: *Entity, map: *Map) Action.Result {
     return util.doPlayerAction(self, &action, map);
 }
 
-fn playerRevealMap(ptr: *Entity, map: *Map, old_pos: Pos) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.revealMap(map, old_pos);
-}
-
 //
 // Utility
 //
@@ -83,6 +78,14 @@ fn getCommand(self: *Self) Provider.Command {
         .purse = self.purse,
         .depth = self.depth,
     });
+}
+
+fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
+    var _r = r; // ditch const
+    var ri = _r.iterator();
+    while (ri.next()) |p| {
+        self.setKnown(p, map.getTileset(p), visible);
+    }
 }
 
 fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
@@ -126,12 +129,8 @@ pub fn getEntity(self: *Self) *Entity {
     return &self.entity;
 }
 
-fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
-    var _r = r; // ditch const
-    var ri = _r.iterator();
-    while (ri.next()) |p| {
-        self.setKnown(p, map.getTileset(p), visible);
-    }
+pub fn resetMap(self: *Self) void {
+    self.provider.resetDisplay();
 }
 
 pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {

@@ -60,10 +60,10 @@ pub const Stats = struct {
 // Subset of map.Place
 //
 pub const DisplayMapTile = struct {
-    entity: MapTile,
-    item: MapTile,
-    floor: MapTile,
-    visible: bool,
+    entity: MapTile = .unknown,
+    item: MapTile = .unknown,
+    floor: MapTile = .unknown,
+    visible: bool = false,
 };
 
 pub const DisplayMap = Grid(DisplayMapTile);
@@ -117,8 +117,9 @@ pub fn init(config: Config) !Self {
     const log = try MessageLog.init(config.allocator); // TODO consistency
     errdefer log.deinit();
 
-    p.display_map = dm;
     p.log = log;
+    p.display_map = dm;
+    p.resetDisplay();
 
     return p;
 }
@@ -163,6 +164,14 @@ pub fn setTile(self: Self, x: u16, y: u16, set: Tileset, visible: bool) void {
     val.floor = set.floor;
     val.item = set.item;
     val.visible = visible;
+}
+
+pub fn resetDisplay(self: Self) void {
+    var i = self.display_map.iterator();
+
+    while (i.next()) |tile| {
+        tile.* = .{};
+    }
 }
 
 // Command

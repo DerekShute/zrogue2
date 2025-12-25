@@ -68,11 +68,7 @@ pub fn run(config: Config) !void {
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
 
-        var i = map.iterator();
-        while (i.next()) |p| {
-            player.setUnknown(p);
-        }
-
+        player.resetMap();
         player.setDepth(mapgen_config.level);
         player.revealMap(map, player.getPos()); // initial position
 
