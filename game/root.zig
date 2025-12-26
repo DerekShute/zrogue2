@@ -10,7 +10,7 @@ const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
 const Tileset = @import("roguelib").Tileset;
-const util = @import("util.zig");
+const util = @import("util.zig"); // NOCOMMIT: target the export
 
 //
 // Configuration
@@ -23,6 +23,12 @@ pub const Config = struct {
     allocator: std.mem.Allocator,
     gentype: mapgen.MapGenType,
 };
+
+//
+// Testing Conveniences
+//
+
+pub const doAction = util.doAction;
 
 //
 // Internals
@@ -73,7 +79,7 @@ pub fn run(config: Config) !void {
         player.revealMap(map, player.getPos()); // initial position
 
         while (result == .continue_game) {
-            result = entity.doAction(map);
+            result = util.doAction(entity, map);
             switch (result) {
                 .continue_game => {}, // Do nothing, keep going
                 .end_game => {

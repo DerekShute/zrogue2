@@ -28,7 +28,10 @@ pub const Config = struct {
 
 const player_vtable = Entity.VTable{
     .addMessage = playerAddMessage,
-    .doAction = playerDoAction,
+    .getAction = playerGetAction,
+    .revealMap = playerRevealMap,
+    .setKnown = playerSetKnown,
+    .takeItem = playerTakeItem,
 };
 
 const Self = @This();
@@ -62,11 +65,24 @@ fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
     self.addMessage(msg);
 }
 
-fn playerDoAction(ptr: *Entity, map: *Map) Action.Result {
+fn playerGetAction(ptr: *Entity) Action {
     const self: *Self = @ptrCast(@alignCast(ptr));
+    return self.getAction();
+}
 
-    var action = self.getAction();
-    return util.doPlayerAction(self, &action, map);
+fn playerRevealMap(ptr: *Entity, map: *Map, pos: Pos) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.revealMap(map, pos);
+}
+
+fn playerSetKnown(ptr: *Entity, map: *Map, pos: Pos, visible: bool) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.setKnown(pos, map.getTileset(pos), visible);
+}
+
+fn playerTakeItem(ptr: *Entity, i: MapTile) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.takeItem(i);
 }
 
 //
@@ -186,12 +202,12 @@ pub fn setPos(self: *Self, p: Pos) void {
 
 // Misc
 
-pub fn takeItem(self: *Self, i: MapTile) void {
+fn takeItem(self: *Self, i: MapTile) void {
     // FUTURE: no that maptile is an awful idea.  Item reference ID?
     if (i == .gold) {
         self.addMessage("You pick up the gold!");
         self.purse += 1;
-    } else {
+    } else { // should not happen
         self.addMessage("Nothing here to take!");
     }
 }

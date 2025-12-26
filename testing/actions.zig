@@ -49,8 +49,7 @@ fn makeMap(player: *game.Player) !*Map {
 }
 
 fn step(player: *game.Player, map: *Map, val: Action.Result) !void {
-    var entity = player.getEntity();
-    try expect(entity.doAction(map) == val);
+    try expect(game.doAction(player.getEntity(), map) == val);
 }
 
 fn stepXY(
