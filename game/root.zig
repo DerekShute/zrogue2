@@ -5,6 +5,7 @@
 const std = @import("std");
 
 const Action = @import("roguelib").Action;
+const Entity = @import("roguelib").Entity;
 const Pos = @import("roguelib").Pos;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
@@ -44,6 +45,39 @@ const State = enum {
 // Utilities
 //
 
+fn play(mapgen_config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
+    var result: Action.Result = undefined;
+    var state: State = .run;
+
+    // FUTURE: Other Entities means having a .depart result
+
+    while (queue.next()) |entity| {
+        result = util.doAction(entity, map);
+        if (result != .continue_game) {
+            break;
+        }
+        queue.enqueue(entity); // Continues
+    }
+
+    switch (result) {
+        .continue_game => unreachable,
+        .end_game => state = .end,
+        .descend => {
+            mapgen_config.level += 1;
+            if (mapgen_config.level >= MAX_DEPTH) {
+                mapgen_config.going_down = false;
+            }
+        },
+        .ascend => {
+            mapgen_config.level -= 1;
+            if (mapgen_config.level < 1) {
+                state = .end;
+            }
+        },
+    }
+    return state;
+}
+
 //
 // Run the game
 //
@@ -65,40 +99,20 @@ pub fn run(config: Config) !void {
         .mapgen = config.gentype,
     };
 
-    var state: State = .run;
     player.addMessage("Welcome to the Dungeon of Doom!");
-    while (state == .run) {
-        var result: Action.Result = .continue_game;
 
-        // TODO: mapgen stuff with vtable for 'set level'
+    var queue = Entity.Queue.config();
+    var state: State = .run;
+    while (state != .end) {
         var map = try mapgen.create(mapgen_config, allocator);
         defer map.deinit(allocator);
 
         player.resetMap();
         player.setDepth(mapgen_config.level);
         player.revealMap(map, player.getPos()); // initial position
+        queue.enqueue(entity);
 
-        while (result == .continue_game) {
-            result = util.doAction(entity, map);
-            switch (result) {
-                .continue_game => {}, // Do nothing, keep going
-                .end_game => {
-                    state = .end;
-                },
-                .descend => {
-                    mapgen_config.level += 1;
-                    if (mapgen_config.level >= MAX_DEPTH) {
-                        mapgen_config.going_down = false;
-                    }
-                },
-                .ascend => {
-                    mapgen_config.level -= 1;
-                    if (mapgen_config.level < 1) {
-                        state = .end;
-                    }
-                },
-            }
-        } // Play on level loop
+        state = play(&mapgen_config, map, &queue);
     } // Game run loop
 
     // TODO : game endings go here

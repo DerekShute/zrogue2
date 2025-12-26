@@ -16,7 +16,7 @@ const Self = @This();
 // Types
 //
 
-pub const EntityQueue = queue.Queue(Self, "node");
+pub const Queue = queue.Queue(Self, "node");
 
 pub const VTable = struct {
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
@@ -109,7 +109,7 @@ pub fn takeItem(self: *Self, i: MapTile) void {
 const expect = std.testing.expect;
 
 test "entity queue" {
-    var eq = EntityQueue.config();
+    var eq = Queue.config();
     var vt: VTable = .{};
 
     var e = Self.config(.player, &vt);
