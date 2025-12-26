@@ -10,6 +10,7 @@ const Map = @import("roguelib").Map;
 const MapTile = @import("roguelib").MapTile;
 const Pos = @import("roguelib").Pos;
 const Provider = @import("ui").Provider;
+const Region = @import("roguelib").Region;
 const Tileset = @import("roguelib").Tileset;
 
 const util = @import("util.zig");
@@ -68,6 +69,11 @@ fn playerDoAction(ptr: *Entity, map: *Map) Action.Result {
     return util.doPlayerAction(self, &action, map);
 }
 
+fn playerRevealMap(ptr: *Entity, map: *Map, old_pos: Pos) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.revealMap(map, old_pos);
+}
+
 //
 // Utility
 //
@@ -118,6 +124,39 @@ pub fn getAction(self: *Self) Action {
 
 pub fn getEntity(self: *Self) *Entity {
     return &self.entity;
+}
+
+fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
+    var _r = r; // ditch const
+    var ri = _r.iterator();
+    while (ri.next()) |p| {
+        self.setKnown(p, map.getTileset(p), visible);
+    }
+}
+
+pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {
+    if (map.getRoomRegion(old_pos)) |former| {
+        // Leaving a lit room : update that it is not visible
+        if (map.isLit(old_pos)) {
+            self.renderRegion(map, former, false);
+        }
+    }
+    if (map.getRoomRegion(self.getPos())) |now| {
+        // Entering or already in a lit room : update
+        if (map.isLit(self.getPos())) {
+            self.renderRegion(map, now, true);
+        }
+    }
+
+    // If old position is dark, update
+    if (!map.isLit(old_pos)) {
+        const region = Region.configRadius(old_pos, 1);
+        self.renderRegion(map, region, false);
+    }
+
+    // Doorways and hallways need explicit
+    const region = Region.configRadius(self.getPos(), 1);
+    self.renderRegion(map, region, true);
 }
 
 // Map tile management
