@@ -13,12 +13,6 @@ const Tileset = @import("roguelib").Tileset;
 const util = @import("util.zig");
 
 //
-// Testing conveniences
-//
-
-pub const revealMap = util.revealMap;
-
-//
 // Configuration
 //
 
@@ -80,7 +74,7 @@ pub fn run(config: Config) !void {
         }
 
         player.setDepth(mapgen_config.level);
-        util.revealMap(player, map, player.getPos()); // initial position
+        player.revealMap(map, player.getPos()); // initial position
 
         while (result == .continue_game) {
             result = entity.doAction(map);

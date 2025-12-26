@@ -40,42 +40,6 @@ pub fn doPlayerAction(player: *Player, action: *Action, map: *Map) Action.Result
     return actFn(player, action, map);
 }
 
-fn renderRegion(player: *Player, map: *Map, r: Region, visible: bool) void {
-    var _r = r; // ditch const
-    var ri = _r.iterator();
-    while (ri.next()) |p| {
-        player.setKnown(p, map.getTileset(p), visible);
-    }
-}
-
-// Pub for initial player placement on map
-pub fn revealMap(player: *Player, map: *Map, old_pos: Pos) void {
-    // TODO: this can probably be crushed down
-
-    if (map.getRoomRegion(old_pos)) |former| {
-        // Leaving a lit room : update that it is not visible
-        if (map.isLit(old_pos)) {
-            renderRegion(player, map, former, false);
-        }
-    }
-    if (map.getRoomRegion(player.getPos())) |now| {
-        // Entering or already in a lit room : update
-        if (map.isLit(player.getPos())) {
-            renderRegion(player, map, now, true);
-        }
-    }
-
-    // If old position is dark, update
-    if (!map.isLit(old_pos)) {
-        const region = Region.configRadius(old_pos, 1);
-        renderRegion(player, map, region, false);
-    }
-
-    // Doorways and hallways need explicit
-    const region = Region.configRadius(player.getPos(), 1);
-    renderRegion(player, map, region, true);
-}
-
 //
 // Handlers
 //
@@ -118,7 +82,7 @@ fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
         map.removeEntity(old_pos);
         player.setPos(new_pos);
         map.addEntity(player.getEntity(), new_pos);
-        revealMap(player, map, old_pos);
+        player.revealMap(map, old_pos);
 
         const f = map.getFeature(new_pos); // TODO wrap
         if (f != .none) {

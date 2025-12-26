@@ -77,7 +77,7 @@ fn moveTo(player: *game.Player, map: *Map, pos: Pos) void {
     map.removeEntity(orig);
     player.setPos(pos);
     map.addEntity(player.getEntity(), player.getPos());
-    game.revealMap(player, map, orig);
+    player.revealMap(map, orig);
 }
 
 fn expectFloor(p: *Provider, x: u16, y: u16, t: MapTile, v: bool) !void {
@@ -108,7 +108,7 @@ test "render starting position" {
     while (i.next()) |p| {
         player.setUnknown(p);
     }
-    game.revealMap(&player, map, player.getPos());
+    player.revealMap(map, player.getPos());
 
     // Initial position: adjacent flooring is visible, else unknown
     //      ..$
