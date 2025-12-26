@@ -13,7 +13,10 @@ const Self = @This();
 
 pub const VTable = struct {
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
-    doAction: ?*const fn (self: *Self, map: *Map) Action.Result = null,
+    getAction: ?*const fn (self: *Self) Action = null,
+    revealMap: ?*const fn (self: *Self, map: *Map, pos: Pos) void = null,
+    setKnown: ?*const fn (self: *Self, map: *Map, loc: Pos, visible: bool) void = null,
+    takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
 };
 
 //
@@ -66,11 +69,29 @@ pub fn addMessage(self: *Self, msg: []const u8) void {
     }
 }
 
-pub fn doAction(self: *Self, map: *Map) Action.Result {
-    if (self.vtable.doAction) |cb| {
-        return cb(self, map);
+pub fn getAction(self: *Self) Action {
+    if (self.vtable.getAction) |cb| {
+        return cb(self);
     }
-    return .continue_game; // default answer: entity does nothing
+    return Action.config(.none);
+}
+
+pub fn revealMap(self: *Self, map: *Map, pos: Pos) void {
+    if (self.vtable.revealMap) |cb| {
+        cb(self, map, pos);
+    }
+}
+
+pub fn setKnown(self: *Self, map: *Map, loc: Pos, visible: bool) void {
+    if (self.vtable.setKnown) |cb| {
+        cb(self, map, loc, visible);
+    }
+}
+
+pub fn takeItem(self: *Self, i: MapTile) void {
+    if (self.vtable.takeItem) |cb| {
+        cb(self, i);
+    }
 }
 
 //
