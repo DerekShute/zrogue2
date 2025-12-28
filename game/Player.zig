@@ -150,6 +150,12 @@ pub fn resetMap(self: *Self) void {
 }
 
 pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {
+    self.renderRegion(
+        map,
+        Region.configRadius(old_pos, 1),
+        false,
+    );
+
     if (map.getRoomRegion(old_pos)) |former| {
         // Leaving a lit room : update that it is not visible
         if (map.isLit(old_pos)) {
@@ -163,15 +169,12 @@ pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {
         }
     }
 
-    // If old position is dark, update
-    if (!map.isLit(old_pos)) {
-        const region = Region.configRadius(old_pos, 1);
-        self.renderRegion(map, region, false);
-    }
-
     // Doorways and hallways need explicit
-    const region = Region.configRadius(self.getPos(), 1);
-    self.renderRegion(map, region, true);
+    self.renderRegion(
+        map,
+        Region.configRadius(self.getPos(), 1),
+        true,
+    );
 }
 
 // Map tile management

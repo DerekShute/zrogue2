@@ -146,4 +146,36 @@ test "render starting position" {
     try expectFloor(provider, 35, 5, .wall, true);
     try expectFloor(provider, 35, 10, .wall, true);
     try expectFloor(provider, 31, 7, .floor, true);
+
+    //                            #########
+    //                            #       #
+    //                          ###       #
+    //                          .@.       #
+    //                          ###       #
+    //                            #########
+
+    moveTo(&player, map, Pos.config(26, 8));
+    try expectFloor(provider, 25, 8, .floor, true);
+    try expectFloor(provider, 31, 7, .floor, false);
+
+    //                            #########
+    //                            #.......#
+    //                          ###.......#
+    //                           .@.......#
+    //                          ###.......#
+    //                            #########
+
+    moveTo(&player, map, Pos.config(27, 8));
+    try expectFloor(provider, 25, 8, .floor, false);
+    try expectFloor(provider, 31, 7, .floor, true);
+
+    //                            #########
+    //                            #.......#
+    //                          ###.......#
+    //                            .@......#
+    //                          ###.......#
+    //                            #########
+    moveTo(&player, map, Pos.config(28, 8));
+    try expectFloor(provider, 26, 8, .floor, false);
+    try expectFloor(provider, 31, 7, .floor, true);
 }
