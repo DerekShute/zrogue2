@@ -90,10 +90,12 @@ fn playerTakeItem(ptr: *Entity, i: MapTile) void {
 //
 
 fn getCommand(self: *Self) Provider.Command {
-    return self.provider.getCommand(.{
+    // TODO goes elsewhere
+    self.provider.updateStats(.{
         .purse = self.purse,
         .depth = self.depth,
     });
+    return self.provider.getCommand();
 }
 
 fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {

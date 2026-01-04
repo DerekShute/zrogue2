@@ -73,7 +73,10 @@ pub const DisplayMap = Grid(DisplayMapTile);
 //
 pub const VTable = struct {
     // input
-    getCommand: *const fn (ctx: *anyopaque, stats: Stats) Command,
+    getCommand: *const fn (ctx: *anyopaque) Command,
+
+    // "Thing has changed" updates to send to implementation
+    notify: *const fn (ctx: *anyopaque) void,
 };
 
 //
@@ -99,6 +102,7 @@ display_map: DisplayMap = undefined,
 x: i16 = 0,
 y: i16 = 0,
 log: MessageLog = undefined,
+stats: Stats = .{},
 
 //
 // Constructor and destructor
@@ -134,14 +138,22 @@ pub inline fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 
 pub inline fn addMessage(self: *Self, msg: []const u8) void {
     self.log.add(msg);
+    self.notify();
 }
 
 pub inline fn getMessage(self: *Self) []u8 {
+    // From implementation
     return self.log.get();
 }
 
 pub inline fn clearMessage(self: *Self) void {
+    // From implementation
     self.log.clear();
+}
+
+pub fn notify(self: *Self) void {
+    // Redraw / refresh
+    self.vtable.notify(self.ptr);
 }
 
 // DisplayMapTile
@@ -173,8 +185,22 @@ pub fn resetDisplay(self: *Self) void {
 
 // Command
 
-pub inline fn getCommand(self: *Self, stats: Stats) Command {
-    return self.vtable.getCommand(self.ptr, stats);
+pub inline fn getCommand(self: *Self) Command {
+    return self.vtable.getCommand(self.ptr);
+}
+
+// Stats
+
+pub fn getStats(self: *Self) Stats {
+    // From implementation
+    return self.stats;
+}
+
+pub fn updateStats(self: *Self, stats: Stats) void {
+    // TODO: this becomes a passthrough that knows nothing about stats
+    // themselves : a dictionary keyed with strings or something
+    self.stats = stats;
+    self.notify();
 }
 
 // EOF

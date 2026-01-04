@@ -25,7 +25,7 @@ pub const Config = struct {
 p: Provider = undefined,
 command_list: []Provider.Command = undefined,
 command_index: u16 = 0,
-stats: Provider.Stats = .{},
+notified: bool = false,
 
 //
 // Constructor / Destructor
@@ -37,7 +37,8 @@ pub fn init(config: Config) !Self {
         .maxx = config.maxx,
         .maxy = config.maxy,
         .vtable = &.{
-            .getCommand = getCommand,
+            .getCommand = mockGetCommand,
+            .notify = mockNotify,
         },
     };
 
@@ -62,21 +63,42 @@ pub fn provider(self: *Self) *Provider {
 }
 
 //
-// Methods
+// VTable
 //
 
-fn getCommand(ptr: *anyopaque, stats: Provider.Stats) Provider.Command {
+fn mockGetCommand(ptr: *anyopaque) Provider.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
     const i = self.command_index;
     if (i >= self.command_list.len) {
         @panic("No more mock commands to provide");
     }
     self.command_index += 1;
-    self.stats.purse = stats.purse;
-    self.stats.depth = stats.depth;
     return self.command_list[i];
 }
 
+fn mockNotify(ptr: *anyopaque) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.notified = true;
+}
+
+//
+// Methods for testing convenience
+//
+
+pub fn getPurse(self: *Self) u16 {
+    return self.p.getStats().purse;
+}
+
+pub fn getDepth(self: *Self) usize {
+    return self.p.getStats().depth;
+}
+
+pub fn getNotified(self: *Self) bool {
+    // Turns itself off for your convenience
+    const was = self.notified;
+    self.notified = false;
+    return was;
+}
 //
 // Unit tests
 //
@@ -98,9 +120,15 @@ test "try out mock" {
     defer m.deinit(std.testing.allocator);
 
     var p = m.provider();
-    try expect(p.getCommand(stats) == .go_west);
-    try expect(m.stats.purse == 10);
-    try expect(m.stats.depth == 1);
+    try expect(p.getCommand() == .go_west);
+
+    try expect(p.getStats().purse == 0);
+    try expect(p.getStats().depth == 0);
+    try expect(!m.getNotified());
+    p.updateStats(stats);
+    try expect(p.getStats().purse == 10);
+    try expect(p.getStats().depth == 1);
+    try expect(m.getNotified());
 }
 
 test "mock alloc does not work 0" {
