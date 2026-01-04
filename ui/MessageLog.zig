@@ -21,7 +21,6 @@ const Self = @This();
 // FUTURE: queue depth > 1
 //
 
-allocator: std.mem.Allocator,
 memory: [MESSAGE_MAXSIZE]u8 = undefined,
 buffer: []u8 = &.{},
 
@@ -29,17 +28,8 @@ buffer: []u8 = &.{},
 // Constructor/Destructor
 //
 
-pub fn init(allocator: std.mem.Allocator) !*Self {
-    const log: *Self = try allocator.create(Self);
-    errdefer allocator.free(log);
-    log.allocator = allocator;
-    log.buffer = &.{}; // Empty
-    return log;
-}
-
-pub fn deinit(self: *Self) void {
-    const allocator = self.allocator;
-    allocator.destroy(self);
+pub fn init() Self {
+    return .{};
 }
 
 //
@@ -63,37 +53,37 @@ pub fn clear(self: *Self) void {
 //
 // Unit Tests
 //
+const expect = std.testing.expect;
 
 test "allocate and add messages" {
-    const log: *Self = try init(std.testing.allocator);
-    defer log.deinit();
+    var log = init();
 
     // Empty to begin
     var empty = log.get();
-    try std.testing.expect(empty.len == 0);
+    try expect(empty.len == 0);
 
     log.add("A LOG MESSAGE");
-    try std.testing.expect(std.mem.eql(u8, log.get(), "A LOG MESSAGE"));
+    try expect(std.mem.eql(u8, log.get(), "A LOG MESSAGE"));
 
     // Repeat succeeds
-    try std.testing.expect(std.mem.eql(u8, log.get(), "A LOG MESSAGE"));
+    try expect(std.mem.eql(u8, log.get(), "A LOG MESSAGE"));
 
     // Change it
     log.add("SECOND MESSAGE");
-    try std.testing.expect(std.mem.eql(u8, log.get(), "SECOND MESSAGE"));
+    try expect(std.mem.eql(u8, log.get(), "SECOND MESSAGE"));
 
     // Clearing it empties it
     log.clear();
     empty = log.get();
-    try std.testing.expect(empty.len == 0);
+    try expect(empty.len == 0);
 
     // Change it
     log.add("SECOND MESSAGE");
-    try std.testing.expect(std.mem.eql(u8, log.get(), "SECOND MESSAGE"));
+    try expect(std.mem.eql(u8, log.get(), "SECOND MESSAGE"));
 
     // (It does not test equal against superstrings or substrings)
-    try std.testing.expect(!std.mem.eql(u8, log.get(), "SECOND MESSAGE2"));
-    try std.testing.expect(!std.mem.eql(u8, log.get(), "SECOND MESSA"));
+    try expect(!std.mem.eql(u8, log.get(), "SECOND MESSAGE2"));
+    try expect(!std.mem.eql(u8, log.get(), "SECOND MESSA"));
 }
 
 // EOF

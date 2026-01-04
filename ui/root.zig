@@ -25,6 +25,7 @@ pub const deinitCurses = Curses.deinit;
 comptime {
     _ = @import("Provider.zig");
     _ = @import("Curses.zig");
+    _ = @import("MessageLog.zig");
 }
 
 // EOF
