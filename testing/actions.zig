@@ -163,12 +163,12 @@ test "pick up gold and etc" {
     try step(&player, map, .continue_game);
 
     try expect(map.getItem(player.getPos()) == .gold);
-    try expect(m.stats.purse == 0);
+    try expect(m.getPurse() == 0);
     try actAndMessage(&player, map, "You pick up the gold!"); // take
     try expect(map.getItem(player.getPos()) == .unknown);
     // Stat update appears at next getCommand
     try step(&player, map, .continue_game);
-    try expect(m.stats.purse == 1);
+    try expect(m.getPurse() == 1);
 
     try actAndMessage(&player, map, "You step on a trap!"); // go east
     try expect(map.getFloorTile(Pos.config(8, 5)) == .trap);

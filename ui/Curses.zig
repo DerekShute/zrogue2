@@ -154,7 +154,8 @@ pub fn init(config: Config) Provider.Error!Self {
         .maxx = config.maxx,
         .maxy = config.maxy,
         .vtable = &.{
-            .getCommand = getCommand,
+            .getCommand = cursesGetCommand,
+            .notify = cursesNotify,
         },
     };
 
@@ -246,7 +247,7 @@ fn displayHelp() void {
     refresh();
 }
 
-fn displayScreen(self: *Self, stats: Provider.Stats) !void {
+fn displayScreen(self: *Self) !void {
     // TODO: only updates
 
     //
@@ -264,6 +265,8 @@ fn displayScreen(self: *Self, stats: Provider.Stats) !void {
     var buf: [80]u8 = undefined; // does this need to be allocated?  size?
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
+
+    const stats = self.p.getStats();
     const output = .{
         stats.depth,
         stats.purse,
@@ -289,7 +292,7 @@ fn displayScreen(self: *Self, stats: Provider.Stats) !void {
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
 
-fn getCommand(ptr: *anyopaque, stats: Provider.Stats) Provider.Command {
+fn cursesGetCommand(ptr: *anyopaque) Provider.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     if (global_win == null) {
@@ -297,7 +300,7 @@ fn getCommand(ptr: *anyopaque, stats: Provider.Stats) Provider.Command {
         @panic("getCommand but not initialized");
     }
 
-    self.displayScreen(stats) catch unreachable;
+    self.displayScreen() catch unreachable;
 
     var cmd = readCommand();
     while (cmd == .help) {
@@ -305,6 +308,12 @@ fn getCommand(ptr: *anyopaque, stats: Provider.Stats) Provider.Command {
         cmd = readCommand();
     }
     return cmd;
+}
+
+fn cursesNotify(ptr: *anyopaque) void {
+    _ = ptr;
+
+    // TODO: cause redisplay?
 }
 
 //
