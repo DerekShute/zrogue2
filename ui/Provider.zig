@@ -8,7 +8,7 @@
 const std = @import("std");
 const Grid = @import("roguelib").Grid;
 const MapTile = @import("roguelib").MapTile;
-const MessageLog = @import("roguelib").MessageLog;
+const MessageLog = @import("MessageLog.zig");
 const Tileset = @import("roguelib").Tileset;
 
 const Self = @This();
@@ -98,7 +98,7 @@ vtable: *const VTable,
 display_map: DisplayMap = undefined,
 x: i16 = 0,
 y: i16 = 0,
-log: *MessageLog = undefined,
+log: MessageLog = undefined,
 
 //
 // Constructor and destructor
@@ -109,24 +109,21 @@ pub fn init(config: Config) !Self {
         .x = config.maxx,
         .y = config.maxy,
         .vtable = config.vtable,
+        .log = MessageLog.init(),
     };
 
     const dm = try DisplayMap.config(config.allocator, @intCast(p.x), @intCast(p.y));
     errdefer dm.deinit(config.allocator);
 
-    const log = try MessageLog.init(config.allocator); // TODO consistency
-    errdefer log.deinit();
-
-    p.log = log;
     p.display_map = dm;
     p.resetDisplay();
 
     return p;
 }
 
-pub inline fn deinit(self: Self, allocator: std.mem.Allocator) void {
+pub inline fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.display_map.deinit(allocator);
-    self.log.deinit();
+    // Log has no deinit
 }
 
 //
@@ -135,28 +132,28 @@ pub inline fn deinit(self: Self, allocator: std.mem.Allocator) void {
 
 // Message
 
-pub inline fn addMessage(self: Self, msg: []const u8) void {
+pub inline fn addMessage(self: *Self, msg: []const u8) void {
     self.log.add(msg);
 }
 
-pub inline fn getMessage(self: Self) []u8 {
+pub inline fn getMessage(self: *Self) []u8 {
     return self.log.get();
 }
 
-pub inline fn clearMessage(self: Self) void {
+pub inline fn clearMessage(self: *Self) void {
     self.log.clear();
 }
 
 // DisplayMapTile
 
-pub fn getTile(self: Self, x: u16, y: u16) DisplayMapTile {
+pub fn getTile(self: *Self, x: u16, y: u16) DisplayMapTile {
     const tile = self.display_map.find(x, y) catch {
         @panic("Bad pos sent to Provider.getTile"); // THINK: error?
     };
     return tile.*;
 }
 
-pub fn setTile(self: Self, x: u16, y: u16, set: Tileset, visible: bool) void {
+pub fn setTile(self: *Self, x: u16, y: u16, set: Tileset, visible: bool) void {
     var val = self.display_map.find(x, y) catch {
         @panic("Bad pos sent to Provider.setTile"); // THINK: error?
     };
@@ -166,7 +163,7 @@ pub fn setTile(self: Self, x: u16, y: u16, set: Tileset, visible: bool) void {
     val.visible = visible;
 }
 
-pub fn resetDisplay(self: Self) void {
+pub fn resetDisplay(self: *Self) void {
     var i = self.display_map.iterator();
 
     while (i.next()) |tile| {
@@ -176,7 +173,7 @@ pub fn resetDisplay(self: Self) void {
 
 // Command
 
-pub inline fn getCommand(self: Self, stats: Stats) Command {
+pub inline fn getCommand(self: *Self, stats: Stats) Command {
     return self.vtable.getCommand(self.ptr, stats);
 }
 
