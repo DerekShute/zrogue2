@@ -57,6 +57,7 @@ fn play(mapgen_config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
             break;
         }
         queue.enqueue(entity); // Continues
+        entity.notifyDisplay();
     }
 
     switch (result) {
@@ -110,6 +111,7 @@ pub fn run(config: Config) !void {
         player.resetMap();
         player.setDepth(mapgen_config.level);
         player.revealMap(map, player.getPos()); // initial position
+        player.notifyDisplay();
         queue.enqueue(entity);
 
         state = play(&mapgen_config, map, &queue);

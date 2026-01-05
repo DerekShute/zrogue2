@@ -155,7 +155,7 @@ pub fn init(config: Config) Provider.Error!Self {
         .maxy = config.maxy,
         .vtable = &.{
             .getCommand = cursesGetCommand,
-            .notify = cursesNotify,
+            .notifyDisplay = cursesNotifyDisplay,
         },
     };
 
@@ -255,7 +255,6 @@ fn displayScreen(self: *Self) !void {
     //
     mvaddstr(0, 0, "                                                  ");
     mvaddstr(0, 0, self.p.getMessage());
-    self.p.clearMessage();
 
     //
     // Bottom line: stat block
@@ -300,20 +299,26 @@ fn cursesGetCommand(ptr: *anyopaque) Provider.Command {
         @panic("getCommand but not initialized");
     }
 
-    self.displayScreen() catch unreachable;
-
     var cmd = readCommand();
     while (cmd == .help) {
         displayHelp();
         cmd = readCommand();
     }
+
+    self.p.clearMessage();
+
     return cmd;
 }
 
-fn cursesNotify(ptr: *anyopaque) void {
-    _ = ptr;
+fn cursesNotifyDisplay(ptr: *anyopaque) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
 
-    // TODO: cause redisplay?
+    if (global_win == null) {
+        // Punish programmatic errors
+        @panic("cursesNotifyDisplay but not initialized");
+    }
+
+    self.displayScreen() catch unreachable;
 }
 
 //
