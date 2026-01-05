@@ -38,7 +38,9 @@ pub fn doAction(entity: *Entity, map: *Map) Action.Result {
         .wait => doNothing, // TODO untrue
     };
 
-    return actFn(entity, &action, map);
+    const ret = actFn(entity, &action, map);
+    entity.notifyDisplay();
+    return ret;
 }
 
 //

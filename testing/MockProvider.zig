@@ -38,7 +38,7 @@ pub fn init(config: Config) !Self {
         .maxy = config.maxy,
         .vtable = &.{
             .getCommand = mockGetCommand,
-            .notify = mockNotify,
+            .notifyDisplay = mockNotifyDisplay,
         },
     };
 
@@ -76,7 +76,7 @@ fn mockGetCommand(ptr: *anyopaque) Provider.Command {
     return self.command_list[i];
 }
 
-fn mockNotify(ptr: *anyopaque) void {
+fn mockNotifyDisplay(ptr: *anyopaque) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     self.notified = true;
 }

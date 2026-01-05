@@ -29,6 +29,7 @@ pub const Config = struct {
 const player_vtable = Entity.VTable{
     .addMessage = playerAddMessage,
     .getAction = playerGetAction,
+    .notifyDisplay = playerNotifyDisplay,
     .revealMap = playerRevealMap,
     .setKnown = playerSetKnown,
     .takeItem = playerTakeItem,
@@ -70,6 +71,11 @@ fn playerGetAction(ptr: *Entity) Action {
     return self.getAction();
 }
 
+fn playerNotifyDisplay(ptr: *Entity) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    return self.notifyDisplay();
+}
+
 fn playerRevealMap(ptr: *Entity, map: *Map, pos: Pos) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     self.revealMap(map, pos);
@@ -90,11 +96,6 @@ fn playerTakeItem(ptr: *Entity, i: MapTile) void {
 //
 
 fn getCommand(self: *Self) Provider.Command {
-    // TODO goes elsewhere
-    self.provider.updateStats(.{
-        .purse = self.purse,
-        .depth = self.depth,
-    });
     return self.provider.getCommand();
 }
 
@@ -113,6 +114,19 @@ fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
         tileset,
         visible,
     );
+}
+
+fn getStats(self: *Self) void {
+    return self.provider.getStats();
+}
+
+fn setStats(self: *Self, stats: Provider.Stats) void {
+    self.provider.updateStats(stats);
+}
+
+fn incrementPurse(self: *Self) void {
+    self.purse += 1;
+    self.setStats(.{ .purse = self.purse, .depth = self.depth });
 }
 
 //
@@ -145,6 +159,10 @@ pub fn getAction(self: *Self) Action {
 
 pub fn getEntity(self: *Self) *Entity {
     return &self.entity;
+}
+
+pub fn notifyDisplay(self: *Self) void {
+    self.provider.notifyDisplay();
 }
 
 pub fn resetMap(self: *Self) void {
@@ -211,7 +229,7 @@ fn takeItem(self: *Self, i: MapTile) void {
     // FUTURE: no that maptile is an awful idea.  Item reference ID?
     if (i == .gold) {
         self.addMessage("You pick up the gold!");
-        self.purse += 1;
+        self.incrementPurse();
     } else { // should not happen
         self.addMessage("Nothing here to take!");
     }
@@ -219,6 +237,7 @@ fn takeItem(self: *Self, i: MapTile) void {
 
 pub fn setDepth(self: *Self, d: u16) void {
     self.depth = d;
+    self.setStats(.{ .purse = self.purse, .depth = self.depth });
 }
 
 //

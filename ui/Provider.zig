@@ -76,7 +76,7 @@ pub const VTable = struct {
     getCommand: *const fn (ctx: *anyopaque) Command,
 
     // "Thing has changed" updates to send to implementation
-    notify: *const fn (ctx: *anyopaque) void,
+    notifyDisplay: *const fn (ctx: *anyopaque) void,
 };
 
 //
@@ -138,7 +138,7 @@ pub inline fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 
 pub inline fn addMessage(self: *Self, msg: []const u8) void {
     self.log.add(msg);
-    self.notify();
+    self.notifyDisplay();
 }
 
 pub inline fn getMessage(self: *Self) []u8 {
@@ -151,9 +151,9 @@ pub inline fn clearMessage(self: *Self) void {
     self.log.clear();
 }
 
-pub fn notify(self: *Self) void {
+pub fn notifyDisplay(self: *Self) void {
     // Redraw / refresh
-    self.vtable.notify(self.ptr);
+    self.vtable.notifyDisplay(self.ptr);
 }
 
 // DisplayMapTile
@@ -200,7 +200,7 @@ pub fn updateStats(self: *Self, stats: Stats) void {
     // TODO: this becomes a passthrough that knows nothing about stats
     // themselves : a dictionary keyed with strings or something
     self.stats = stats;
-    self.notify();
+    self.notifyDisplay();
 }
 
 // EOF

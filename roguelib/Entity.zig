@@ -21,6 +21,7 @@ pub const Queue = queue.Queue(Self, "node");
 pub const VTable = struct {
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
     getAction: ?*const fn (self: *Self) Action = null,
+    notifyDisplay: ?*const fn (self: *Self) void = null,
     revealMap: ?*const fn (self: *Self, map: *Map, pos: Pos) void = null,
     setKnown: ?*const fn (self: *Self, map: *Map, loc: Pos, visible: bool) void = null,
     takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
@@ -82,6 +83,12 @@ pub fn getAction(self: *Self) Action {
         return cb(self);
     }
     return Action.config(.none);
+}
+
+pub fn notifyDisplay(self: *Self) void {
+    if (self.vtable.notifyDisplay) |cb| {
+        cb(self);
+    }
 }
 
 pub fn revealMap(self: *Self, map: *Map, pos: Pos) void {
