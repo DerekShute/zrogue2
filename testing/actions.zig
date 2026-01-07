@@ -139,8 +139,7 @@ test "pick up gold and etc" {
         .search, // find nothing
         .go_east,
         .go_north,
-        .take_item,
-        .wait,
+        .take_item, // gold
         .go_east, // on trap
         .search, // find secret door
         .go_north,
@@ -163,12 +162,10 @@ test "pick up gold and etc" {
     try step(&player, map, .continue_game);
 
     try expect(map.getItem(player.getPos()) == .gold);
-    try expect(m.getPurse() == 0);
+    try expect(m.getStatPurse() == 0);
     try actAndMessage(&player, map, "You pick up the gold!"); // take
     try expect(map.getItem(player.getPos()) == .unknown);
-    // Stat update appears at next getCommand
-    try step(&player, map, .continue_game);
-    try expect(m.getPurse() == 1);
+    try expect(m.getStatPurse() == 1);
 
     try actAndMessage(&player, map, "You step on a trap!"); // go east
     try expect(map.getFloorTile(Pos.config(8, 5)) == .trap);

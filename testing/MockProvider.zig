@@ -26,6 +26,8 @@ p: Provider = undefined,
 command_list: []Provider.Command = undefined,
 command_index: u16 = 0,
 notified: bool = false,
+purse: i32 = 0,
+depth: i32 = 0,
 
 //
 // Constructor / Destructor
@@ -39,6 +41,7 @@ pub fn init(config: Config) !Self {
         .vtable = &.{
             .getCommand = mockGetCommand,
             .notifyDisplay = mockNotifyDisplay,
+            .setStatInt = mockSetStatInt,
         },
     };
 
@@ -81,16 +84,28 @@ fn mockNotifyDisplay(ptr: *anyopaque) void {
     self.notified = true;
 }
 
+fn mockSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+
+    if (std.mem.eql(u8, "purse", name)) {
+        self.purse = value;
+    } else if (std.mem.eql(u8, "depth", name)) {
+        self.depth = value;
+    } else {
+        @panic("mockSetStatInt: Unsupported name");
+    }
+}
+
 //
 // Methods for testing convenience
 //
 
-pub fn getPurse(self: *Self) u16 {
-    return self.p.getStats().purse;
+pub fn getStatPurse(self: *Self) i32 {
+    return self.purse;
 }
 
-pub fn getDepth(self: *Self) usize {
-    return self.p.getStats().depth;
+pub fn getStatDepth(self: *Self) i32 {
+    return self.depth;
 }
 
 pub fn getNotified(self: *Self) bool {
@@ -112,23 +127,20 @@ var testlist = [_]Provider.Command{
 };
 
 test "try out mock" {
-    const stats: Provider.Stats = .{
-        .purse = 10,
-        .depth = 1,
-    };
     var m = try init(.{ .allocator = std.testing.allocator, .maxx = 40, .maxy = 60, .commands = &testlist });
     defer m.deinit(std.testing.allocator);
 
     var p = m.provider();
     try expect(p.getCommand() == .go_west);
 
-    try expect(p.getStats().purse == 0);
-    try expect(p.getStats().depth == 0);
+    try expect(m.getStatPurse() == 0);
+    try expect(m.getStatDepth() == 0);
     try expect(!m.getNotified());
-    p.updateStats(stats);
-    try expect(p.getStats().purse == 10);
-    try expect(p.getStats().depth == 1);
-    try expect(m.getNotified());
+
+    p.setStatInt("purse", 10);
+    try expect(m.getStatPurse() == 10);
+    p.setStatInt("depth", 4);
+    try expect(m.getStatDepth() == 4);
 }
 
 test "mock alloc does not work 0" {
