@@ -26,6 +26,10 @@ pub const Config = struct {
 };
 
 //
+// Members
+//
+
+//
 // Lifted from https://github.com/Akuli/curses-minesweeper
 //
 // Causes:
@@ -110,6 +114,9 @@ var global_win: ?*curses.WINDOW = null;
 //
 
 p: Provider = undefined,
+// Stats
+purse: i32 = 0,
+depth: i32 = 0,
 
 // TODO: cursor management
 
@@ -156,6 +163,7 @@ pub fn init(config: Config) Provider.Error!Self {
         .vtable = &.{
             .getCommand = cursesGetCommand,
             .notifyDisplay = cursesNotifyDisplay,
+            .setStatInt = cursesSetStatInt,
         },
     };
 
@@ -264,12 +272,8 @@ fn displayScreen(self: *Self) !void {
     var buf: [80]u8 = undefined; // does this need to be allocated?  size?
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
-
-    const stats = self.p.getStats();
-    const output = .{
-        stats.depth,
-        stats.purse,
-    };
+    const u_purse: u32 = @intCast(self.purse);
+    const output = .{ self.depth, u_purse };
 
     // We know that error.NoSpaceLeft can't happen here
     const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
@@ -319,6 +323,16 @@ fn cursesNotifyDisplay(ptr: *anyopaque) void {
     }
 
     self.displayScreen() catch unreachable;
+}
+
+fn cursesSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+
+    if (std.mem.eql(u8, "purse", name)) {
+        self.purse = value;
+    } else if (std.mem.eql(u8, "depth", name)) {
+        self.depth = value;
+    }
 }
 
 //

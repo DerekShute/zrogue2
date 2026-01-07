@@ -44,7 +44,6 @@ const Self = @This();
 entity: Entity = undefined, // Must be first for vtable magic
 provider: *Provider = undefined,
 purse: u16 = 0,
-depth: u16 = 0,
 
 //
 // Constructor
@@ -116,17 +115,13 @@ fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
     );
 }
 
-fn getStats(self: *Self) void {
-    return self.provider.getStats();
-}
-
-fn setStats(self: *Self, stats: Provider.Stats) void {
-    self.provider.updateStats(stats);
+fn setStatInt(self: *Self, name: []const u8, value: i32) void {
+    self.provider.setStatInt(name, value);
 }
 
 fn incrementPurse(self: *Self) void {
     self.purse += 1;
-    self.setStats(.{ .purse = self.purse, .depth = self.depth });
+    self.setStatInt("purse", self.purse);
 }
 
 //
@@ -223,6 +218,10 @@ pub fn setPos(self: *Self, p: Pos) void {
     self.entity.setPos(p);
 }
 
+pub fn setDepth(self: *Self, depth: u16) void {
+    self.setStatInt("depth", depth);
+}
+
 // Misc
 
 fn takeItem(self: *Self, i: MapTile) void {
@@ -233,11 +232,6 @@ fn takeItem(self: *Self, i: MapTile) void {
     } else { // should not happen
         self.addMessage("Nothing here to take!");
     }
-}
-
-pub fn setDepth(self: *Self, d: u16) void {
-    self.depth = d;
-    self.setStats(.{ .purse = self.purse, .depth = self.depth });
 }
 
 //

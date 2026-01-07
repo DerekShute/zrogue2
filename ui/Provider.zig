@@ -47,12 +47,6 @@ pub const Command = enum {
 // Onscreen player/game stats
 //
 
-pub const Stats = struct {
-    depth: usize = 0,
-    purse: u16 = 0,
-    // TODO: strength armor etc
-};
-
 // ===================
 //
 // Map grid as informed to us by the engine
@@ -77,6 +71,9 @@ pub const VTable = struct {
 
     // "Thing has changed" updates to send to implementation
     notifyDisplay: *const fn (ctx: *anyopaque) void,
+
+    // Stats known by game and provider implementation
+    setStatInt: *const fn (ctx: *anyopaque, name: []const u8, value: i32) void,
 };
 
 //
@@ -102,7 +99,6 @@ display_map: DisplayMap = undefined,
 x: i16 = 0,
 y: i16 = 0,
 log: MessageLog = undefined,
-stats: Stats = .{},
 
 //
 // Constructor and destructor
@@ -191,16 +187,8 @@ pub inline fn getCommand(self: *Self) Command {
 
 // Stats
 
-pub fn getStats(self: *Self) Stats {
-    // From implementation
-    return self.stats;
-}
-
-pub fn updateStats(self: *Self, stats: Stats) void {
-    // TODO: this becomes a passthrough that knows nothing about stats
-    // themselves : a dictionary keyed with strings or something
-    self.stats = stats;
-    self.notifyDisplay();
+pub fn setStatInt(self: *Self, name: []const u8, value: i32) void {
+    self.vtable.setStatInt(self.ptr, name, value);
 }
 
 // EOF
