@@ -39,7 +39,6 @@ pub fn doAction(entity: *Entity, map: *Map) Action.Result {
     };
 
     const ret = actFn(entity, &action, map);
-    entity.notifyDisplay();
     return ret;
 }
 

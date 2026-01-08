@@ -255,20 +255,8 @@ fn displayHelp() void {
     refresh();
 }
 
-fn displayScreen(self: *Self) !void {
-    // TODO: only updates
-
-    //
-    // Top line: messages
-    //
-    mvaddstr(0, 0, "                                                  ");
-    mvaddstr(0, 0, self.p.getMessage());
-
-    //
-    // Bottom line: stat block
-    //
+fn displayStatLine(self: *Self) void {
     // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
-    //
     var buf: [80]u8 = undefined; // does this need to be allocated?  size?
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
@@ -278,6 +266,20 @@ fn displayScreen(self: *Self) !void {
     // We know that error.NoSpaceLeft can't happen here
     const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
     mvaddstr(0, @intCast(self.p.y - 1), line);
+}
+
+fn displayScreen(self: *Self) !void {
+    //
+    // Top line: messages
+    //
+    mvaddstr(0, 0, "                                                  ");
+    mvaddstr(0, 0, self.p.getMessage());
+
+    //
+    // Bottom line: stat block
+    //
+
+    self.displayStatLine();
 
     //
     // Middle: the map
@@ -307,6 +309,7 @@ fn cursesGetCommand(ptr: *anyopaque) Provider.Command {
     while (cmd == .help) {
         displayHelp();
         cmd = readCommand();
+        // TODO: hit help a second time to rid menu
     }
 
     self.p.clearMessage();
@@ -332,6 +335,11 @@ fn cursesSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
         self.purse = value;
     } else if (std.mem.eql(u8, "depth", name)) {
         self.depth = value;
+    }
+
+    if (global_win != null) {
+        self.displayStatLine();
+        refresh();
     }
 }
 

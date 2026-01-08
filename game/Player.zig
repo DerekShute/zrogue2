@@ -190,6 +190,8 @@ pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {
         Region.configRadius(self.getPos(), 1),
         true,
     );
+
+    self.notifyDisplay();
 }
 
 // Map tile management
