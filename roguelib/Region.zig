@@ -40,32 +40,8 @@ pub fn configRadius(center: Pos, radius: Pos.Dim) Self {
     return config(min, max);
 }
 
-//
-// Iterator
-//
-
-pub const Iterator = struct {
-    r: *Self,
-    x: Pos.Dim,
-    y: Pos.Dim,
-
-    pub fn next(self: *Iterator) ?Pos {
-        const oldx = self.x;
-        const oldy = self.y;
-        if (self.y > self.r.to.getY()) {
-            return null;
-        } else if (self.x >= self.r.to.getX()) { // next row
-            self.y = self.y + 1;
-            self.x = self.r.from.getX();
-        } else {
-            self.x = self.x + 1; // next column
-        }
-        return Pos.config(oldx, oldy);
-    }
-};
-
-pub fn iterator(self: *Self) Iterator {
-    return .{ .r = self, .x = self.from.getX(), .y = self.from.getY() };
+pub fn iterator(self: *Self) Pos.Range {
+    return Pos.Range.init(self.from, self.to);
 }
 
 //

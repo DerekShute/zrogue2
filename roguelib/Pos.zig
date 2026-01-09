@@ -75,6 +75,39 @@ pub inline fn distance(pos1: Self, pos2: Self) Dim {
 }
 
 //
+// Iterator: range
+//
+
+pub const Range = struct {
+    curr: Self = undefined,
+    start: Self = undefined, // Top left
+    end: Self = undefined, // Bottom right
+
+    pub fn init(s: Self, e: Self) Range {
+        return .{
+            .curr = s,
+            .start = s,
+            .end = e,
+        };
+    }
+
+    pub fn next(self: *Range) ?Self {
+        const old = self.curr;
+        const x = old.getX();
+        const y = old.getY();
+        if (y > self.end.getY()) {
+            return null;
+        }
+        if (x >= self.end.getX()) { // next row
+            self.curr = config(self.start.getX(), y + 1);
+        } else {
+            self.curr = config(x + 1, y); // next column
+        }
+        return old;
+    }
+};
+
+//
 // Unit Tests
 //
 
@@ -97,6 +130,38 @@ test "create a Pos and use its operations" {
     try expect(distance(config(1, 1), config(0, 0)) == 1);
     try expect(distance(config(1, 1), config(1, 1)) == 0);
     try expect(distance(config(-1, -1), config(0, 0)) == 1);
+}
+
+test "try out Range" {
+    var r = Range.init(config(7, 3), config(10, 8));
+
+    var hitlowx: bool = false;
+    var hitlowy: bool = false;
+    var hithighx: bool = false;
+    var hithighy: bool = false;
+
+    while (r.next()) |p| {
+        const x = p.getX();
+        const y = p.getY();
+
+        try expect(x >= 7);
+        try expect(x <= 10);
+        try expect(y >= 3);
+        try expect(y <= 8);
+        if (x == 7) {
+            hitlowx = true;
+        }
+        if (x == 10) {
+            hithighx = true;
+        }
+        if (y == 3) {
+            hitlowy = true;
+        }
+        if (y == 8) {
+            hithighy = true;
+        }
+    }
+    try expect(hitlowx and hitlowy and hithighx and hithighy);
 }
 
 // EOF
