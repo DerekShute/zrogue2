@@ -167,31 +167,11 @@ pub fn passable(self: *Self, p: Pos) bool {
 // Every location on the map
 //
 
-pub const Iterator = struct {
-    m: *Self = undefined,
-    x: Pos.Dim = 0,
-    y: Pos.Dim = 0,
-
-    // TODO: This could use a Region and its iterator but there's
-    // pointer and storage confusion...maybe a Region as part of the map?
-
-    pub fn next(self: *Iterator) ?Pos {
-        const oldx = self.x;
-        const oldy = self.y;
-        if (self.y > self.m.getHeight() - 1) {
-            return null;
-        } else if (self.x >= self.m.getWidth() - 1) { // next row
-            self.y = self.y + 1;
-            self.x = 0;
-        } else {
-            self.x = self.x + 1; // next column
-        }
-        return Pos.config(oldx, oldy);
-    }
-};
-
-pub fn iterator(self: *Self) Iterator {
-    return .{ .m = self };
+pub fn iterator(self: *Self) Pos.Range {
+    return Pos.Range.init(
+        Pos.config(0, 0),
+        Pos.config(self.getWidth() - 1, self.getHeight() - 1),
+    );
 }
 
 //
