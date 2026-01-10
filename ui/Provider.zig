@@ -9,6 +9,7 @@ const std = @import("std");
 const Grid = @import("roguelib").Grid;
 const MapTile = @import("roguelib").MapTile;
 const MessageLog = @import("MessageLog.zig");
+const Pos = @import("roguelib").Pos;
 const Tileset = @import("roguelib").Tileset;
 
 const Self = @This();
@@ -96,15 +97,13 @@ pub const Config = struct {
 ptr: *anyopaque = undefined,
 vtable: *const VTable,
 display_map: DisplayMap = undefined,
-x: i16 = 0, // size, so index [0..x-1]
-y: i16 = 0, // size, so index [0..y-1]
+x: Pos.Dim = 0, // size, so index [0..x-1]
+y: Pos.Dim = 0, // size, so index [0..y-1]
 log: MessageLog = undefined,
 
 // min/max of display map delta
-minx: i16 = undefined,
-maxx: i16 = undefined,
-miny: i16 = undefined,
-maxy: i16 = undefined,
+min_delta: Pos = undefined,
+max_delta: Pos = undefined,
 
 //
 // Constructor and destructor
@@ -114,10 +113,8 @@ pub fn init(config: Config) !Self {
     var p: Self = .{
         .x = config.maxx,
         .y = config.maxy,
-        .minx = 0,
-        .maxx = 0,
-        .miny = 0,
-        .maxy = 0,
+        .min_delta = Pos.config(0, 0),
+        .max_delta = Pos.config(0, 0),
         .vtable = config.vtable,
         .log = MessageLog.init(),
     };
@@ -142,57 +139,18 @@ pub inline fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 
 // DisplayMap iterator
 
-pub const DisplayIterator = struct {
-    pub const Return = struct {
-        x: i16 = undefined,
-        y: i16 = undefined,
-    };
-
-    min_x: i16 = undefined,
-    min_y: i16 = undefined,
-    max_x: i16 = undefined,
-    max_y: i16 = undefined,
-    curr_x: i16 = undefined,
-    curr_y: i16 = undefined,
-
-    pub fn next(self: *DisplayIterator) ?Return {
-        const old_x = self.curr_x;
-        const old_y = self.curr_y;
-
-        if (self.curr_y > self.max_y) {
-            return null;
-        }
-        if (self.curr_x >= self.max_x) { // next row
-            self.curr_x = self.min_x;
-            self.curr_y += 1;
-        } else {
-            self.curr_x += 1;
-        }
-        return .{ .x = old_x, .y = old_y };
-    }
-};
-
-pub fn displayChange(self: *Self) ?DisplayIterator {
-    if (self.maxx < self.minx) { // Nothing changed
+pub fn displayChange(self: *Self) ?Pos.Range {
+    if (self.max_delta.getX() == -1) { // Nothing changed
         return null;
     }
-    const di: DisplayIterator = .{
-        .min_x = self.minx,
-        .min_y = self.miny,
-        .curr_x = self.minx,
-        .curr_y = self.miny,
-        .max_x = self.maxx,
-        .max_y = self.maxy,
-    };
+    const pr = Pos.Range.init(self.min_delta, self.max_delta);
 
-    // Set to 'no update needed': we are iterating through now
+    // Reset to 'no update needed': we are iterating through now
 
-    self.minx = self.x;
-    self.miny = self.y;
-    self.maxx = 0;
-    self.maxy = 0;
+    self.min_delta = Pos.config(self.x + 1, self.y + 1);
+    self.max_delta = Pos.config(-1, -1);
 
-    return di;
+    return pr;
 }
 
 // Message
@@ -219,15 +177,21 @@ pub fn notifyDisplay(self: *Self) void {
 
 // DisplayMapTile
 
-pub fn getTile(self: *Self, x: i16, y: i16) DisplayMapTile {
-    const tile = self.display_map.find(@intCast(x), @intCast(y)) catch {
+pub fn getTile(self: *Self, p: Pos) DisplayMapTile {
+    const tile = self.display_map.find(
+        @intCast(p.getX()),
+        @intCast(p.getY()),
+    ) catch {
         @panic("Bad pos sent to Provider.getTile"); // THINK: error?
     };
     return tile.*;
 }
 
-pub fn setTile(self: *Self, x: i16, y: i16, set: Tileset, visible: bool) void {
-    var val = self.display_map.find(@intCast(x), @intCast(y)) catch {
+pub fn setTile(self: *Self, p: Pos, set: Tileset, visible: bool) void {
+    var val = self.display_map.find(
+        @intCast(p.getX()),
+        @intCast(p.getY()),
+    ) catch {
         @panic("Bad pos sent to Provider.setTile"); // THINK: error?
     };
     val.entity = set.entity;
@@ -236,24 +200,28 @@ pub fn setTile(self: *Self, x: i16, y: i16, set: Tileset, visible: bool) void {
     val.visible = visible;
 
     // Grow the needing-update window if necessary
-    self.minx = @min(x, self.minx);
-    self.maxx = @max(x, self.maxx);
-    self.miny = @min(y, self.miny);
-    self.maxy = @max(y, self.maxy);
+    self.min_delta = Pos.config(
+        @min(p.getX(), self.min_delta.getX()),
+        @min(p.getY(), self.min_delta.getY()),
+    );
+    self.max_delta = Pos.config(
+        @max(p.getX(), self.max_delta.getX()),
+        @max(p.getY(), self.max_delta.getY()),
+    );
+}
+
+pub fn needRefresh(self: *Self) void {
+    // Mark the entire display as needing update
+    self.min_delta = Pos.config(0, 0);
+    self.max_delta = Pos.config(self.x - 1, self.y - 1);
 }
 
 pub fn resetDisplay(self: *Self) void {
     var i = self.display_map.iterator();
-
     while (i.next()) |tile| {
         tile.* = .{};
     }
-
-    // Mark the entire display as needing update
-    self.minx = 0;
-    self.maxx = self.x - 1;
-    self.miny = 0;
-    self.maxy = self.y - 1;
+    self.needRefresh();
 }
 
 // Command

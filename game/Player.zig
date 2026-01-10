@@ -107,12 +107,7 @@ fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
 }
 
 fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
-    self.provider.setTile(
-        loc.getX(),
-        loc.getY(),
-        tileset,
-        visible,
-    );
+    self.provider.setTile(loc, tileset, visible);
 }
 
 fn setStatInt(self: *Self, name: []const u8, value: i32) void {
