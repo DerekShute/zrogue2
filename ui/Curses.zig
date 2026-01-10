@@ -90,14 +90,16 @@ fn renderChar(tile: Provider.DisplayMapTile) u8 {
 }
 
 fn renderMap(p: *Provider) void {
-    // TODO: iterator
-    for (0..@intCast(p.y - 2)) |y| {
-        for (0..@intCast(p.x)) |x| {
-            const char = renderChar(p.getTile(@intCast(x), @intCast(y)));
+    // Row 0 is message line, last row (23) is stats, so map 0,0 is at
+    // position 0,1
+
+    var dc = p.displayChange();
+    while (dc.next()) |r| {
+        if (r.y < p.y - 2) { // Reserve bottom display line
             _ = paranoia(curses.mvaddch(
-                @intCast(y + 1),
-                @intCast(x),
-                char,
+                @intCast(r.y + 1), // Shift one to reserve top line
+                @intCast(r.x),
+                renderChar(p.getTile(@intCast(r.x), @intCast(r.y))),
             ));
         }
     }

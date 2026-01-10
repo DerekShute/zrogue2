@@ -148,4 +148,17 @@ test "mock alloc does not work 0" {
     try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60, .commands = &testlist }));
 }
 
+test "display map range iterator" {
+    var m = try init(.{ .allocator = std.testing.allocator, .maxx = 100, .maxy = 100, .commands = &testlist });
+    defer m.deinit(std.testing.allocator);
+
+    var p = m.provider();
+    var dc = p.displayChange();
+    while (dc.next()) |f| {
+        try expect((f.x >= 0) and (f.x < 100));
+        try expect((f.y >= 0) and (f.y < 100));
+    }
+    // TODO should hit each one
+}
+
 // EOF
