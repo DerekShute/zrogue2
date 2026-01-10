@@ -130,6 +130,49 @@ pub inline fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 // Methods
 //
 
+// DisplayMap iterator
+
+pub const DisplayIterator = struct {
+    pub const Return = struct {
+        x: i16 = undefined,
+        y: i16 = undefined,
+    };
+
+    min_x: i16 = undefined,
+    min_y: i16 = undefined,
+    max_x: i16 = undefined,
+    max_y: i16 = undefined,
+    curr_x: i16 = undefined,
+    curr_y: i16 = undefined,
+
+    pub fn next(self: *DisplayIterator) ?Return {
+        const old_x = self.curr_x;
+        const old_y = self.curr_y;
+
+        if (self.curr_y > self.max_y) {
+            return null;
+        }
+        if (self.curr_x >= self.max_x) { // next row
+            self.curr_x = self.min_x;
+            self.curr_y += 1;
+        } else {
+            self.curr_x += 1;
+        }
+        return .{ .x = old_x, .y = old_y };
+    }
+};
+
+pub fn displayChange(self: *Self) DisplayIterator {
+    return .{
+        .min_x = 0,
+        .min_y = 0,
+        .curr_x = 0,
+        .curr_y = 0,
+        .max_x = self.x - 1,
+        .max_y = self.y - 1,
+    };
+}
+
 // Message
 
 pub inline fn addMessage(self: *Self, msg: []const u8) void {
@@ -190,5 +233,11 @@ pub inline fn getCommand(self: *Self) Command {
 pub fn setStatInt(self: *Self, name: []const u8, value: i32) void {
     self.vtable.setStatInt(self.ptr, name, value);
 }
+
+//
+// Unit tests
+//
+
+// See testing/MockProvider.zig
 
 // EOF
