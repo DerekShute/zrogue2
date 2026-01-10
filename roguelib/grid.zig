@@ -28,23 +28,25 @@ pub fn Grid(comptime T: type) type {
         width: usize,
 
         pub const Iterator = struct {
-            array: []T = undefined,
-            curr: usize = 0,
+            slice: []T = undefined,
 
             pub fn next(self: *Self.Iterator) ?*T {
-                if (self.curr < self.array.len) {
-                    const ret = &self.array[self.curr];
-                    self.curr += 1;
-                    return ret;
+                if (self.slice.len == 0) {
+                    return null;
                 }
-                return null;
+                const ret = &self.slice[0];
+                if (self.slice.len > 1) {
+                    self.slice = self.slice[1..];
+                } else {
+                    self.slice = &.{};
+                }
+                return ret;
             }
         };
 
         pub fn iterator(self: Self) Self.Iterator {
             return .{
-                .array = self.i,
-                .curr = 0,
+                .slice = self.i[0..],
             };
         }
 
