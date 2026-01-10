@@ -108,8 +108,8 @@ fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
 
 fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
     self.provider.setTile(
-        @intCast(loc.getX()),
-        @intCast(loc.getY()),
+        loc.getX(),
+        loc.getY(),
         tileset,
         visible,
     );
