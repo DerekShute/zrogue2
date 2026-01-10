@@ -95,12 +95,12 @@ fn renderMap(p: *Provider) void {
 
     if (p.displayChange()) |dc| { // if there's a change
         var _dc = dc;
-        while (_dc.next()) |r| {
-            if (r.y < p.y - 2) { // Reserve bottom display line
+        while (_dc.next()) |loc| {
+            if (loc.getY() < p.y - 2) { // Reserve bottom display line
                 _ = paranoia(curses.mvaddch(
-                    r.y + 1, // Shift one to reserve top line
-                    r.x,
-                    renderChar(p.getTile(r.x, r.y)),
+                    loc.getY() + 1, // Shift one to reserve top line
+                    loc.getX(),
+                    renderChar(p.getTile(loc)),
                 ));
             }
         }
@@ -312,6 +312,7 @@ fn cursesGetCommand(ptr: *anyopaque) Provider.Command {
     var cmd = readCommand();
     while (cmd == .help) {
         displayHelp();
+        self.p.needRefresh();
         cmd = readCommand();
         // TODO: hit help a second time to rid menu
     }

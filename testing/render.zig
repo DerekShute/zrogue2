@@ -53,22 +53,22 @@ fn makeMap(player: *game.Player) !*Map {
 }
 
 fn getEntity(p: *Provider, x: i16, y: i16) MapTile {
-    const dt = p.getTile(x, y);
+    const dt = p.getTile(Pos.config(x, y));
     return dt.entity;
 }
 
 fn getFloor(p: *Provider, x: i16, y: i16) MapTile {
-    const dt = p.getTile(x, y);
+    const dt = p.getTile(Pos.config(x, y));
     return dt.floor;
 }
 
 fn getItem(p: *Provider, x: i16, y: i16) MapTile {
-    const dt = p.getTile(x, y);
+    const dt = p.getTile(Pos.config(x, y));
     return dt.item;
 }
 
 fn isVisible(p: *Provider, x: i16, y: i16) bool {
-    const dt = p.getTile(x, y);
+    const dt = p.getTile(Pos.config(x, y));
     return dt.visible;
 }
 
