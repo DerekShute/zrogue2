@@ -153,10 +153,12 @@ test "display map range iterator" {
     defer m.deinit(std.testing.allocator);
 
     var p = m.provider();
-    var dc = p.displayChange();
-    while (dc.next()) |f| {
-        try expect((f.x >= 0) and (f.x < 100));
-        try expect((f.y >= 0) and (f.y < 100));
+    if (p.displayChange()) |dc| {
+        var _dc = dc; // Convert from const
+        while (_dc.next()) |f| {
+            try expect((f.x >= 0) and (f.x < 100));
+            try expect((f.y >= 0) and (f.y < 100));
+        }
     }
     // TODO should hit each one
 }

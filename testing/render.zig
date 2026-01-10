@@ -52,22 +52,22 @@ fn makeMap(player: *game.Player) !*Map {
     );
 }
 
-fn getEntity(p: *Provider, x: u16, y: u16) MapTile {
+fn getEntity(p: *Provider, x: i16, y: i16) MapTile {
     const dt = p.getTile(x, y);
     return dt.entity;
 }
 
-fn getFloor(p: *Provider, x: u16, y: u16) MapTile {
+fn getFloor(p: *Provider, x: i16, y: i16) MapTile {
     const dt = p.getTile(x, y);
     return dt.floor;
 }
 
-fn getItem(p: *Provider, x: u16, y: u16) MapTile {
+fn getItem(p: *Provider, x: i16, y: i16) MapTile {
     const dt = p.getTile(x, y);
     return dt.item;
 }
 
-fn isVisible(p: *Provider, x: u16, y: u16) bool {
+fn isVisible(p: *Provider, x: i16, y: i16) bool {
     const dt = p.getTile(x, y);
     return dt.visible;
 }
@@ -80,7 +80,7 @@ fn moveTo(player: *game.Player, map: *Map, pos: Pos) void {
     player.revealMap(map, orig);
 }
 
-fn expectFloor(p: *Provider, x: u16, y: u16, t: MapTile, v: bool) !void {
+fn expectFloor(p: *Provider, x: i16, y: i16, t: MapTile, v: bool) !void {
     try expect(getFloor(p, x, y) == t);
     try expect(isVisible(p, x, y) == v);
 }

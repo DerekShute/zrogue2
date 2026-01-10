@@ -93,14 +93,16 @@ fn renderMap(p: *Provider) void {
     // Row 0 is message line, last row (23) is stats, so map 0,0 is at
     // position 0,1
 
-    var dc = p.displayChange();
-    while (dc.next()) |r| {
-        if (r.y < p.y - 2) { // Reserve bottom display line
-            _ = paranoia(curses.mvaddch(
-                @intCast(r.y + 1), // Shift one to reserve top line
-                @intCast(r.x),
-                renderChar(p.getTile(@intCast(r.x), @intCast(r.y))),
-            ));
+    if (p.displayChange()) |dc| { // if there's a change
+        var _dc = dc;
+        while (_dc.next()) |r| {
+            if (r.y < p.y - 2) { // Reserve bottom display line
+                _ = paranoia(curses.mvaddch(
+                    r.y + 1, // Shift one to reserve top line
+                    r.x,
+                    renderChar(p.getTile(r.x, r.y)),
+                ));
+            }
         }
     }
 }

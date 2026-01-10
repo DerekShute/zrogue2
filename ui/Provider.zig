@@ -96,9 +96,15 @@ pub const Config = struct {
 ptr: *anyopaque = undefined,
 vtable: *const VTable,
 display_map: DisplayMap = undefined,
-x: i16 = 0,
-y: i16 = 0,
+x: i16 = 0, // size, so index [0..x-1]
+y: i16 = 0, // size, so index [0..y-1]
 log: MessageLog = undefined,
+
+// min/max of display map delta
+minx: i16 = undefined,
+maxx: i16 = undefined,
+miny: i16 = undefined,
+maxy: i16 = undefined,
 
 //
 // Constructor and destructor
@@ -108,6 +114,10 @@ pub fn init(config: Config) !Self {
     var p: Self = .{
         .x = config.maxx,
         .y = config.maxy,
+        .minx = 0,
+        .maxx = 0,
+        .miny = 0,
+        .maxy = 0,
         .vtable = config.vtable,
         .log = MessageLog.init(),
     };
@@ -162,15 +172,27 @@ pub const DisplayIterator = struct {
     }
 };
 
-pub fn displayChange(self: *Self) DisplayIterator {
-    return .{
-        .min_x = 0,
-        .min_y = 0,
-        .curr_x = 0,
-        .curr_y = 0,
-        .max_x = self.x - 1,
-        .max_y = self.y - 1,
+pub fn displayChange(self: *Self) ?DisplayIterator {
+    if (self.maxx < self.minx) { // Nothing changed
+        return null;
+    }
+    const di: DisplayIterator = .{
+        .min_x = self.minx,
+        .min_y = self.miny,
+        .curr_x = self.minx,
+        .curr_y = self.miny,
+        .max_x = self.maxx,
+        .max_y = self.maxy,
     };
+
+    // Set to 'no update needed': we are iterating through now
+
+    self.minx = self.x;
+    self.miny = self.y;
+    self.maxx = 0;
+    self.maxy = 0;
+
+    return di;
 }
 
 // Message
@@ -197,21 +219,27 @@ pub fn notifyDisplay(self: *Self) void {
 
 // DisplayMapTile
 
-pub fn getTile(self: *Self, x: u16, y: u16) DisplayMapTile {
-    const tile = self.display_map.find(x, y) catch {
+pub fn getTile(self: *Self, x: i16, y: i16) DisplayMapTile {
+    const tile = self.display_map.find(@intCast(x), @intCast(y)) catch {
         @panic("Bad pos sent to Provider.getTile"); // THINK: error?
     };
     return tile.*;
 }
 
-pub fn setTile(self: *Self, x: u16, y: u16, set: Tileset, visible: bool) void {
-    var val = self.display_map.find(x, y) catch {
+pub fn setTile(self: *Self, x: i16, y: i16, set: Tileset, visible: bool) void {
+    var val = self.display_map.find(@intCast(x), @intCast(y)) catch {
         @panic("Bad pos sent to Provider.setTile"); // THINK: error?
     };
     val.entity = set.entity;
     val.floor = set.floor;
     val.item = set.item;
     val.visible = visible;
+
+    // Grow the needing-update window if necessary
+    self.minx = @min(x, self.minx);
+    self.maxx = @max(x, self.maxx);
+    self.miny = @min(y, self.miny);
+    self.maxy = @max(y, self.maxy);
 }
 
 pub fn resetDisplay(self: *Self) void {
@@ -220,6 +248,12 @@ pub fn resetDisplay(self: *Self) void {
     while (i.next()) |tile| {
         tile.* = .{};
     }
+
+    // Mark the entire display as needing update
+    self.minx = 0;
+    self.maxx = self.x - 1;
+    self.miny = 0;
+    self.maxy = self.y - 1;
 }
 
 // Command
