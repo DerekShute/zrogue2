@@ -3,6 +3,7 @@
 //!
 
 pub const Action = @import("Action.zig");
+pub const Client = @import("Client.zig");
 pub const Entity = @import("Entity.zig");
 pub const Feature = @import("maptile.zig").Feature;
 pub const Grid = @import("grid.zig").Grid;
@@ -19,6 +20,8 @@ pub const Tileset = @import("maptile.zig").Tileset;
 
 comptime {
     _ = @import("Action.zig");
+    _ = @import("Client.zig");
+    _ = @import("client/MessageLog.zig");
     _ = @import("Entity.zig");
     _ = @import("grid.zig");
     _ = @import("maptile.zig");

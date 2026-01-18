@@ -6,11 +6,11 @@
 //!
 
 const std = @import("std");
-const Grid = @import("roguelib").Grid;
-const MapTile = @import("roguelib").MapTile;
-const MessageLog = @import("MessageLog.zig");
-const Pos = @import("roguelib").Pos;
-const Tileset = @import("roguelib").Tileset;
+const Grid = @import("grid.zig").Grid;
+const MapTile = @import("maptile.zig").MapTile;
+const MessageLog = @import("client/MessageLog.zig");
+const Pos = @import("Pos.zig");
+const Tileset = @import("maptile.zig").Tileset;
 
 const Self = @This();
 

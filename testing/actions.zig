@@ -5,13 +5,13 @@
 const std = @import("std");
 const game = @import("game");
 const Action = @import("roguelib").Action;
+const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const mapgen = @import("mapgen");
-const ui = @import("ui");
 
 const expect = std.testing.expect;
-const MockProvider = @import("MockProvider.zig");
+const MockClient = @import("MockClient.zig");
 
 const XSIZE = 80;
 const YSIZE = 24;
@@ -20,8 +20,8 @@ const YSIZE = 24;
 // Utilities
 //
 
-fn makeProvider(testlist: []ui.Provider.Command) !MockProvider {
-    return try MockProvider.init(.{
+fn makeClient(testlist: []Client.Command) !MockClient {
+    return try MockClient.init(.{
         .allocator = std.testing.allocator,
         .maxx = XSIZE,
         .maxy = YSIZE,
@@ -29,10 +29,10 @@ fn makeProvider(testlist: []ui.Provider.Command) !MockProvider {
     });
 }
 
-fn makePlayer(provider: *ui.Provider) game.Player {
+fn makePlayer(client: *Client) game.Player {
     return game.Player.init(.{
         .allocator = std.testing.allocator,
-        .provider = provider,
+        .client = client,
         .maxx = XSIZE,
         .maxy = YSIZE,
     });
@@ -74,16 +74,16 @@ fn actAndMessage(player: *game.Player, map: *Map, msg: []const u8) !void {
 //
 
 test "in-place boring stuff then quit" {
-    var testlist = [_]ui.Provider.Command{
+    var testlist = [_]Client.Command{
         .wait,
         .ascend,
         .descend,
         .quit,
     };
 
-    var m = try makeProvider(&testlist);
+    var m = try makeClient(&testlist);
     defer m.deinit(std.testing.allocator);
-    var player = makePlayer(m.provider());
+    var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
@@ -94,16 +94,16 @@ test "in-place boring stuff then quit" {
 }
 
 test "move in a circle: all directions work" {
-    var testlist = [_]ui.Provider.Command{
+    var testlist = [_]Client.Command{
         .go_west,
         .go_north,
         .go_east,
         .go_south,
     };
 
-    var m = try makeProvider(&testlist);
+    var m = try makeClient(&testlist);
     defer m.deinit(std.testing.allocator);
-    var player = makePlayer(m.provider());
+    var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
@@ -114,15 +114,15 @@ test "move in a circle: all directions work" {
 }
 
 test "hit a wall" {
-    var testlist = [_]ui.Provider.Command{
+    var testlist = [_]Client.Command{
         .go_east,
         .go_east,
         .go_east,
     };
 
-    var m = try makeProvider(&testlist);
+    var m = try makeClient(&testlist);
     defer m.deinit(std.testing.allocator);
-    var player = makePlayer(m.provider());
+    var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
@@ -133,9 +133,9 @@ test "hit a wall" {
 
 // Expand this as capabilities add...
 test "pick up gold and etc" {
-    // TODO: instrument the mock provider so you can insert/replace items, so
+    // TODO: instrument the mock client so you can insert/replace items, so
     // changing this around is easier
-    var testlist = [_]ui.Provider.Command{
+    var testlist = [_]Client.Command{
         .search, // find nothing
         .go_east,
         .go_north,
@@ -148,9 +148,9 @@ test "pick up gold and etc" {
         .ascend,
     };
 
-    var m = try makeProvider(&testlist);
+    var m = try makeClient(&testlist);
     defer m.deinit(std.testing.allocator);
-    var player = makePlayer(m.provider());
+    var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 

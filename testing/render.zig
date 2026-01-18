@@ -7,15 +7,14 @@
 const std = @import("std");
 const game = @import("game");
 const Action = @import("roguelib").Action;
+const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const mapgen = @import("mapgen");
 const MapTile = @import("roguelib").MapTile;
-const ui = @import("ui");
-const Provider = ui.Provider;
 
 const expect = std.testing.expect;
-const MockProvider = @import("MockProvider.zig");
+const MockClient = @import("MockClient.zig");
 
 const XSIZE = 80;
 const YSIZE = 24;
@@ -24,8 +23,8 @@ const YSIZE = 24;
 // Utilities
 //
 
-fn makeProvider(testlist: []ui.Provider.Command) !MockProvider {
-    return try MockProvider.init(.{
+fn makeClient(testlist: []Client.Command) !MockClient {
+    return try MockClient.init(.{
         .allocator = std.testing.allocator,
         .maxx = XSIZE,
         .maxy = YSIZE,
@@ -33,10 +32,10 @@ fn makeProvider(testlist: []ui.Provider.Command) !MockProvider {
     });
 }
 
-fn makePlayer(provider: *ui.Provider) game.Player {
+fn makePlayer(client: *Client) game.Player {
     return game.Player.init(.{
         .allocator = std.testing.allocator,
-        .provider = provider,
+        .client = client,
         .maxx = XSIZE,
         .maxy = YSIZE,
     });
@@ -52,23 +51,23 @@ fn makeMap(player: *game.Player) !*Map {
     );
 }
 
-fn getEntity(p: *Provider, x: i16, y: i16) MapTile {
-    const dt = p.getTile(Pos.config(x, y));
+fn getEntity(c: *Client, x: i16, y: i16) MapTile {
+    const dt = c.getTile(Pos.config(x, y));
     return dt.entity;
 }
 
-fn getFloor(p: *Provider, x: i16, y: i16) MapTile {
-    const dt = p.getTile(Pos.config(x, y));
+fn getFloor(c: *Client, x: i16, y: i16) MapTile {
+    const dt = c.getTile(Pos.config(x, y));
     return dt.floor;
 }
 
-fn getItem(p: *Provider, x: i16, y: i16) MapTile {
-    const dt = p.getTile(Pos.config(x, y));
+fn getItem(c: *Client, x: i16, y: i16) MapTile {
+    const dt = c.getTile(Pos.config(x, y));
     return dt.item;
 }
 
-fn isVisible(p: *Provider, x: i16, y: i16) bool {
-    const dt = p.getTile(Pos.config(x, y));
+fn isVisible(c: *Client, x: i16, y: i16) bool {
+    const dt = c.getTile(Pos.config(x, y));
     return dt.visible;
 }
 
@@ -80,9 +79,9 @@ fn moveTo(player: *game.Player, map: *Map, pos: Pos) void {
     player.revealMap(map, orig);
 }
 
-fn expectFloor(p: *Provider, x: i16, y: i16, t: MapTile, v: bool) !void {
-    try expect(getFloor(p, x, y) == t);
-    try expect(isVisible(p, x, y) == v);
+fn expectFloor(c: *Client, x: i16, y: i16, t: MapTile, v: bool) !void {
+    try expect(getFloor(c, x, y) == t);
+    try expect(isVisible(c, x, y) == v);
 }
 
 //
@@ -90,17 +89,17 @@ fn expectFloor(p: *Provider, x: i16, y: i16, t: MapTile, v: bool) !void {
 //
 
 test "render starting position" {
-    var testlist = [_]ui.Provider.Command{
+    var testlist = [_]Client.Command{
         .wait,
         .ascend,
         .descend,
         .quit,
     };
 
-    var mock = try makeProvider(&testlist);
+    var mock = try makeClient(&testlist);
     defer mock.deinit(std.testing.allocator);
-    const provider = mock.provider();
-    var player = makePlayer(provider);
+    const client = mock.client();
+    var player = makePlayer(client);
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
@@ -115,23 +114,23 @@ test "render starting position" {
     //      .@.
     //      ...
 
-    try expectFloor(provider, 2, 2, .unknown, false);
-    try expectFloor(provider, 6, 6, .floor, true);
-    try expect(getEntity(provider, 6, 6) == .player);
-    try expect(getItem(provider, 6, 6) == .unknown);
-    try expectFloor(provider, 7, 5, .floor, true);
-    try expect(getItem(provider, 7, 5) == .gold);
-    try expectFloor(provider, 8, 4, .unknown, false); // stairs down, not updated
+    try expectFloor(client, 2, 2, .unknown, false);
+    try expectFloor(client, 6, 6, .floor, true);
+    try expect(getEntity(client, 6, 6) == .player);
+    try expect(getItem(client, 6, 6) == .unknown);
+    try expectFloor(client, 7, 5, .floor, true);
+    try expect(getItem(client, 7, 5) == .gold);
+    try expectFloor(client, 8, 4, .unknown, false); // stairs down, not updated
 
     //       ###
     //       .@<
     //       ..>
 
     moveTo(&player, map, Pos.config(7, 3));
-    try expectFloor(provider, 6, 6, .floor, false); // no update, not visible
-    try expectFloor(provider, 7, 2, .wall, true); // visible
-    try expectFloor(provider, 8, 4, .stairs_down, true);
-    try expectFloor(provider, 8, 3, .stairs_up, true);
+    try expectFloor(client, 6, 6, .floor, false); // no update, not visible
+    try expectFloor(client, 7, 2, .wall, true); // visible
+    try expectFloor(client, 8, 4, .stairs_down, true);
+    try expectFloor(client, 8, 3, .stairs_up, true);
 
     //                            #########
     //                            #.......#
@@ -141,11 +140,11 @@ test "render starting position" {
     //                            #########
 
     moveTo(&player, map, Pos.config(31, 7));
-    try expectFloor(provider, 27, 5, .wall, true); // lit room
-    try expectFloor(provider, 27, 10, .wall, true);
-    try expectFloor(provider, 35, 5, .wall, true);
-    try expectFloor(provider, 35, 10, .wall, true);
-    try expectFloor(provider, 31, 7, .floor, true);
+    try expectFloor(client, 27, 5, .wall, true); // lit room
+    try expectFloor(client, 27, 10, .wall, true);
+    try expectFloor(client, 35, 5, .wall, true);
+    try expectFloor(client, 35, 10, .wall, true);
+    try expectFloor(client, 31, 7, .floor, true);
 
     //                            #########
     //                            #       #
@@ -155,8 +154,8 @@ test "render starting position" {
     //                            #########
 
     moveTo(&player, map, Pos.config(26, 8));
-    try expectFloor(provider, 25, 8, .floor, true);
-    try expectFloor(provider, 31, 7, .floor, false);
+    try expectFloor(client, 25, 8, .floor, true);
+    try expectFloor(client, 31, 7, .floor, false);
 
     //                            #########
     //                            #.......#
@@ -166,8 +165,8 @@ test "render starting position" {
     //                            #########
 
     moveTo(&player, map, Pos.config(27, 8));
-    try expectFloor(provider, 25, 8, .floor, false);
-    try expectFloor(provider, 31, 7, .floor, true);
+    try expectFloor(client, 25, 8, .floor, false);
+    try expectFloor(client, 31, 7, .floor, true);
 
     //                            #########
     //                            #.......#
@@ -176,6 +175,8 @@ test "render starting position" {
     //                          ###.......#
     //                            #########
     moveTo(&player, map, Pos.config(28, 8));
-    try expectFloor(provider, 26, 8, .floor, false);
-    try expectFloor(provider, 31, 7, .floor, true);
+    try expectFloor(client, 26, 8, .floor, false);
+    try expectFloor(client, 31, 7, .floor, true);
 }
+
+// EOF

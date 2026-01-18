@@ -4,8 +4,8 @@
 
 const std = @import("std");
 const game = @import("game");
-const MockProvider = @import("MockProvider.zig");
-const ui = @import("ui");
+const MockClient = @import("MockClient.zig");
+const Client = @import("roguelib").Client;
 
 const XSIZE = 80;
 const YSIZE = 24;
@@ -14,7 +14,7 @@ const YSIZE = 24;
 // Unit Tests
 //
 
-var testlist = [_]ui.Provider.Command{
+var testlist = [_]Client.Command{
     .wait, // do nothing
     .go_west,
     .go_east,
@@ -42,17 +42,17 @@ var testlist = [_]ui.Provider.Command{
 };
 
 test "run the game" {
-    const p_config: MockProvider.Config = .{
+    const config: MockClient.Config = .{
         .allocator = std.testing.allocator,
         .maxx = XSIZE,
         .maxy = YSIZE,
         .commands = &testlist,
     };
-    var m = try MockProvider.init(p_config);
+    var m = try MockClient.init(config);
     defer m.deinit(std.testing.allocator);
 
     var player = game.Player.init(.{
-        .provider = m.provider(),
+        .client = m.client(),
         .allocator = std.testing.allocator,
         .maxx = XSIZE,
         .maxy = YSIZE,
@@ -71,7 +71,7 @@ test "run the game" {
 
 comptime {
     _ = @import("actions.zig");
-    _ = @import("MockProvider.zig");
+    _ = @import("MockClient.zig");
     _ = @import("render.zig");
 }
 

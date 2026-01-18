@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-const Provider = @import("ui").Provider;
+const Client = @import("roguelib").Client;
 
 const Self = @This();
 
@@ -15,15 +15,15 @@ pub const Config = struct {
     allocator: std.mem.Allocator,
     maxx: u8,
     maxy: u8,
-    commands: []Provider.Command,
+    commands: []Client.Command,
 };
 
 //
 // Members
 //
 
-p: Provider = undefined,
-command_list: []Provider.Command = undefined,
+c: Client = undefined,
+command_list: []Client.Command = undefined,
 command_index: u16 = 0,
 notified: bool = false,
 purse: i32 = 0,
@@ -34,7 +34,7 @@ depth: i32 = 0,
 //
 
 pub fn init(config: Config) !Self {
-    const pc: Provider.Config = .{
+    const pc: Client.Config = .{
         .allocator = config.allocator,
         .maxx = config.maxx,
         .maxy = config.maxy,
@@ -46,13 +46,13 @@ pub fn init(config: Config) !Self {
     };
 
     return .{
-        .p = try Provider.init(pc),
+        .c = try Client.init(pc),
         .command_list = config.commands,
     };
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.p.deinit(allocator);
+    self.c.deinit(allocator);
     return;
 }
 
@@ -60,16 +60,16 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 // Lifecycle
 //
 
-pub fn provider(self: *Self) *Provider {
-    self.p.ptr = self;
-    return &self.p;
+pub fn client(self: *Self) *Client {
+    self.c.ptr = self;
+    return &self.c;
 }
 
 //
 // VTable
 //
 
-fn mockGetCommand(ptr: *anyopaque) Provider.Command {
+fn mockGetCommand(ptr: *anyopaque) Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
     const i = self.command_index;
     if (i >= self.command_list.len) {
@@ -121,7 +121,7 @@ pub fn getNotified(self: *Self) bool {
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 
-var testlist = [_]Provider.Command{
+var testlist = [_]Client.Command{
     .go_west,
     .quit,
 };
@@ -130,16 +130,16 @@ test "try out mock" {
     var m = try init(.{ .allocator = std.testing.allocator, .maxx = 40, .maxy = 60, .commands = &testlist });
     defer m.deinit(std.testing.allocator);
 
-    var p = m.provider();
-    try expect(p.getCommand() == .go_west);
+    var c = m.client();
+    try expect(c.getCommand() == .go_west);
 
     try expect(m.getStatPurse() == 0);
     try expect(m.getStatDepth() == 0);
     try expect(!m.getNotified());
 
-    p.setStatInt("purse", 10);
+    c.setStatInt("purse", 10);
     try expect(m.getStatPurse() == 10);
-    p.setStatInt("depth", 4);
+    c.setStatInt("depth", 4);
     try expect(m.getStatDepth() == 4);
 }
 
@@ -152,8 +152,8 @@ test "display map range iterator" {
     var m = try init(.{ .allocator = std.testing.allocator, .maxx = 100, .maxy = 100, .commands = &testlist });
     defer m.deinit(std.testing.allocator);
 
-    var p = m.provider();
-    if (p.displayChange()) |dc| {
+    var c = m.client();
+    if (c.displayChange()) |dc| {
         var _dc = dc; // Convert from const
         while (_dc.next()) |loc| {
             try expect((loc.getX() >= 0) and (loc.getY() < 100));
