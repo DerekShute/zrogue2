@@ -41,7 +41,14 @@ Which started from the very instructive v2 TCOD tutorial:
 
 ## Releases
 
-### None so far; trying to get it to what was 0.2 in the previous iteration
+### 0.2 prepped for whatever is next
+
+linux-cli/ encapsulates the single-user linux CLI version, and interactions
+have been contained to the point where I can turn this client-server.
+
+### 0.1 basic basic stuff
+
+Three dungeon levels with gold, dark rooms, secret doors, and traps
 
 ### Forward looking
 

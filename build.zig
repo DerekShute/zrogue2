@@ -5,6 +5,7 @@
 //!
 
 const std = @import("std");
+const zon = @import("build.zig.zon");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -14,6 +15,12 @@ pub fn build(b: *std.Build) void {
     //    const optimize = b.standardOptimizeOption(.{});
     const optimize = .ReleaseFast;
     const test_optimize = b.standardOptimizeOption(.{});
+
+    //
+    // Crystallize the version into a build option
+    //
+    const options = b.addOptions();
+    options.addOption([]const u8, "version", zon.version);
 
     const roguelib_mod = b.addModule("roguelib", .{
         .root_source_file = b.path("roguelib/root.zig"),
@@ -50,6 +57,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    exe.root_module.addOptions("build", options); // exposes version
     exe.linkLibC();
     exe.linkSystemLibrary("ncursesw");
     b.installArtifact(exe);
