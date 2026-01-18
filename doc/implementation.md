@@ -8,8 +8,7 @@ A work in progress.  There is:
 * game : the game that would be implemented, that wields the mapgen and
   roguelib
 * doc : you are here
-* ui : right now the general Provider model plus the ncurses implementation
-* src : ill-named thing that is "Linux CLI using curses of the game"
+* linux-cli : what it says on the tin: Linux single-user ncurses-based game
 * testing : high level testing that is a game equivalent
 
 ## Modules
@@ -39,19 +38,9 @@ A map generated per the original Rogue sources or near enough.
 The most generally-useful things I can think of.  Positions, maps of tiles,
 Entities, and so forth.  These are the substrate.
 
-### src
+### linux-cli
 
-Should be renamed.  This is the Linux CLI build, using ncurses.
-
-### ui
-
-The model is having a Provider with strict API that handles the interface
-details: buttons and keypresses and display and icons and so forth.  The game
-sends display updates (messages, map updates, etc.) and the Provider decides
-presentation.
-
-This could be 'characters and keypresses' or 'icons and mouse events' depending
-on what is is being built.
+This is the Linux CLI single-user game, using ncurses.
 
 #### ncurses
 
