@@ -1,5 +1,5 @@
 //!
-//! ncurses frontend, creating a Provider from it
+//! ncurses frontend, creating a Client from it
 //!
 //!
 //! * (0,0) is top left corner,
@@ -10,7 +10,7 @@
 const std = @import("std");
 const curses = @cImport(@cInclude("curses.h"));
 
-const Provider = @import("Provider.zig");
+const Client = @import("roguelib").Client;
 const MapTile = @import("roguelib").MapTile;
 
 const Self = @This();
@@ -36,9 +36,9 @@ pub const Config = struct {
 //
 //   * Move cursor to x,y not supported by window size
 //
-fn checkError(res: c_int) Provider.Error!c_int {
+fn checkError(res: c_int) Client.Error!c_int {
     if (res == curses.ERR) {
-        return Provider.Error.ProviderError; // Cop-out
+        return Client.Error.ClientError; // Cop-out
     }
     return res;
 }
@@ -70,7 +70,7 @@ fn mapToChar(ch: MapTile) u8 {
     return c;
 }
 
-fn renderChar(tile: Provider.DisplayMapTile) u8 {
+fn renderChar(tile: Client.DisplayMapTile) u8 {
     if (tile.visible) {
         if (tile.entity != .unknown) {
             return mapToChar(tile.entity);
@@ -80,7 +80,7 @@ fn renderChar(tile: Provider.DisplayMapTile) u8 {
         }
         // Else floor
     } else { // Not visible
-        // Provider option: can use dimmed version of last known, etc
+        // Client option: can use dimmed version of last known, etc
         if (!tile.floor.isFeature()) {
             return mapToChar(.unknown);
         }
@@ -89,18 +89,18 @@ fn renderChar(tile: Provider.DisplayMapTile) u8 {
     return mapToChar(tile.floor);
 }
 
-fn renderMap(p: *Provider) void {
+fn renderMap(c: *Client) void {
     // Row 0 is message line, last row (23) is stats, so map 0,0 is at
     // position 0,1
 
-    if (p.displayChange()) |dc| { // if there's a change
+    if (c.displayChange()) |dc| { // if there's a change
         var _dc = dc;
         while (_dc.next()) |loc| {
-            if (loc.getY() < p.y - 2) { // Reserve bottom display line
+            if (loc.getY() < c.y - 2) { // Reserve bottom display line
                 _ = paranoia(curses.mvaddch(
                     loc.getY() + 1, // Shift one to reserve top line
                     loc.getX(),
-                    renderChar(p.getTile(loc)),
+                    renderChar(c.getTile(loc)),
                 ));
             }
         }
@@ -117,7 +117,7 @@ var global_win: ?*curses.WINDOW = null;
 // Members
 //
 
-p: Provider = undefined,
+c: Client = undefined,
 // Stats
 purse: i32 = 0,
 depth: i32 = 0,
@@ -128,9 +128,9 @@ depth: i32 = 0,
 // Constructor / Destructor
 //
 
-pub fn init(config: Config) Provider.Error!Self {
+pub fn init(config: Config) Client.Error!Self {
     if (global_win != null) {
-        return Provider.Error.AlreadyInitialized;
+        return Client.Error.AlreadyInitialized;
     }
 
     // Note technically can fail
@@ -157,10 +157,10 @@ pub fn init(config: Config) Provider.Error!Self {
     const display_maxy = paranoia(curses.getmaxy(global_win));
 
     if ((display_maxx < config.maxx) or (display_maxy < config.maxy)) {
-        return Provider.Error.DisplayTooSmall;
+        return Client.Error.DisplayTooSmall;
     }
 
-    const pc: Provider.Config = .{
+    const c: Client.Config = .{
         .allocator = config.allocator,
         .maxx = config.maxx,
         .maxy = config.maxy,
@@ -172,12 +172,12 @@ pub fn init(config: Config) Provider.Error!Self {
     };
 
     return .{
-        .p = try Provider.init(pc),
+        .c = try Client.init(c),
     };
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.p.deinit(allocator);
+    self.c.deinit(allocator);
     global_win = null;
     _ = curses.endwin(); // Liberal shut-up-and-do-it
 }
@@ -186,9 +186,9 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 // Lifecycle
 //
 
-pub fn provider(self: *Self) *Provider {
-    self.p.ptr = self;
-    return &self.p;
+pub fn client(self: *Self) *Client {
+    self.c.ptr = self;
+    return &self.c;
 }
 
 //
@@ -212,7 +212,7 @@ fn refresh() void {
 // Input Utility
 //
 
-fn readCommand() Provider.Command {
+fn readCommand() Client.Command {
     // TODO Future: resize 'key'
 
     const ch = paranoia(curses.getch());
@@ -269,7 +269,7 @@ fn displayStatLine(self: *Self) void {
 
     // We know that error.NoSpaceLeft can't happen here
     const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
-    mvaddstr(0, @intCast(self.p.y - 1), line);
+    mvaddstr(0, @intCast(self.c.y - 1), line);
 }
 
 fn displayScreen(self: *Self) !void {
@@ -277,7 +277,7 @@ fn displayScreen(self: *Self) !void {
     // Top line: messages
     //
     mvaddstr(0, 0, "                                                  ");
-    mvaddstr(0, 0, self.p.getMessage());
+    mvaddstr(0, 0, self.c.getMessage());
 
     //
     // Bottom line: stat block
@@ -288,7 +288,7 @@ fn displayScreen(self: *Self) !void {
     //
     // Middle: the map
     //
-    renderMap(&self.p);
+    renderMap(&self.c);
 
     // Regenerate display
 
@@ -301,7 +301,7 @@ fn displayScreen(self: *Self) !void {
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
 
-fn cursesGetCommand(ptr: *anyopaque) Provider.Command {
+fn cursesGetCommand(ptr: *anyopaque) Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     if (global_win == null) {
@@ -312,12 +312,12 @@ fn cursesGetCommand(ptr: *anyopaque) Provider.Command {
     var cmd = readCommand();
     while (cmd == .help) {
         displayHelp();
-        self.p.needRefresh();
+        self.c.needRefresh();
         cmd = readCommand();
         // TODO: hit help a second time to rid menu
     }
 
-    self.p.clearMessage();
+    self.c.clearMessage();
 
     return cmd;
 }

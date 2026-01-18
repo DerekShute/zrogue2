@@ -4,7 +4,7 @@
 
 const std = @import("std");
 const game = @import("game");
-const ui = @import("ui");
+const Curses = @import("Curses.zig");
 
 const XSIZE = 80;
 const YSIZE = 24;
@@ -17,7 +17,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    var c = ui.initCurses(.{ .allocator = allocator, .maxx = XSIZE, .maxy = YSIZE }) catch |err| switch (err) {
+    var c = Curses.init(.{ .allocator = allocator, .maxx = XSIZE, .maxy = YSIZE }) catch |err| switch (err) {
         error.DisplayTooSmall => {
             std.debug.print("Zrogue requires an 80x24 display\n", .{});
             std.process.exit(1);
@@ -30,7 +30,7 @@ pub fn main() !void {
     defer c.deinit(allocator);
 
     var player = game.Player.init(.{
-        .provider = c.provider(),
+        .client = c.client(),
         .allocator = allocator,
         .maxx = XSIZE,
         .maxy = YSIZE,

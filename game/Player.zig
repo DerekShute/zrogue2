@@ -5,11 +5,11 @@
 const std = @import("std");
 
 const Action = @import("roguelib").Action;
+const Client = @import("roguelib").Client;
 const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
 const MapTile = @import("roguelib").MapTile;
 const Pos = @import("roguelib").Pos;
-const Provider = @import("ui").Provider;
 const Region = @import("roguelib").Region;
 const Tileset = @import("roguelib").Tileset;
 
@@ -20,7 +20,7 @@ const util = @import("util.zig");
 //
 
 pub const Config = struct {
-    provider: *Provider,
+    client: *Client,
     allocator: std.mem.Allocator,
     maxx: u8,
     maxy: u8,
@@ -42,7 +42,7 @@ const Self = @This();
 //
 
 entity: Entity = undefined, // Must be first for vtable magic
-provider: *Provider = undefined,
+client: *Client = undefined,
 purse: u16 = 0,
 
 //
@@ -52,7 +52,7 @@ purse: u16 = 0,
 pub fn init(config: Config) Self {
     return .{
         .entity = Entity.config(.player, &player_vtable),
-        .provider = config.provider,
+        .client = config.client,
     };
 }
 
@@ -94,8 +94,8 @@ fn playerTakeItem(ptr: *Entity, i: MapTile) void {
 // Utility
 //
 
-fn getCommand(self: *Self) Provider.Command {
-    return self.provider.getCommand();
+fn getCommand(self: *Self) Client.Command {
+    return self.client.getCommand();
 }
 
 fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
@@ -107,11 +107,11 @@ fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
 }
 
 fn setTile(self: *Self, loc: Pos, tileset: Tileset, visible: bool) void {
-    self.provider.setTile(loc, tileset, visible);
+    self.client.setTile(loc, tileset, visible);
 }
 
 fn setStatInt(self: *Self, name: []const u8, value: i32) void {
-    self.provider.setStatInt(name, value);
+    self.client.setStatInt(name, value);
 }
 
 fn incrementPurse(self: *Self) void {
@@ -124,11 +124,11 @@ fn incrementPurse(self: *Self) void {
 //
 
 pub fn addMessage(self: *Self, msg: []const u8) void {
-    self.provider.addMessage(msg);
+    self.client.addMessage(msg);
 }
 
 pub fn getMessage(self: *Self) []const u8 {
-    return self.provider.getMessage();
+    return self.client.getMessage();
 }
 
 pub fn getAction(self: *Self) Action {
@@ -152,11 +152,11 @@ pub fn getEntity(self: *Self) *Entity {
 }
 
 pub fn notifyDisplay(self: *Self) void {
-    self.provider.notifyDisplay();
+    self.client.notifyDisplay();
 }
 
 pub fn resetMap(self: *Self) void {
-    self.provider.resetDisplay();
+    self.client.resetDisplay();
 }
 
 pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {
@@ -235,35 +235,6 @@ fn takeItem(self: *Self, i: MapTile) void {
 // Unit Tests
 //
 
-const expect = std.testing.expect;
-const MockProvider = @import("ui").Mock;
-
-test "create a player" {
-    const mock_config = MockProvider.Config{
-        .allocator = std.testing.allocator,
-        .maxx = 10,
-        .maxy = 10,
-    };
-
-    var m = try MockProvider.init(mock_config);
-    defer m.deinit(std.testing.allocator);
-
-    const config = Config{
-        .provider = m.provider(),
-        .allocator = std.testing.allocator,
-        .maxx = 10,
-        .maxy = 10,
-    };
-
-    var player = init(config);
-
-    player.setTileKnown(Pos.config(0, 0), .floor);
-
-    // Position identity
-
-    const p = Pos.config(10, 10);
-    player.setPos(p);
-    try expect(p.eql(player.getPos()));
-}
+// See testing/ - we don't have mock clients here
 
 // EOF

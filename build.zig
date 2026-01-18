@@ -20,14 +20,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
-    const ui_mod = b.addModule("ui", .{
-        .root_source_file = b.path("ui/root.zig"),
-        .target = target,
-        .imports = &.{
-            .{ .name = "roguelib", .module = roguelib_mod },
-        },
-    });
-
     const mapgen_mod = b.addModule("mapgen", .{
         .root_source_file = b.path("mapgen/root.zig"),
         .target = target,
@@ -42,7 +34,6 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "mapgen", .module = mapgen_mod },
             .{ .name = "roguelib", .module = roguelib_mod },
-            .{ .name = "ui", .module = ui_mod },
         },
     });
 
@@ -55,7 +46,6 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
-                .{ .name = "ui", .module = ui_mod },
             },
         }),
     });
@@ -87,11 +77,6 @@ pub fn build(b: *std.Build) void {
     });
     const run_mapgen_tests = b.addRunArtifact(mapgen_tests);
 
-    const ui_tests = b.addTest(.{
-        .root_module = ui_mod,
-    });
-    const run_ui_tests = b.addRunArtifact(ui_tests);
-
     const test_exe = b.addExecutable(.{
         .name = "zrogue-tests",
         .root_module = b.createModule(.{
@@ -102,7 +87,6 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "game", .module = game_mod },
                 .{ .name = "mapgen", .module = mapgen_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
-                .{ .name = "ui", .module = ui_mod },
             },
         }),
     });
@@ -117,7 +101,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_testing_exe.step);
     test_step.dependOn(&run_mapgen_tests.step);
     test_step.dependOn(&run_roguelib_tests.step);
-    test_step.dependOn(&run_ui_tests.step);
 }
 
 // EOF

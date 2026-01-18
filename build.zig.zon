@@ -45,9 +45,8 @@
         "build.zig.zon",
         "game",
         "roguelib",
-        "src",
+        "linux-cli",
         "testing",
-        "ui",
         "LICENSE",
     },
 }
