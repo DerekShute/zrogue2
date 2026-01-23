@@ -22,6 +22,10 @@ pub fn build(b: *std.Build) void {
     const options = b.addOptions();
     options.addOption([]const u8, "version", zon.version);
 
+    //
+    // Modules
+    //
+
     const roguelib_mod = b.addModule("roguelib", .{
         .root_source_file = b.path("roguelib/root.zig"),
         .target = target,
@@ -44,8 +48,12 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const exe = b.addExecutable(.{
-        .name = "zrogue",
+    //
+    // Rogue single-user CLI
+    //
+
+    const rogue_exe = b.addExecutable(.{
+        .name = "rogue",
         .root_module = b.createModule(.{
             .root_source_file = b.path("linux-cli/main.zig"),
             .target = target,
@@ -57,14 +65,48 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    exe.root_module.addOptions("build", options); // exposes version
-    exe.linkLibC();
-    exe.linkSystemLibrary("ncursesw");
-    b.installArtifact(exe);
+    rogue_exe.root_module.addOptions("build", options); // exposes version
+    rogue_exe.linkLibC();
+    rogue_exe.linkSystemLibrary("ncursesw");
+    b.installArtifact(rogue_exe);
+
+    //
+    // Rogue server
+    //
+
+    const server_exe = b.addExecutable(.{
+        .name = "server",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("server/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    b.installArtifact(server_exe);
+
+    //
+    // Client
+    //
+
+    const client_exe = b.addExecutable(.{
+        .name = "client",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("client/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    b.installArtifact(client_exe);
+
+    //
+    // Run rogue
+    //
 
     const run_step = b.step("run", "Run the app");
 
-    const run_cmd = b.addRunArtifact(exe);
+    const run_cmd = b.addRunArtifact(rogue_exe);
     run_step.dependOn(&run_cmd.step);
 
     run_cmd.step.dependOn(b.getInstallStep());
