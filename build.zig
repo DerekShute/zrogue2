@@ -48,6 +48,11 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const server_mod = b.addModule("server", .{
+        .root_source_file = b.path("server/root.zig"),
+        .target = target,
+    });
+
     //
     // Rogue single-user CLI
     //
@@ -117,10 +122,19 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    //
+    // Tests
+    //
+
     const roguelib_tests = b.addTest(.{
         .root_module = roguelib_mod,
     });
     const run_roguelib_tests = b.addRunArtifact(roguelib_tests);
+
+    const server_tests = b.addTest(.{
+        .root_module = server_mod,
+    });
+    const run_server_tests = b.addRunArtifact(server_tests);
 
     const mapgen_tests = b.addTest(.{
         .root_module = mapgen_mod,
@@ -151,6 +165,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_testing_exe.step);
     test_step.dependOn(&run_mapgen_tests.step);
     test_step.dependOn(&run_roguelib_tests.step);
+    test_step.dependOn(&run_server_tests.step);
 }
 
 // EOF
