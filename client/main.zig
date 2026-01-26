@@ -3,10 +3,15 @@
 //!
 
 const std = @import("std");
+const handshake = @import("server").handshake;
+
 const net = std.net;
 const print = std.debug.print;
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
     var args = std.process.args();
     // The first (0 index) Argument is the path to the program.
     _ = args.skip();
@@ -15,18 +20,16 @@ pub fn main() !void {
         return error.NoPort;
     };
     const port = try std.fmt.parseInt(u16, port_value, 10);
-
     const peer = try net.Address.parseIp4("127.0.0.1", port);
-    // Connect to peer
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
     print("Connecting to {f}\n", .{peer});
 
-    // Sending data to peer
-    const data = "hello zig\n";
-    var buffer: [1024]u8 = undefined;
-    var writer = stream.writer(buffer[0..]);
-    try writer.interface.writeAll(data);
-    try writer.interface.flush();
-    print("Sending '{s}' to peer, total written: {d} bytes\n", .{ data, data.len });
+    var rbuf: [1024]u8 = undefined;
+    var s_reader = stream.reader(&rbuf);
+    const reader = s_reader.interface();
+    var writer = stream.writer(&.{});
+
+    try handshake.sendReq(&writer.interface, allocator);
+    _ = try handshake.readResp(reader, allocator);
 }

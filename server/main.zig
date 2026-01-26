@@ -4,10 +4,14 @@
 //! echo "hello zig" | nc localhost <port>
 
 const std = @import("std");
+const handshake = @import("root.zig").handshake;
 const net = std.net;
-const print = std.debug.print;
+const print = std.debug.print; // TODO logger
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
     const loopback = try net.Ip4Address.parse("127.0.0.1", 0);
     const localhost = net.Address{ .in = loopback };
     var server = try localhost.listen(.{
@@ -15,40 +19,34 @@ pub fn main() !void {
     });
     defer server.deinit();
 
-    const addr = server.listen_address;
-    print("Listening on {}, access this port to end the program\n", .{addr.getPort()});
-
     while (true) {
-        const client = try server.accept();
-        try handleClient(client);
+        const addr = server.listen_address;
+        print("Listening on {}\n", .{addr.getPort()});
+        var client = try server.accept();
+        defer client.stream.close();
+        print("Accepted connection from {f}\n", .{client.address});
+        try handleClient(&client.stream, allocator);
     }
 }
 
-fn handleClient(client: net.Server.Connection) !void {
-    print("Accepted connection from {f}\n", .{client.address});
-    defer client.stream.close();
-    var stream_buf: [1024]u8 = undefined;
-    var reader = client.stream.reader(&stream_buf);
-    // Here we echo back what we read directly, so the writer buffer is empty
-    var writer = client.stream.writer(&.{});
+fn handleClient(stream: *net.Stream, allocator: std.mem.Allocator) !void {
+    var rbuf: [1024]u8 = undefined;
+    var s_reader = stream.reader(&rbuf);
+    const reader = s_reader.interface();
+    var writer = stream.writer(&.{});
 
-    while (true) {
-        print("Waiting for data from {f}...\n", .{client.address});
-        //
-        // TODO Do a readSliceShort (deprecated) or readAll -- this wants a terminating newline
-        //
-        const msg = reader.interface().takeDelimiterInclusive('\n') catch |err| {
-            if (err == error.EndOfStream) {
-                print("{f} closed the connection\n", .{client.address});
-                return;
-            } else {
-                return err;
-            }
-        };
-        print("{f} says {s}", .{ client.address, msg });
-        try writer.interface.writeAll(msg);
-        // No need to flush, as writer buffer is empty
-    }
+    const req = handshake.readReq(reader, allocator) catch |err| switch (err) {
+        error.EndOfStream => {
+            std.debug.print("EndOfStream\n", .{});
+            return;
+        },
+        error.UnexpectedEndOfInput => {
+            std.debug.print("UnexpectedEndOfInput\n", .{});
+            return;
+        },
+        else => return err,
+    };
+    try handshake.sendResp(&writer.interface, allocator, req, .awaiting_entry);
 }
 
 // EOF

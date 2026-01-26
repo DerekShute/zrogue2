@@ -41,31 +41,25 @@ pub const Response = struct {
 // Handshake Requests
 //
 
-pub fn sendReq(writer: *Writer) !void {
+pub fn sendReq(writer: *Writer, allocator: std.mem.Allocator) !void {
+    var buffer = std.io.Writer.Allocating.init(allocator);
+    defer buffer.deinit();
+
     const req = Request{
         .client_version = PROTOCOL_VERSION,
         .signature = SIGNATURE,
         .nonce = 1, // TODO canonical but need other answer
     };
-    try writer.print("{f}\n", .{std.json.fmt(req, .{})});
+    try buffer.writer.print("{f}\n", .{std.json.fmt(req, .{})});
+    try writer.writeAll(buffer.written());
     try writer.flush();
 }
 
 pub fn readReq(reader: *Reader, allocator: std.mem.Allocator) !Request {
-    //
-    // TODO: read to delimiter and limit size, then feed this into parser
-    //
-
-    var json_reader = std.json.Reader.init(allocator, reader);
-    defer json_reader.deinit();
-
-    const parsed = try std.json.parseFromTokenSource(
-        Request,
-        allocator,
-        &json_reader,
-        .{},
-    );
+    const msg = try reader.takeDelimiterInclusive('\n');
+    const parsed = try std.json.parseFromSlice(Request, allocator, msg, .{});
     defer parsed.deinit();
+
     return parsed.value;
 }
 
@@ -73,32 +67,31 @@ pub fn readReq(reader: *Reader, allocator: std.mem.Allocator) !Request {
 // HandshakeResponse
 //
 
-pub fn sendResp(writer: *Writer, hs: Request, code: Response.Code) !void {
+pub fn sendResp(
+    writer: *Writer,
+    allocator: std.mem.Allocator,
+    hs: Request,
+    code: Response.Code,
+) !void {
+    var buffer = std.io.Writer.Allocating.init(allocator);
+    defer buffer.deinit();
+
     const resp = Response{
         .server_version = PROTOCOL_VERSION,
         .signature = SIGNATURE,
         .nonce = hs.nonce,
         .code = code,
     };
-    try writer.print("{f}\n", .{std.json.fmt(resp, .{})});
+    try buffer.writer.print("{f}\n", .{std.json.fmt(resp, .{})});
+    try writer.writeAll(buffer.written());
     try writer.flush();
 }
 
 pub fn readResp(reader: *Reader, allocator: std.mem.Allocator) !Response {
-    //
-    // TODO: read to delimiter and limit size, then feed this into parser
-    //
-
-    var json_reader = std.json.Reader.init(allocator, reader);
-    defer json_reader.deinit();
-
-    const parsed = try std.json.parseFromTokenSource(
-        Response,
-        allocator,
-        &json_reader,
-        .{},
-    );
+    const msg = try reader.takeDelimiterInclusive('\n');
+    const parsed = try std.json.parseFromSlice(Response, allocator, msg, .{});
     defer parsed.deinit();
+
     return parsed.value;
 }
 
@@ -116,7 +109,7 @@ test "send request read request" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
 
-    try sendReq(&bwriter);
+    try sendReq(&bwriter, std.testing.allocator);
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
     const req = try readReq(&breader, std.testing.allocator);
@@ -142,11 +135,11 @@ test "read bad request" {
 test "read short request" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
-    try sendReq(&bwriter);
+    try sendReq(&bwriter, std.testing.allocator);
 
     var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
     try expectError(
-        error.UnexpectedEndOfInput,
+        error.EndOfStream,
         readReq(&breader, std.testing.allocator),
     );
 }
@@ -158,6 +151,7 @@ test "read wrong json req" {
     try bwriter.writeAll(
         \\{"client_blershion":1}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -174,6 +168,7 @@ test "read req missing field" {
     try bwriter.writeAll(
         \\{"signature":4276993775,"nonce":1}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -190,6 +185,7 @@ test "read req bad type" {
     try bwriter.writeAll(
         \\{"client_version":"flapdoodle"}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -206,6 +202,7 @@ test "read req add field" {
     try bwriter.writeAll(
         \\{"client_version":1,"signature":4276993775,"nonce":1,"phony":37}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -230,7 +227,7 @@ test "send response read response" {
         .nonce = 20,
     };
 
-    try sendResp(&bwriter, req, .awaiting_entry);
+    try sendResp(&bwriter, std.testing.allocator, req, .awaiting_entry);
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
     const resp = try readResp(&breader, std.testing.allocator);
@@ -261,7 +258,7 @@ test "read short response" {
         .signature = SIGNATURE,
         .nonce = 1,
     };
-    try sendResp(&bwriter, req, .awaiting_entry);
+    try sendResp(&bwriter, std.testing.allocator, req, .awaiting_entry);
 
     var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
     try expectError(
@@ -277,6 +274,7 @@ test "read wrong json resp" {
     try bwriter.writeAll(
         \\{"client_blershion":1,"signature":4276993775,"nonce":1}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -293,6 +291,7 @@ test "read resp missing field" {
     try bwriter.writeAll(
         \\{"signature":4276993775,"nonce":1}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -309,6 +308,7 @@ test "read resp bad code" {
     try bwriter.writeAll(
         \\{"server_version":1,"code":"awaiting_flapdoodle"}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -325,6 +325,7 @@ test "read resp bad type" {
     try bwriter.writeAll(
         \\{"server_version":"floop"}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
@@ -341,6 +342,7 @@ test "read resp added field" {
     try bwriter.writeAll(
         \\{"server_version":1,"signature":4276993775,"nonce":20,"code":"awaiting_entry","frotz":37}
     );
+    try bwriter.print("\n", .{});
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
