@@ -3,10 +3,15 @@
 //!
 
 const std = @import("std");
+const server = @import("server");
 const net = std.net;
 const print = std.debug.print;
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    // TODO: better
     var args = std.process.args();
     // The first (0 index) Argument is the path to the program.
     _ = args.skip();
@@ -14,19 +19,22 @@ pub fn main() !void {
         print("expect port as command line argument\n", .{});
         return error.NoPort;
     };
+    // TODO: subroutine returns stream
     const port = try std.fmt.parseInt(u16, port_value, 10);
-
     const peer = try net.Address.parseIp4("127.0.0.1", port);
-    // Connect to peer
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
     print("Connecting to {f}\n", .{peer});
 
-    // Sending data to peer
-    const data = "hello zig\n";
-    var buffer: [1024]u8 = undefined;
-    var writer = stream.writer(buffer[0..]);
-    try writer.interface.writeAll(data);
-    try writer.interface.flush();
-    print("Sending '{s}' to peer, total written: {d} bytes\n", .{ data, data.len });
+    var rbuf: [1024]u8 = undefined;
+    var reader = stream.reader(&rbuf);
+    var writer = stream.writer(&.{});
+
+    // TODO handle
+    try server.startHandshake(&writer.interface, allocator);
+
+    // TODO handle
+    _ = try server.receiveHandshakeResponse(reader.interface(), allocator);
+
+    // TODO: next step
 }

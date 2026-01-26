@@ -3,12 +3,15 @@
 A work in progress.  There is:
 
 * roguelib : generic map-and-mechanics
-* mapgen : map generation services.  This may get broken apart so that the game
-  controls mapgen
+* client : client-server client side (Linux cli)
+* doc : you are here
 * game : the game that would be implemented, that wields the mapgen and
   roguelib
-* doc : you are here
-* linux-cli : what it says on the tin: Linux single-user ncurses-based game
+* linux-cli : what it says on the tin: Linux single-user ncurses-based game  
+* mapgen : map generation services.  This may get broken apart so that the game
+  controls mapgen
+* server : client-server server side (Linux cli)
+  * protocol : the messaging protocol messages and test apparatus
 * testing : high level testing that is a game equivalent
 
 ## Modules
@@ -37,6 +40,10 @@ A map generated per the original Rogue sources or near enough.
 
 The most generally-useful things I can think of.  Positions, maps of tiles,
 Entities, and so forth.  These are the substrate.
+
+### server
+
+Client-server interactions.  Includes main.zig for the server binary.
 
 ### linux-cli
 

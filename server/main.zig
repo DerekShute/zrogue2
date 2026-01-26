@@ -4,50 +4,55 @@
 //! echo "hello zig" | nc localhost <port>
 
 const std = @import("std");
+const server = @import("root.zig");
 const net = std.net;
-const print = std.debug.print;
+const print = std.debug.print; // TODO logger
 
-pub fn main() !void {
-    const loopback = try net.Ip4Address.parse("127.0.0.1", 0);
-    const localhost = net.Address{ .in = loopback };
-    var server = try localhost.listen(.{
-        .reuse_address = true,
-    });
-    defer server.deinit();
+//
+// Service routines
+//
 
-    const addr = server.listen_address;
-    print("Listening on {}, access this port to end the program\n", .{addr.getPort()});
+fn handleClient(stream: *net.Stream, allocator: std.mem.Allocator) !void {
+    var rbuf: [1024]u8 = undefined;
+    var reader = stream.reader(&rbuf);
+    var writer = stream.writer(&.{});
 
-    while (true) {
-        const client = try server.accept();
-        try handleClient(client);
-    }
+    // TODO logging error
+    const req = server.receiveHandshakeReq(reader.interface(), allocator) catch return;
+
+    // TODO catch
+    try server.sendHandshakeResponse(
+        &writer.interface,
+        allocator,
+        req.nonce,
+        .awaiting_entry,
+    );
+
+    // TODO: next step
 }
 
-fn handleClient(client: net.Server.Connection) !void {
-    print("Accepted connection from {f}\n", .{client.address});
-    defer client.stream.close();
-    var stream_buf: [1024]u8 = undefined;
-    var reader = client.stream.reader(&stream_buf);
-    // Here we echo back what we read directly, so the writer buffer is empty
-    var writer = client.stream.writer(&.{});
+//
+// Main
+//
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    const loopback = try net.Ip4Address.parse("127.0.0.1", 0);
+    const localhost = net.Address{ .in = loopback };
+    var service = try localhost.listen(.{
+        .reuse_address = true,
+    });
+    defer service.deinit();
 
     while (true) {
-        print("Waiting for data from {f}...\n", .{client.address});
-        //
-        // TODO Do a readSliceShort (deprecated) or readAll -- this wants a terminating newline
-        //
-        const msg = reader.interface().takeDelimiterInclusive('\n') catch |err| {
-            if (err == error.EndOfStream) {
-                print("{f} closed the connection\n", .{client.address});
-                return;
-            } else {
-                return err;
-            }
-        };
-        print("{f} says {s}", .{ client.address, msg });
-        try writer.interface.writeAll(msg);
-        // No need to flush, as writer buffer is empty
+        const addr = service.listen_address;
+        print("Listening on {}\n", .{addr.getPort()});
+        var client = try service.accept();
+        defer client.stream.close();
+        print("Accepted connection from {f}\n", .{client.address});
+        try handleClient(&client.stream, allocator);
     }
 }
 
