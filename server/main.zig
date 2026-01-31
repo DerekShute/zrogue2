@@ -5,17 +5,23 @@
 
 const std = @import("std");
 const server = @import("root.zig");
+
+const log = std.log.scoped(.server);
 const net = std.net;
-const print = std.debug.print; // TODO logger
 
 //
 // Service routines
 //
 
-fn handleClient(stream: *net.Stream, allocator: std.mem.Allocator) !void {
+fn handleClient(
+    conn: *net.Server.Connection,
+    allocator: std.mem.Allocator,
+) !void {
     var rbuf: [1024]u8 = undefined;
-    var reader = stream.reader(&rbuf);
-    var writer = stream.writer(&.{});
+    var reader = conn.stream.reader(&rbuf);
+    var writer = conn.stream.writer(&.{});
+
+    log.info("Accepted connection from {f}", .{conn.address});
 
     // TODO logging error
     const req = server.receiveHandshakeReq(reader.interface(), allocator) catch return;
@@ -29,6 +35,8 @@ fn handleClient(stream: *net.Stream, allocator: std.mem.Allocator) !void {
     );
 
     // TODO: next step
+
+    log.info("Disconnected from {f}", .{conn.address});
 }
 
 //
@@ -46,13 +54,12 @@ pub fn main() !void {
     });
     defer service.deinit();
 
+    log.info("Listening on {}", .{service.listen_address.getPort()});
     while (true) {
-        const addr = service.listen_address;
-        print("Listening on {}\n", .{addr.getPort()});
-        var client = try service.accept();
-        defer client.stream.close();
-        print("Accepted connection from {f}\n", .{client.address});
-        try handleClient(&client.stream, allocator);
+        var connection = try service.accept();
+        defer connection.stream.close();
+
+        try handleClient(&connection, allocator);
     }
 }
 
