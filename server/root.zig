@@ -28,9 +28,9 @@ pub const Error = error{
 // Routines
 //
 
-pub fn startHandshake(writer: *Writer, allocator: std.mem.Allocator) Error!void {
-    var req = HandshakeRequest.init(PROTOCOL_VERSION, 1); // TODO generate
-    req.send(writer, allocator) catch {
+pub fn startHandshake(writer: *Writer) Error!void {
+    var req = HandshakeRequest.init(PROTOCOL_VERSION, 1); // TODO pass in
+    req.send(writer) catch {
         return Error.UnexpectedError;
     };
 }
@@ -46,8 +46,6 @@ pub fn receiveHandshakeReq(
             else => Error.UnexpectedError,
         };
     };
-
-    // TODO validation
 
     return req;
 }
@@ -82,7 +80,7 @@ test "Handshake sequence" {
     var bwriter = std.io.Writer.fixed(&buffer);
     const allocator = std.testing.allocator;
 
-    try startHandshake(&bwriter, allocator);
+    try startHandshake(&bwriter);
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
 

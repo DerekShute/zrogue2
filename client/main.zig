@@ -31,7 +31,7 @@ pub fn main() !void {
     var writer = stream.writer(&.{});
 
     // TODO handle
-    try server.startHandshake(&writer.interface, allocator);
+    try server.startHandshake(&writer.interface);
 
     // TODO handle
     _ = try server.receiveHandshakeResponse(reader.interface(), allocator);
