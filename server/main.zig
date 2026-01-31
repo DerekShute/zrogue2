@@ -29,7 +29,6 @@ fn handleClient(
     // TODO catch
     try server.sendHandshakeResponse(
         &writer.interface,
-        allocator,
         req.nonce,
         .awaiting_entry,
     );

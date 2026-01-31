@@ -52,12 +52,11 @@ pub fn receiveHandshakeReq(
 
 pub fn sendHandshakeResponse(
     writer: *Writer,
-    allocator: std.mem.Allocator,
     nonce: u32,
     code: HandshakeResponse.Code,
 ) Error!void {
     var resp = HandshakeResponse.init(PROTOCOL_VERSION, nonce, code);
-    resp.send(writer, allocator) catch {
+    resp.send(writer) catch {
         return Error.UnexpectedError;
     };
 }
@@ -90,7 +89,6 @@ test "Handshake sequence" {
 
     try sendHandshakeResponse(
         &bwriter,
-        allocator,
         req.nonce,
         .awaiting_entry,
     );

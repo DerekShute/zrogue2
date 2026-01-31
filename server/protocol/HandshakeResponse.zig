@@ -36,12 +36,17 @@ pub fn init(version: u32, nonce: u32, code: Code) Self {
     };
 }
 
-pub fn send(self: Self, writer: *Writer, allocator: std.mem.Allocator) !void {
-    var buffer = std.io.Writer.Allocating.init(allocator);
-    defer buffer.deinit();
+pub fn send(self: Self, writer: *Writer) !void {
+    var buffer: [60]u8 = undefined; // Predetermined to fit
+    var bwriter = std.io.Writer.fixed(&buffer);
 
-    try buffer.writer.print("{f}\n", .{std.json.fmt(self, .{})});
-    try writer.writeAll(buffer.written());
+    bwriter.print("{f}\n", .{std.json.fmt(self, .{})}) catch |err| switch (err) {
+        // WriteFailed: buffer too small.  Recalculate it!
+        error.WriteFailed => @panic("HandshakeResponse.send buffer too small"),
+        else => return err,
+    };
+
+    try writer.writeAll(bwriter.buffered());
     try writer.flush();
 }
 
@@ -64,7 +69,7 @@ test "send response read response" {
     var bwriter = std.io.Writer.fixed(&buffer);
     var sresp = init(100, 1000, .awaiting_entry);
 
-    try sresp.send(&bwriter, std.testing.allocator);
+    try sresp.send(&bwriter);
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
     const resp = try receive(&breader, std.testing.allocator);
@@ -91,7 +96,7 @@ test "read short response" {
     var bwriter = std.io.Writer.fixed(&buffer);
 
     var sresp = init(10, 1000, .awaiting_entry);
-    try sresp.send(&bwriter, std.testing.allocator);
+    try sresp.send(&bwriter);
 
     var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
     try expectError(
