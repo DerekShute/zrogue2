@@ -3,7 +3,6 @@
 //!
 
 const std = @import("std");
-const util = @import("util.zig");
 
 const Writer = std.io.Writer;
 const Reader = std.io.Reader;
@@ -14,8 +13,6 @@ const Self = @This();
 // detect non-present fields in the JSON parse
 
 client_version: u32,
-// TODO: min server version
-signature: u32,
 nonce: u32,
 
 //
@@ -25,7 +22,6 @@ nonce: u32,
 pub fn init(version: u32, nonce: u32) Self {
     return .{
         .client_version = version,
-        .signature = util.SIGNATURE,
         .nonce = nonce,
     };
 }
@@ -63,7 +59,6 @@ test "send request read request" {
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
     const req = try receive(&breader, std.testing.allocator);
     try expectEqual(req.client_version, sendreq.client_version);
-    try expectEqual(req.signature, util.SIGNATURE);
     try expectEqual(req.nonce, sendreq.nonce);
 }
 
@@ -118,7 +113,7 @@ test "read req missing field" {
     var bwriter = std.io.Writer.fixed(&buffer);
 
     try bwriter.writeAll(
-        \\{"signature":4276993775,"nonce":1}
+        \\{"nonce":1}
     );
     try bwriter.print("\n", .{});
     try bwriter.flush();
@@ -152,7 +147,7 @@ test "read req add field" {
     var bwriter = std.io.Writer.fixed(&buffer);
 
     try bwriter.writeAll(
-        \\{"client_version":1,"signature":4276993775,"nonce":1,"phony":37}
+        \\{"client_version":1,"nonce":1,"phony":37}
     );
     try bwriter.print("\n", .{});
     try bwriter.flush();

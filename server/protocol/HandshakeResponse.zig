@@ -3,7 +3,6 @@
 //!
 
 const std = @import("std");
-const util = @import("util.zig");
 const HandshakeRequest = @import("HandshakeRequest.zig");
 
 const net = std.net;
@@ -22,7 +21,6 @@ pub const Code = enum {
 // detect non-present fields in the JSON parse
 
 server_version: u32,
-signature: u32,
 nonce: u32,
 code: Code,
 
@@ -33,7 +31,6 @@ code: Code,
 pub fn init(version: u32, nonce: u32, code: Code) Self {
     return .{
         .server_version = version,
-        .signature = util.SIGNATURE,
         .nonce = nonce,
         .code = code,
     };
@@ -72,7 +69,6 @@ test "send response read response" {
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
     const resp = try receive(&breader, std.testing.allocator);
     try expectEqual(resp.server_version, sresp.server_version);
-    try expectEqual(resp.signature, sresp.signature);
     try expectEqual(resp.nonce, sresp.nonce);
 }
 
@@ -126,7 +122,7 @@ test "read resp missing field" {
     var bwriter = std.io.Writer.fixed(&buffer);
 
     try bwriter.writeAll(
-        \\{"signature":4276993775}
+        \\{"nonce":1}
     );
     try bwriter.print("\n", .{});
     try bwriter.flush();
@@ -177,7 +173,7 @@ test "read resp added field" {
     var bwriter = std.io.Writer.fixed(&buffer);
 
     try bwriter.writeAll(
-        \\{"server_version":1,"signature":4276993775,"nonce":20,"code":"awaiting_entry","frotz":37}
+        \\{"server_version":1,"nonce":20,"code":"awaiting_entry","frotz":37}
     );
     try bwriter.print("\n", .{});
     try bwriter.flush();
