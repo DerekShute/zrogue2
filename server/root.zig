@@ -18,6 +18,10 @@ pub const HandshakeResponse = @import("protocol/HandshakeResponse.zig");
 // TODO for now a given
 pub const PROTOCOL_VERSION = 1;
 
+//
+// Errors, to purify the raw error results
+//
+
 pub const Error = error{
     ConnectionDropped,
     BadMessage,
@@ -39,15 +43,13 @@ pub fn receiveHandshakeReq(
     reader: *Reader,
     allocator: std.mem.Allocator,
 ) Error!HandshakeRequest {
-    const req = HandshakeRequest.receive(reader, allocator) catch |err| {
+    return HandshakeRequest.receive(reader, allocator) catch |err| {
         return switch (err) {
             error.EndOfStream => Error.ConnectionDropped,
             error.UnexpectedEndOfInput => Error.BadMessage,
             else => Error.UnexpectedError,
         };
     };
-
-    return req;
 }
 
 pub fn sendHandshakeResponse(
@@ -65,14 +67,19 @@ pub fn receiveHandshakeResponse(
     reader: *Reader,
     allocator: std.mem.Allocator,
 ) Error!HandshakeResponse {
-    return HandshakeResponse.receive(reader, allocator) catch {
-        return Error.UnexpectedError;
+    return HandshakeResponse.receive(reader, allocator) catch |err| {
+        return switch (err) {
+            error.EndOfStream => Error.ConnectionDropped,
+            error.UnexpectedEndOfInput => Error.BadMessage,
+            else => Error.UnexpectedError,
+        };
     };
 }
 
 //
 // Unit Testing
 //
+const expectError = std.testing.expectError;
 
 test "Handshake sequence" {
     var buffer: [128]u8 = undefined;
@@ -98,7 +105,41 @@ test "Handshake sequence" {
     _ = try receiveHandshakeResponse(&breader, allocator);
 }
 
-// TODO: byzantine errors in the protocol
+test "Handshake request disconnect" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+    const allocator = std.testing.allocator;
+
+    try startHandshake(&bwriter);
+
+    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
+
+    try expectError(
+        Error.ConnectionDropped,
+        receiveHandshakeReq(&breader, allocator),
+    );
+}
+
+test "Handshake response disconnect" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+    const allocator = std.testing.allocator;
+
+    try sendHandshakeResponse(
+        &bwriter,
+        1,
+        .awaiting_entry,
+    );
+
+    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
+
+    try expectError(
+        Error.ConnectionDropped,
+        receiveHandshakeResponse(&breader, allocator),
+    );
+}
+
+// Imports
 
 comptime {
     _ = @import("protocol/HandshakeRequest.zig");

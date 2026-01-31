@@ -23,10 +23,19 @@ fn handleClient(
 
     log.info("Accepted connection from {f}", .{conn.address});
 
-    // TODO logging error
-    const req = server.receiveHandshakeReq(reader.interface(), allocator) catch return;
+    const req = server.receiveHandshakeReq(
+        reader.interface(),
+        allocator,
+    ) catch |err| {
+        if (err == server.Error.ConnectionDropped) {
+            log.info("Disconnected from {f}", .{conn.address});
+        } else {
+            log.info("Unexpected error {} from {f}", .{ err, conn.address });
+        }
+        return;
+    };
 
-    // TODO catch
+    // TODO: not sure about error results here
     try server.sendHandshakeResponse(
         &writer.interface,
         req.nonce,
@@ -35,7 +44,7 @@ fn handleClient(
 
     // TODO: next step
 
-    log.info("Disconnected from {f}", .{conn.address});
+    log.info("End session of {f}", .{conn.address});
 }
 
 //
