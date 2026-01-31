@@ -91,7 +91,7 @@ test "read bad response" {
     );
 }
 
-test "read short response" {
+test "read truncated stream resp" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
 
@@ -101,6 +101,24 @@ test "read short response" {
     var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
     try expectError(
         error.EndOfStream,
+        receive(&breader, std.testing.allocator),
+    );
+}
+
+test "read incomplete json resp" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+
+    try bwriter.writeAll(
+        \\{"server_version":100,"nonce":
+    );
+    try bwriter.print("\n", .{});
+    try bwriter.flush();
+
+    // Never completes the thought
+    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len + 5]);
+    try expectError(
+        error.UnexpectedEndOfInput,
         receive(&breader, std.testing.allocator),
     );
 }
@@ -190,6 +208,24 @@ test "read resp added field" {
     );
 }
 
-// TODO: excessively long response
+test "read response allocates too much" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+    var sresp = init(100, 1000, .awaiting_entry);
+
+    try sresp.send(&bwriter);
+
+    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    // Assume the incoming JSON is enormous
+
+    var alloc_b: [100]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+
+    try expectError(
+        error.OutOfMemory,
+        receive(&breader, fba.allocator()),
+    );
+}
 
 // EOF

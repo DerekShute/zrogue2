@@ -80,7 +80,7 @@ test "read bad request" {
     );
 }
 
-test "read short request" {
+test "read truncated stream req" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
     var sendreq = init(10, 100);
@@ -91,8 +91,24 @@ test "read short request" {
         error.EndOfStream,
         receive(&breader, std.testing.allocator),
     );
+}
 
-    // TODO this doesn't truncate the input, but of the stream
+test "read incomplete json req" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+
+    try bwriter.writeAll(
+        \\{"client_version":100,"nonce":
+    );
+    try bwriter.print("\n", .{});
+    try bwriter.flush();
+
+    // Never completes the thought
+    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len + 5]);
+    try expectError(
+        error.UnexpectedEndOfInput,
+        receive(&breader, std.testing.allocator),
+    );
 }
 
 test "read wrong json req" {
@@ -100,7 +116,7 @@ test "read wrong json req" {
     var bwriter = std.io.Writer.fixed(&buffer);
 
     try bwriter.writeAll(
-        \\{"client_blershion":1}
+        \\{"flapdoodle":1}
     );
     try bwriter.print("\n", .{});
     try bwriter.flush();
@@ -146,7 +162,7 @@ test "read req bad type" {
     );
 }
 
-test "read req add field" {
+test "read req added field" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
 
@@ -163,6 +179,24 @@ test "read req add field" {
     );
 }
 
-// TODO: excessively long request
+test "read request allocates too much" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+
+    var sendreq = init(100, 1000);
+    try sendreq.send(&bwriter);
+
+    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    // Assume the incoming JSON is enormous
+
+    var alloc_b: [100]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+
+    try expectError(
+        error.OutOfMemory,
+        receive(&breader, fba.allocator()),
+    );
+}
 
 // EOF
