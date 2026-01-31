@@ -17,7 +17,6 @@ pub const HandshakeResponse = @import("protocol/HandshakeResponse.zig");
 
 // TODO for now a given
 pub const PROTOCOL_VERSION = 1;
-pub const SIGNATURE: u32 = 0xFEEDBEEF;
 
 pub const Error = error{
     ConnectionDropped,
