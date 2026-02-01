@@ -43,7 +43,11 @@ pub fn receiveHandshakeReq(reader: *Reader) Error!HandshakeRequest {
     return HandshakeRequest.receive(reader) catch |err| {
         return switch (err) {
             error.EndOfStream => Error.ConnectionDropped,
+            error.InvalidCharacter => Error.BadMessage,
+            error.MissingField => Error.BadMessage,
+            error.SyntaxError => Error.BadMessage,
             error.UnexpectedEndOfInput => Error.BadMessage,
+            error.UnknownField => Error.BadMessage,
             else => Error.UnexpectedError,
         };
     };
@@ -66,7 +70,11 @@ pub fn receiveHandshakeResponse(
     return HandshakeResponse.receive(reader) catch |err| {
         return switch (err) {
             error.EndOfStream => Error.ConnectionDropped,
+            error.InvalidCharacter => Error.BadMessage,
+            error.InvalidEnumTag => Error.BadMessage,
+            error.MissingField => Error.BadMessage,
             error.UnexpectedEndOfInput => Error.BadMessage,
+            error.UnknownField => Error.BadMessage,
             else => Error.UnexpectedError,
             // TODO others
         };
