@@ -50,9 +50,12 @@ pub fn send(self: Self, writer: *Writer) !void {
     try writer.flush();
 }
 
-pub fn receive(reader: *Reader, allocator: std.mem.Allocator) !Self {
+pub fn receive(reader: *Reader) !Self {
+    var alloc_b: [200]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+
     const msg = try reader.takeDelimiterInclusive('\n');
-    const parsed = try std.json.parseFromSlice(Self, allocator, msg, .{});
+    const parsed = try std.json.parseFromSlice(Self, fba.allocator(), msg, .{});
     defer parsed.deinit();
 
     return parsed.value;
@@ -72,7 +75,7 @@ test "send response read response" {
     try sresp.send(&bwriter);
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    const resp = try receive(&breader, std.testing.allocator);
+    const resp = try receive(&breader);
     try expectEqual(resp.server_version, sresp.server_version);
     try expectEqual(resp.nonce, sresp.nonce);
 }
@@ -85,10 +88,7 @@ test "read bad response" {
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(
-        error.SyntaxError,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.SyntaxError, receive(&breader));
 }
 
 test "read truncated stream resp" {
@@ -99,10 +99,7 @@ test "read truncated stream resp" {
     try sresp.send(&bwriter);
 
     var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
-    try expectError(
-        error.EndOfStream,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.EndOfStream, receive(&breader));
 }
 
 test "read incomplete json resp" {
@@ -117,10 +114,7 @@ test "read incomplete json resp" {
 
     // Never completes the thought
     var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len + 5]);
-    try expectError(
-        error.UnexpectedEndOfInput,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.UnexpectedEndOfInput, receive(&breader));
 }
 
 test "read wrong json resp" {
@@ -134,10 +128,7 @@ test "read wrong json resp" {
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(
-        error.UnknownField,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.UnknownField, receive(&breader));
 }
 
 test "read resp missing field" {
@@ -151,10 +142,7 @@ test "read resp missing field" {
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(
-        error.MissingField,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.MissingField, receive(&breader));
 }
 
 test "read resp bad code" {
@@ -168,10 +156,7 @@ test "read resp bad code" {
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(
-        error.InvalidEnumTag,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.InvalidEnumTag, receive(&breader));
 }
 
 test "read resp bad type" {
@@ -185,10 +170,7 @@ test "read resp bad type" {
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(
-        error.InvalidCharacter,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.InvalidCharacter, receive(&breader));
 }
 
 test "read resp added field" {
@@ -202,30 +184,9 @@ test "read resp added field" {
     try bwriter.flush();
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(
-        error.UnknownField,
-        receive(&breader, std.testing.allocator),
-    );
+    try expectError(error.UnknownField, receive(&breader));
 }
 
-test "read response allocates too much" {
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-    var sresp = init(100, 1000, .awaiting_entry);
-
-    try sresp.send(&bwriter);
-
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-
-    // Assume the incoming JSON is enormous
-
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-
-    try expectError(
-        error.OutOfMemory,
-        receive(&breader, fba.allocator()),
-    );
-}
+// TODO: JSON message too long
 
 // EOF

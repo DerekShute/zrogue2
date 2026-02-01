@@ -62,13 +62,13 @@ pub fn sendHandshakeResponse(
 
 pub fn receiveHandshakeResponse(
     reader: *Reader,
-    allocator: std.mem.Allocator,
 ) Error!HandshakeResponse {
-    return HandshakeResponse.receive(reader, allocator) catch |err| {
+    return HandshakeResponse.receive(reader) catch |err| {
         return switch (err) {
             error.EndOfStream => Error.ConnectionDropped,
             error.UnexpectedEndOfInput => Error.BadMessage,
             else => Error.UnexpectedError,
+            // TODO others
         };
     };
 }
@@ -81,7 +81,6 @@ const expectError = std.testing.expectError;
 test "Handshake sequence" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
-    const allocator = std.testing.allocator;
 
     try startHandshake(&bwriter);
 
@@ -99,7 +98,7 @@ test "Handshake sequence" {
 
     breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
 
-    _ = try receiveHandshakeResponse(&breader, allocator);
+    _ = try receiveHandshakeResponse(&breader);
 }
 
 test "Handshake request disconnect" {
@@ -119,7 +118,6 @@ test "Handshake request disconnect" {
 test "Handshake response disconnect" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
-    const allocator = std.testing.allocator;
 
     try sendHandshakeResponse(
         &bwriter,
@@ -131,7 +129,7 @@ test "Handshake response disconnect" {
 
     try expectError(
         Error.ConnectionDropped,
-        receiveHandshakeResponse(&breader, allocator),
+        receiveHandshakeResponse(&breader),
     );
 }
 

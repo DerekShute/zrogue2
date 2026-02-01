@@ -8,9 +8,6 @@ const net = std.net;
 const print = std.debug.print;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
     // TODO: better
     var args = std.process.args();
     // The first (0 index) Argument is the path to the program.
@@ -34,7 +31,7 @@ pub fn main() !void {
     try server.startHandshake(&writer.interface);
 
     // TODO handle
-    _ = try server.receiveHandshakeResponse(reader.interface(), allocator);
+    _ = try server.receiveHandshakeResponse(reader.interface());
 
     // TODO: next step
 }
