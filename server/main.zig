@@ -13,20 +13,14 @@ const net = std.net;
 // Service routines
 //
 
-fn handleClient(
-    conn: *net.Server.Connection,
-    allocator: std.mem.Allocator,
-) !void {
+fn handleClient(conn: *net.Server.Connection) !void {
     var rbuf: [1024]u8 = undefined;
     var reader = conn.stream.reader(&rbuf);
     var writer = conn.stream.writer(&.{});
 
     log.info("Accepted connection from {f}", .{conn.address});
 
-    const req = server.receiveHandshakeReq(
-        reader.interface(),
-        allocator,
-    ) catch |err| {
+    const req = server.receiveHandshakeReq(reader.interface()) catch |err| {
         if (err == server.Error.ConnectionDropped) {
             log.info("Disconnected from {f}", .{conn.address});
         } else {
@@ -52,9 +46,6 @@ fn handleClient(
 //
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
     const loopback = try net.Ip4Address.parse("127.0.0.1", 0);
     const localhost = net.Address{ .in = loopback };
     var service = try localhost.listen(.{
@@ -67,7 +58,7 @@ pub fn main() !void {
         var connection = try service.accept();
         defer connection.stream.close();
 
-        try handleClient(&connection, allocator);
+        try handleClient(&connection);
     }
 }
 
