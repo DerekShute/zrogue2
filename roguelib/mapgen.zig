@@ -1,39 +1,20 @@
 //!
-//! Mapgen common utilities for mapgen algorithms
+//! Mapgen utility functions
 //!
 
 const std = @import("std");
-const Entity = @import("roguelib").Entity;
-const Map = @import("roguelib").Map;
-const MapTile = @import("roguelib").MapTile;
-const Pos = @import("roguelib").Pos;
-const Region = @import("roguelib").Region;
-const Room = @import("roguelib").Room;
-
-//
-// Map Configuration
-//
-
-pub const MapGenType = enum {
-    TEST, // Reserved word, so break convention
-    ROGUE,
-};
-
-pub const Config = struct {
-    rand: *std.Random = undefined,
-    player: ?*Entity = null,
-    xSize: Pos.Dim = -1,
-    ySize: Pos.Dim = -1,
-    level: u16 = 1,
-    going_down: bool = true,
-    mapgen: MapGenType = undefined,
-};
+const Entity = @import("Entity.zig");
+const Map = @import("Map.zig");
+const MapTile = @import("maptile.zig").MapTile;
+const Pos = @import("Pos.zig");
+const Region = @import("Region.zig");
+const Room = @import("map/Room.zig");
 
 //
 // Utility Functions
 //
 
-pub fn drawHorizLine(m: *Map, start: Pos, end_x: Pos.Dim, tile: MapTile) void {
+fn drawHorizLine(m: *Map, start: Pos, end_x: Pos.Dim, tile: MapTile) void {
     const minx = @min(start.getX(), end_x + 1);
     const maxx = @max(start.getX(), end_x + 1);
     for (@intCast(minx)..@intCast(maxx)) |x| {
@@ -41,7 +22,7 @@ pub fn drawHorizLine(m: *Map, start: Pos, end_x: Pos.Dim, tile: MapTile) void {
     }
 }
 
-pub fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) void {
+fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) void {
     const miny = @min(start.getY(), end_y + 1);
     const maxy = @max(start.getY(), end_y + 1);
     for (@intCast(miny)..@intCast(maxy)) |y| {
@@ -49,7 +30,7 @@ pub fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) void {
     }
 }
 
-pub fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
+fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     // assumes start.x <= limit.x and start.y <= limit.y
     var r = Region.config(start, limit);
     var ri = r.iterator();
@@ -58,14 +39,20 @@ pub fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     }
 }
 
+//
 // Entities
+//
 
 pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
     e.setPos(p);
     m.addEntity(e, p);
 }
 
+//
 // Features
+//
+// TODO: these eventually become Feature controlled by game logic
+//
 
 pub fn addSecretDoor(m: *Map, p: Pos) void {
     m.setFloorTile(p, .wall); // until discovered
@@ -77,13 +64,19 @@ pub fn addTrap(m: *Map, p: Pos) void {
     m.setFeature(p, .trap);
 }
 
+//
 // Items
+//
+// TODO: this eventually becomes Item
+//
 
 pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {
     m.addItem(p, t);
 }
 
+//
 // Rooms
+//
 
 pub fn addRoom(m: *Map, room: Room) void {
     var r = room; // slide to non-const
@@ -115,7 +108,9 @@ pub fn getRoom(m: *Map, roomno: usize) *Room {
     return &m.rooms[roomno];
 }
 
+//
 // Corridors
+//
 
 pub fn addSouthCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) void {
     // FIXME: the start and end should be validated

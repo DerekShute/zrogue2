@@ -31,19 +31,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
-    const mapgen_mod = b.addModule("mapgen", .{
-        .root_source_file = b.path("mapgen/root.zig"),
-        .target = target,
-        .imports = &.{
-            .{ .name = "roguelib", .module = roguelib_mod },
-        },
-    });
-
     const game_mod = b.addModule("game", .{
         .root_source_file = b.path("game/root.zig"),
         .target = target,
         .imports = &.{
-            .{ .name = "mapgen", .module = mapgen_mod },
             .{ .name = "roguelib", .module = roguelib_mod },
         },
     });
@@ -139,11 +130,6 @@ pub fn build(b: *std.Build) void {
     });
     const run_server_tests = b.addRunArtifact(server_tests);
 
-    const mapgen_tests = b.addTest(.{
-        .root_module = mapgen_mod,
-    });
-    const run_mapgen_tests = b.addRunArtifact(mapgen_tests);
-
     const test_exe = b.addExecutable(.{
         .name = "zrogue-tests",
         .root_module = b.createModule(.{
@@ -152,7 +138,6 @@ pub fn build(b: *std.Build) void {
             .optimize = test_optimize,
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
-                .{ .name = "mapgen", .module = mapgen_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
             },
         }),
@@ -166,7 +151,6 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_testing_exe.step);
-    test_step.dependOn(&run_mapgen_tests.step);
     test_step.dependOn(&run_roguelib_tests.step);
     test_step.dependOn(&run_server_tests.step);
 }

@@ -8,9 +8,10 @@ const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
-const mapgen = @import("mapgen");
 
 const expect = std.testing.expect;
+
+const level = @import("level.zig");
 const MockClient = @import("MockClient.zig");
 
 const XSIZE = 80;
@@ -39,13 +40,7 @@ fn makePlayer(client: *Client) game.Player {
 }
 
 fn makeMap(player: *game.Player) !*Map {
-    return try mapgen.create(
-        .{
-            .player = player.getEntity(),
-            .mapgen = .TEST,
-        },
-        std.testing.allocator,
-    );
+    return try level.create(std.testing.allocator, player.getEntity());
 }
 
 fn step(player: *game.Player, map: *Map, val: Action.Result) !void {

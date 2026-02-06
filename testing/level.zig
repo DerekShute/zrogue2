@@ -3,6 +3,8 @@
 //!
 //! Someday, this goes under kcov
 //!
+//! NOTE NOTE NOTE: this is of limited use until it becomes an interface
+//!
 
 // ################################################
 // ################################################
@@ -26,43 +28,42 @@
 // ################################################
 
 const std = @import("std");
+const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
-const utils = @import("utils.zig");
+const mapgen = @import("roguelib").mapgen;
 
 //
 // Fixed things at fixed locations for deterministic behavior
 //
 
-pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
+pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     var map = try Map.init(allocator, 80, 24, 3, 2);
     errdefer map.deinit(allocator);
 
     var room = Room.config(Pos.config(2, 2), Pos.config(9, 9));
     room.setDark();
-    utils.addRoom(map, room);
+    mapgen.addRoom(map, room);
 
-    utils.addRoom(map, Room.config(Pos.config(27, 5), Pos.config(35, 10)));
-    utils.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13);
+    mapgen.addRoom(map, Room.config(Pos.config(27, 5), Pos.config(35, 10)));
+    mapgen.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13);
 
-    utils.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)));
+    mapgen.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)));
 
-    utils.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10);
+    mapgen.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10);
 
-    utils.addItemToMap(map, Pos.config(7, 5), .gold);
+    mapgen.addItemToMap(map, Pos.config(7, 5), .gold);
 
     map.setFloorTile(Pos.config(8, 4), .stairs_down);
     map.setFloorTile(Pos.config(8, 3), .stairs_up);
 
-    if (config.player) |p| {
-        utils.addEntityToMap(map, p, Pos.config(6, 6));
-    }
+    mapgen.addSecretDoor(map, Pos.config(9, 5));
 
-    utils.addSecretDoor(map, Pos.config(9, 5));
+    mapgen.addTrap(map, Pos.config(8, 5));
 
-    utils.addTrap(map, Pos.config(8, 5));
+    mapgen.addEntityToMap(map, player, Pos.config(6, 6));
 
     return map;
 }
