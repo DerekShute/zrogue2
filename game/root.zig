@@ -11,7 +11,10 @@ const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
 pub const Player = @import("Player.zig");
 const Tileset = @import("roguelib").Tileset;
-const util = @import("util.zig"); // NOCOMMIT: target the export
+
+const level = @import("level.zig");
+
+const util = @import("util.zig");
 
 //
 // Configuration
@@ -22,7 +25,6 @@ const MAX_DEPTH = 3;
 pub const Config = struct {
     player: *Player,
     allocator: std.mem.Allocator,
-    gentype: mapgen.MapGenType,
 };
 
 //
@@ -45,7 +47,7 @@ const State = enum {
 // Utilities
 //
 
-fn play(mapgen_config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
+fn play(config: *level.Config, map: *Map, queue: *Entity.Queue) State {
     var result: Action.Result = undefined;
     var state: State = .run;
 
@@ -63,14 +65,14 @@ fn play(mapgen_config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
         .continue_game => unreachable,
         .end_game => state = .end,
         .descend => {
-            mapgen_config.level += 1;
-            if (mapgen_config.level >= MAX_DEPTH) {
-                mapgen_config.going_down = false;
+            config.level += 1;
+            if (config.level >= MAX_DEPTH) {
+                config.going_down = false;
             }
         },
         .ascend => {
-            mapgen_config.level -= 1;
-            if (mapgen_config.level < 1) {
+            config.level -= 1;
+            if (config.level < 1) {
                 state = .end;
             }
         },
@@ -91,28 +93,22 @@ pub fn run(config: Config) !void {
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
 
-    var mapgen_config: mapgen.Config = .{
+    var level_config: level.Config = .{
         .rand = &r,
-        .player = entity,
-        .xSize = 80, // TODO, eventually other ideas
-        .ySize = 24,
-        .mapgen = config.gentype,
     };
 
     player.addMessage("Welcome to the Dungeon of Doom!");
 
     var queue = Entity.Queue.config();
+
     var state: State = .run;
     while (state != .end) {
-        var map = try mapgen.create(mapgen_config, allocator);
+        var map = try level.create(level_config, allocator);
         defer map.deinit(allocator);
 
-        player.resetMap();
-        player.setDepth(mapgen_config.level);
-        player.revealMap(map, player.getPos()); // initial position
+        level.addPlayer(map, player, &r);
         queue.enqueue(entity);
-
-        state = play(&mapgen_config, map, &queue);
+        state = play(&level_config, map, &queue);
     } // Game run loop
 
     // TODO : game endings go here

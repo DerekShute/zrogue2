@@ -117,7 +117,6 @@ pub fn main() !void {
     try game.run(.{
         .player = &player,
         .allocator = allocator,
-        .gentype = .ROGUE,
     });
 }
 

@@ -5,17 +5,31 @@
 const std = @import("std");
 
 const Map = @import("roguelib").Map;
+const mapgen = @import("roguelib").mapgen;
 const MapTile = @import("roguelib").MapTile;
+const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
-const utils = @import("utils.zig");
-
+//
 // Constants that this mapgen relies on
+//
 
 const min_room_dim = 4; // min non-gone room size: 2x2 not including walls
 const rooms_dim = 3; // 3x3 grid of room 'spots'
 const max_rooms = rooms_dim * rooms_dim;
+const map_xsize = 80;
+const map_ysize = 24;
+
+//
+// Types
+//
+
+pub const Config = struct {
+    rand: *std.Random = undefined,
+    level: u16 = 1,
+    going_down: bool = true,
+};
 
 //
 // Utilities
@@ -102,7 +116,7 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) void {
 
     map.setFloorTile(p, .door);
     if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
-        utils.addSecretDoor(map, p);
+        mapgen.addSecretDoor(map, p);
     }
 }
 
@@ -110,7 +124,7 @@ fn makeGold(map: *Map, r: *std.Random, room: *Room) void {
     // FUTURE : if !amulet and if level < max_level
     if (r.intRangeAtMost(usize, 0, 1) == 0) { // 50%
         const pos = findFloor(r, room);
-        utils.addItemToMap(map, pos, .gold);
+        mapgen.addItemToMap(map, pos, .gold);
     }
 }
 
@@ -126,7 +140,7 @@ fn makeTraps(map: *Map, r: *std.Random, level: usize) void {
         const pos = findAnyFloor(r, map);
         if (map.getFeature(pos) == .none) {
             // TODO: definitely suboptimal.  findAnyFloor should only return empty floor
-            utils.addTrap(map, pos);
+            mapgen.addTrap(map, pos);
         }
     }
 }
@@ -155,7 +169,7 @@ fn findFloor(r: *std.Random, room: *Room) Pos {
 
 fn findAnyFloor(r: *std.Random, map: *Map) Pos {
     const i = r.intRangeAtMost(usize, 0, max_rooms - 1);
-    const room = utils.getRoom(map, i);
+    const room = mapgen.getRoom(map, i);
 
     return findFloor(r, room);
 }
@@ -176,8 +190,8 @@ fn notConnected(graph: []bool, r1: usize, r2: usize) bool {
 fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
     const i = @min(rn1, rn2); // Western or Northern
     const j = @max(rn1, rn2); // Eastern or Southern
-    var r1 = utils.getRoom(map, i);
-    var r2 = utils.getRoom(map, j);
+    var r1 = mapgen.getRoom(map, i);
+    var r2 = mapgen.getRoom(map, j);
     var d1: Pos = undefined;
     var d2: Pos = undefined;
 
@@ -190,7 +204,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
         const end_x = r2.getMinX();
         const r2_y = r.intRangeAtMost(Pos.Dim, r2.getMinY() + 1, r2.getMaxY() - 1);
         const mid_x = r.intRangeAtMost(Pos.Dim, start_x + 1, end_x - 1);
-        utils.addEastCorridor(
+        mapgen.addEastCorridor(
             map,
             Pos.config(start_x, r1_y),
             Pos.config(end_x, r2_y),
@@ -204,7 +218,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
         const r2_x = r.intRangeAtMost(Pos.Dim, r2.getMinX() + 1, r2.getMaxX() - 1);
         const end_y = r2.getMinY();
         const mid_y = r.intRangeAtMost(Pos.Dim, start_y + 1, end_y - 1);
-        utils.addSouthCorridor(
+        mapgen.addSouthCorridor(
             map,
             Pos.config(r1_x, start_y),
             Pos.config(r2_x, end_y),
@@ -227,7 +241,7 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
     var i: usize = rand.intRangeAtMost(usize, 0, 3);
     while (i > 0) {
         const r = rand.intRangeAtMost(usize, 0, max_rooms - 1);
-        const room = utils.getRoom(map, r);
+        const room = mapgen.getRoom(map, r);
         if (room.flags.gone) { // TODO - interface
             continue;
         }
@@ -238,15 +252,35 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
 
 // ========================================================
 //
-// Mapgen interface: create a level using the traditional Rogue
-// algorithms
+// Interface Routines
 //
 
-pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
+//
+// Add a player to a good place on the map
+//
+
+pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
+    mapgen.addEntityToMap(map, player.getEntity(), findAnyFloor(rand, map));
+    player.resetMap();
+    player.setDepth(@intCast(map.level)); // TODO: blecch
+    player.revealMap(map, player.getPos()); // initial position
+}
+
+//
+// Create a level using the traditional Rogue algorithms
+//
+
+pub fn create(config: Config, allocator: std.mem.Allocator) !*Map {
     var rand = config.rand;
     var ingraph = [_]bool{false} ** max_rooms; // Rooms connected to graph
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
-    var map = try Map.init(allocator, config.xSize, config.ySize, rooms_dim, rooms_dim);
+    var map = try Map.init(
+        allocator,
+        map_xsize,
+        map_ysize,
+        rooms_dim,
+        rooms_dim,
+    );
     errdefer map.deinit(allocator);
 
     map.level = config.level;
@@ -254,14 +288,14 @@ pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
     reserveGoneRooms(map, rand);
 
     for (0..max_rooms) |i| {
-        const r = utils.getRoom(map, i);
+        const r = mapgen.getRoom(map, i);
         if (r.flags.gone) { // TODO: interface
-            utils.addRoom(map, makeGoneRoom(@intCast(i), map, rand));
+            mapgen.addRoom(map, makeGoneRoom(@intCast(i), map, rand));
             continue;
         }
 
         var room = makeRoom(@intCast(i), map, rand);
-        utils.addRoom(map, room);
+        mapgen.addRoom(map, room);
         makeGold(map, rand, &room);
 
         // FUTURE: Place monster
@@ -343,10 +377,6 @@ pub fn create(config: utils.Config, allocator: std.mem.Allocator) !*Map {
         }
     }
 
-    if (config.player) |p| {
-        utils.addEntityToMap(map, p, findAnyFloor(rand, map));
-    }
-
     return map;
 }
 
@@ -388,7 +418,7 @@ test "create Rogue level" {
     var prng = std.Random.DefaultPrng.init(0);
     var r = prng.random();
 
-    const config = utils.Config{
+    const config = mapgen.Config{
         .rand = &r,
         .xSize = 80,
         .ySize = 24,
@@ -415,7 +445,7 @@ test "fuzz test room generation" {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
             const room = makeRoom(i, map, &r);
-            utils.addRoom(map, room);
+            mapgen.addRoom(map, room);
         }
     }
 }
@@ -431,7 +461,7 @@ test "fuzz test gone room generation" {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
             const room = makeGoneRoom(i, map, &r);
-            utils.addRoom(map, room);
+            mapgen.addRoom(map, room);
 
             // TODO test boundaries
         }

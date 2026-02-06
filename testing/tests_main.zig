@@ -41,6 +41,11 @@ var testlist = [_]Client.Command{
     .quit,
 };
 
+//
+// TODO: this is baloney.  We no longer have access to the test mapgen.  We
+// have to abstract mapgen into an interface and then it can be passed around
+//
+
 test "run the game" {
     const config: MockClient.Config = .{
         .allocator = std.testing.allocator,
@@ -61,7 +66,6 @@ test "run the game" {
     try game.run(.{
         .player = &player,
         .allocator = std.testing.allocator,
-        .gentype = .TEST,
     });
 }
 
