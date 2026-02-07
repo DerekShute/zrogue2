@@ -84,7 +84,9 @@ fn doMove(entity: *Entity, action: *Action, map: *Map) Action.Result {
         entity.setPos(new_pos);
         map.addEntity(entity, new_pos);
         entity.revealMap(map, old_pos);
-        _ = features.enter(entity, map, new_pos);
+        if (map.getFeature(new_pos)) |f| {
+            _ = f.enter(entity, map, new_pos);
+        }
     } else {
         entity.addMessage("Ouch!"); // Future: 'bump' callback
     }
@@ -107,7 +109,9 @@ fn doSearch(entity: *Entity, action: *Action, map: *Map) Action.Result {
     var i = r.iterator();
     var found: bool = false;
     while (i.next()) |pos| {
-        found |= features.find(entity, map, pos); // aggregate result
+        if (map.getFeature(pos)) |f| {
+            found |= f.find(entity, map, pos); // aggregate result
+        }
     }
 
     if (found) {

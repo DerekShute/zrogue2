@@ -9,34 +9,17 @@ const Pos = @import("roguelib").Pos;
 const Map = @import("roguelib").Map;
 
 //
-// Action vector
-//
-
-const Callback = *const fn (entity: *Entity, map: *Map, pos: Pos) bool;
-
-const VTable = struct {
-    find: ?Callback,
-    enter: ?Callback,
-    // Take, open, etc.
-};
-
-//
 // Secret Door
 //
 
 fn findSecretDoor(entity: *Entity, m: *Map, p: Pos) bool {
     // TODO: chance to succeed
     m.setFloorTile(p, .door);
-    m.setFeature(p, .none);
+    m.setFeature(p, null);
     entity.setKnown(m, p, true);
     // TODO message
     return true; // Found
 }
-
-const secretdoor_vtable: VTable = .{
-    .find = findSecretDoor,
-    .enter = null,
-};
 
 //
 // Trap
@@ -60,47 +43,42 @@ fn enterTrap(entity: *Entity, m: *Map, p: Pos) bool {
     return true;
 }
 
-const trap_vtable: VTable = .{
+//
+// Interface
+//
+
+const secret_vtable: Feature.VTable = .{
+    .find = findSecretDoor,
+};
+
+pub fn addSecretDoor(m: *Map, p: Pos) void {
+    m.setFloorTile(p, .wall);
+    m.setFeature(p, .{ .vtable = &secret_vtable });
+}
+
+const trap_vtable: Feature.VTable = .{
     .find = findTrap,
     .enter = enterTrap,
 };
 
-//
-// Dispatch routines
-//
-
-pub fn find(entity: *Entity, map: *Map, pos: Pos) bool {
-    const feature = map.getFeature(pos);
-    const dispatch: ?Callback = switch (feature) {
-        .secret_door => secretdoor_vtable.find,
-        .trap => trap_vtable.find,
-        else => null,
-    };
-
-    if (dispatch) |cb| {
-        return cb(entity, map, pos);
-    }
-    return false;
+pub fn addTrap(m: *Map, p: Pos) void {
+    m.setFloorTile(p, .floor);
+    m.setFeature(p, .{ .vtable = &trap_vtable });
 }
 
-pub fn enter(entity: *Entity, map: *Map, pos: Pos) bool {
-    const feature = map.getFeature(pos);
-    const dispatch: ?Callback = switch (feature) {
-        .secret_door => secretdoor_vtable.enter,
-        .trap => trap_vtable.enter,
-        else => null,
+pub fn initTrap() Feature {
+    return .{
+        .vtable = .{
+            .find = findTrap,
+            .enter = enterTrap,
+        },
     };
-
-    if (dispatch) |cb| {
-        return cb(entity, map, pos);
-    }
-    return false;
 }
 
 //
 // Unit tests
 //
 
-// TODO: tricky
+// TODO: still tricky
 
 // EOF
