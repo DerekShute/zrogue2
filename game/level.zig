@@ -4,6 +4,7 @@
 
 const std = @import("std");
 
+const features = @import("features.zig");
 const Map = @import("roguelib").Map;
 const mapgen = @import("roguelib").mapgen;
 const MapTile = @import("roguelib").MapTile;
@@ -116,7 +117,7 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) void {
 
     map.setFloorTile(p, .door);
     if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
-        mapgen.addSecretDoor(map, p);
+        features.addSecretDoor(map, p);
     }
 }
 
@@ -138,9 +139,9 @@ fn makeTraps(map: *Map, r: *std.Random, level: usize) void {
     const count = r.intRangeAtMost(usize, 1, @divTrunc(level, 4) + 1);
     for (0..count) |_| {
         const pos = findAnyFloor(r, map);
-        if (map.getFeature(pos) == .none) {
+        if (map.getFeature(pos)) |_| {
             // TODO: definitely suboptimal.  findAnyFloor should only return empty floor
-            mapgen.addTrap(map, pos);
+            features.addTrap(map, pos);
         }
     }
 }

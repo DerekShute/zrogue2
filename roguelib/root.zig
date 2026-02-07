@@ -5,7 +5,7 @@
 pub const Action = @import("Action.zig");
 pub const Client = @import("Client.zig");
 pub const Entity = @import("Entity.zig");
-pub const Feature = @import("maptile.zig").Feature;
+pub const Feature = @import("Feature.zig");
 pub const Grid = @import("grid.zig").Grid;
 pub const Map = @import("Map.zig");
 pub const MapTile = @import("maptile.zig").MapTile;

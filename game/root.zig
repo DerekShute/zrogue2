@@ -6,6 +6,7 @@ const std = @import("std");
 
 const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
+const features = @import("features.zig");
 const Pos = @import("roguelib").Pos;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
@@ -15,6 +16,11 @@ const Tileset = @import("roguelib").Tileset;
 const level = @import("level.zig");
 
 const util = @import("util.zig");
+
+// TODO: this is suboptimal
+
+pub const addSecretDoor = features.addSecretDoor;
+pub const addTrap = features.addTrap;
 
 //
 // Configuration

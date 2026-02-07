@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const Entity = @import("Entity.zig");
+const Feature = @import("Feature.zig");
 const Map = @import("Map.zig");
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
@@ -51,17 +52,9 @@ pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
 //
 // Features
 //
-// TODO: these eventually become Feature controlled by game logic
-//
 
-pub fn addSecretDoor(m: *Map, p: Pos) void {
-    m.setFloorTile(p, .wall); // until discovered
-    m.setFeature(p, .secret_door);
-}
-
-pub fn addTrap(m: *Map, p: Pos) void {
-    m.setFloorTile(p, .floor); // until discovered or stomped on
-    m.setFeature(p, .trap);
+pub fn addFeature(m: *Map, p: Pos, f: ?Feature) void {
+    m.setFeature(p, f);
 }
 
 //

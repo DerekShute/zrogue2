@@ -3,7 +3,7 @@
 //!
 
 const Entity = @import("../Entity.zig");
-const Feature = @import("../maptile.zig").Feature;
+const Feature = @import("../Feature.zig");
 const MapTile = @import("../maptile.zig").MapTile;
 const Tileset = @import("../maptile.zig").Tileset;
 
@@ -17,7 +17,7 @@ floor: MapTile = .unknown,
 entity: ?*Entity = undefined,
 // TODO this is unbelievably crude until there's droppable/interesting items
 item: MapTile = .unknown,
-feature: Feature = .none,
+feature: ?Feature = null,
 
 //
 // Constructor, probably not idiomatic
@@ -27,7 +27,7 @@ feature: Feature = .none,
 pub fn config(self: *Self) void {
     self.floor = .wall;
     self.entity = null;
-    self.feature = .none;
+    self.feature = null;
     self.item = .unknown;
 }
 
@@ -78,11 +78,11 @@ pub fn setFloorTile(self: *Self, to: MapTile) void {
     self.floor = to;
 }
 
-pub fn setFeature(self: *Self, to: Feature) void {
+pub fn setFeature(self: *Self, to: ?Feature) void {
     self.feature = to;
 }
 
-pub fn getFeature(self: *Self) Feature {
+pub fn getFeature(self: *Self) ?Feature {
     return self.feature;
 }
 
@@ -111,7 +111,7 @@ test "basic tests" {
     try expect(ts.entity == .unknown);
     try expect(ts.item == .unknown);
     try expect(place.passable() == false);
-    // Not sure how to usefully test place.feature
+    try expect(place.feature == null);
 }
 
 // EOF

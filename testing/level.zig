@@ -33,6 +33,7 @@ const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
+const game = @import("game");
 const mapgen = @import("roguelib").mapgen;
 
 //
@@ -59,9 +60,8 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     map.setFloorTile(Pos.config(8, 4), .stairs_down);
     map.setFloorTile(Pos.config(8, 3), .stairs_up);
 
-    mapgen.addSecretDoor(map, Pos.config(9, 5));
-
-    mapgen.addTrap(map, Pos.config(8, 5));
+    game.addSecretDoor(map, Pos.config(9, 5));
+    game.addTrap(map, Pos.config(8, 5));
 
     mapgen.addEntityToMap(map, player, Pos.config(6, 6));
 
