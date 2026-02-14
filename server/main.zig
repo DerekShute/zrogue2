@@ -13,32 +13,46 @@ const net = std.net;
 // Service routines
 //
 
-fn handleClient(conn: *net.Server.Connection) !void {
+// TODO: accepts allocator for game creation etc
+
+fn handleClient(conn: *net.Server.Connection) void {
+    var buffer: [1000]u8 = undefined; // TODO: arena allocator?
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+
     var rbuf: [1024]u8 = undefined;
     var reader = conn.stream.reader(&rbuf);
-    var writer = conn.stream.writer(&.{});
+    //var writer = conn.stream.writer(&.{});
 
-    log.info("Accepted connection from {f}", .{conn.address});
+    log.info("[{f}] Accepted connection", .{conn.address});
 
-    const req = server.receiveHandshakeReq(reader.interface()) catch |err| {
-        if (err == server.Error.ConnectionDropped) {
-            log.info("Disconnected from {f}", .{conn.address});
-        } else {
-            log.info("Unexpected error {} from {f}", .{ err, conn.address });
+    // TODO: reads header that identifies type
+    // TODO: loop
+
+    // TODO: local routine to capture this
+    const req = server.readEntryRequest(
+        fba.allocator(),
+        reader.interface(),
+    ) catch |err| {
+        switch (err) {
+            server.Error.ConnectionDropped => {
+                log.info("Unexpected disconnection from {f}", .{conn.address});
+            },
+            server.Error.BadMessage => {
+                log.info("Invalid message from {f}, expecting EntryRequest", .{conn.address});
+            },
+            else => {
+                log.info("Unexpected error {} from {f}", .{ err, conn.address });
+            },
         }
-        return;
+        return; // Disconnects
     };
+    defer req.deinit(fba.allocator());
 
-    // TODO: not sure about error results here
-    try server.sendHandshakeResponse(
-        &writer.interface,
-        req.nonce,
-        .awaiting_entry,
-    );
+    log.info("[{f} EntryRequest] player '{s}'", .{ conn.address, req.name });
 
     // TODO: next step
 
-    log.info("End session of {f}", .{conn.address});
+    log.info("[{f} '{s}'] End session", .{ conn.address, req.name });
 }
 
 //
@@ -58,7 +72,7 @@ pub fn main() !void {
         var connection = try service.accept();
         defer connection.stream.close();
 
-        try handleClient(&connection);
+        handleClient(&connection);
     }
 }
 

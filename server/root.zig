@@ -3,28 +3,35 @@
 //!
 //! Transaction:
 //!
-//!    HANDSHAKE_REQUEST json ->
-//!                  <- HANDSHAKE_RESPONSE json
 //!    ENTRY msgpack ->
-//!     (TODO)
+//! [
+//!                  <- MAP_UPDATE msgpack
+//!                  <- MESSAGE msgpack
+//!                  <- STAT_UPDATE msgpack
+//!
+//!   ACTION msgpack ->
+//! ]
+//!
+//!   DEPART msgpack ->
+//!                  <- DEPART msgpack
+//!
+//!                  <- ERROR msgpack
+//!
 
 const std = @import("std");
 const Writer = std.io.Writer;
 const Reader = std.io.Reader;
 
-pub const HandshakeRequest = @import("protocol/HandshakeRequest.zig");
-pub const HandshakeResponse = @import("protocol/HandshakeResponse.zig");
-
-// TODO for now a given
-pub const PROTOCOL_VERSION = 1;
+pub const EntryRequest = @import("protocol/EntryRequest.zig");
 
 //
 // Errors, to purify the raw error results
 //
 
 pub const Error = error{
-    ConnectionDropped,
     BadMessage,
+    ConnectionDropped,
+    SendError,
     UnexpectedError,
 };
 
@@ -32,120 +39,76 @@ pub const Error = error{
 // Routines
 //
 
-pub fn startHandshake(writer: *Writer) Error!void {
-    var req = HandshakeRequest.init(PROTOCOL_VERSION, 1); // TODO pass in
-    req.send(writer) catch {
-        return Error.UnexpectedError;
-    };
-}
+//
+// Entry Request
+//
 
-pub fn receiveHandshakeReq(reader: *Reader) Error!HandshakeRequest {
-    return HandshakeRequest.receive(reader) catch |err| {
-        return switch (err) {
-            error.EndOfStream => Error.ConnectionDropped,
-            error.InvalidCharacter => Error.BadMessage,
-            error.MissingField => Error.BadMessage,
-            error.SyntaxError => Error.BadMessage,
-            error.UnexpectedEndOfInput => Error.BadMessage,
-            error.UnknownField => Error.BadMessage,
-            else => Error.UnexpectedError,
-        };
-    };
-}
-
-pub fn sendHandshakeResponse(
+pub fn writeEntryRequest(
     writer: *Writer,
-    nonce: u32,
-    code: HandshakeResponse.Code,
-) Error!void {
-    var resp = HandshakeResponse.init(PROTOCOL_VERSION, nonce, code);
-    resp.send(writer) catch {
-        return Error.UnexpectedError;
+    name: []const u8,
+) !void {
+    var alloc_b: [30]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    var msg = EntryRequest.init(fba.allocator(), name) catch unreachable;
+
+    // TODO: write identifier
+
+    msg.write(writer) catch |err| switch (err) {
+        error.WriteFailed => return Error.SendError,
+        else => return Error.UnexpectedError,
     };
 }
 
-pub fn receiveHandshakeResponse(
+pub fn readEntryRequest(
+    allocator: std.mem.Allocator,
     reader: *Reader,
-) Error!HandshakeResponse {
-    return HandshakeResponse.receive(reader) catch |err| {
-        return switch (err) {
-            error.EndOfStream => Error.ConnectionDropped,
-            error.InvalidCharacter => Error.BadMessage,
-            error.InvalidEnumTag => Error.BadMessage,
-            error.MissingField => Error.BadMessage,
-            error.UnexpectedEndOfInput => Error.BadMessage,
-            error.UnknownField => Error.BadMessage,
-            else => Error.UnexpectedError,
-            // TODO others
-        };
+) !*EntryRequest {
+    // TODO: read identifier?  Or at above level?
+    const msg = EntryRequest.read(reader, allocator) catch |err| switch (err) {
+        error.EndOfStream => return Error.ConnectionDropped,
+        error.InvalidFormat => return Error.BadMessage, // not msgpack, etc.
+        error.OutOfMemory => return Error.BadMessage, // Too long, etc.
+        error.UnknownStructField => return Error.BadMessage,
+        else => return Error.UnexpectedError,
     };
+    return msg;
 }
 
 //
 // Unit Testing
 //
 const expectError = std.testing.expectError;
+const expect = std.testing.expect;
 
-test "Handshake sequence" {
+test "Entry sequence" {
     var buffer: [128]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
 
-    try startHandshake(&bwriter);
+    try writeEntryRequest(&bwriter, "frammitzor");
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
 
-    const req = try receiveHandshakeReq(&breader);
+    const req = try readEntryRequest(std.testing.allocator, &breader);
+    defer req.deinit(std.testing.allocator);
 
-    bwriter = std.io.Writer.fixed(&buffer); // reset
-
-    try sendHandshakeResponse(
-        &bwriter,
-        req.nonce,
-        .awaiting_entry,
-    );
-
-    breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-
-    _ = try receiveHandshakeResponse(&breader);
+    try expect(std.mem.eql(u8, req.name, "frammitzor"));
 }
 
-test "Handshake request disconnect" {
-    var buffer: [128]u8 = undefined;
+test "request send fails" {
+    var buffer: [20]u8 = undefined;
     var bwriter = std.io.Writer.fixed(&buffer);
 
-    try startHandshake(&bwriter);
-
-    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
-
-    try expectError(
-        Error.ConnectionDropped,
-        receiveHandshakeReq(&breader),
-    );
+    try writeEntryRequest(&bwriter, "frammitzor");
 }
 
-test "Handshake response disconnect" {
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
+// TODO: byzantine errors and state machine disorder
 
-    try sendHandshakeResponse(
-        &bwriter,
-        1,
-        .awaiting_entry,
-    );
-
-    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
-
-    try expectError(
-        Error.ConnectionDropped,
-        receiveHandshakeResponse(&breader),
-    );
-}
-
+//
 // Imports
+//
 
 comptime {
-    _ = @import("protocol/HandshakeRequest.zig");
-    _ = @import("protocol/HandshakeResponse.zig");
+    _ = @import("protocol/EntryRequest.zig");
 }
 
 // EOF

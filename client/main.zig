@@ -1,11 +1,11 @@
 //!
-//! https://cookbook.ziglang.cc/04-02-tcp-client/
+//! zrogue server CLI client
 //!
 
 const std = @import("std");
 const server = @import("server");
 const net = std.net;
-const print = std.debug.print;
+const print = std.debug.print; // TODO not this
 
 pub fn main() !void {
     // TODO: better
@@ -23,15 +23,13 @@ pub fn main() !void {
     defer stream.close();
     print("Connecting to {f}\n", .{peer});
 
-    var rbuf: [1024]u8 = undefined;
-    var reader = stream.reader(&rbuf);
+    // var rbuf: [1024]u8 = undefined;
+    // var reader = stream.reader(&rbuf);
     var writer = stream.writer(&.{});
 
-    // TODO handle
-    try server.startHandshake(&writer.interface);
-
-    // TODO handle
-    _ = try server.receiveHandshakeResponse(reader.interface());
+    // TODO handle errors
+    // TODO player name
+    try server.writeEntryRequest(&writer.interface, "anonymous");
 
     // TODO: next step
 }
