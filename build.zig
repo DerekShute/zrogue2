@@ -17,6 +17,15 @@ pub fn build(b: *std.Build) void {
     const test_optimize = b.standardOptimizeOption(.{});
 
     //
+    // External dependencies
+    //
+
+    const msgpack = b.dependency("msgpack", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    //
     // Crystallize the version into a build option
     //
     const options = b.addOptions();
@@ -79,6 +88,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    server_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
     b.installArtifact(server_exe);
 
     //
@@ -97,6 +107,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    client_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
     b.installArtifact(client_exe);
 
     //
@@ -129,6 +140,7 @@ pub fn build(b: *std.Build) void {
         .root_module = server_mod,
     });
     const run_server_tests = b.addRunArtifact(server_tests);
+    server_tests.root_module.addImport("msgpack", msgpack.module("msgpack"));
 
     const test_exe = b.addExecutable(.{
         .name = "zrogue-tests",
@@ -147,6 +159,7 @@ pub fn build(b: *std.Build) void {
     const testing_exe = b.addTest(.{
         .root_module = test_exe.root_module,
     });
+
     const run_testing_exe = b.addRunArtifact(testing_exe);
 
     const test_step = b.step("test", "Run tests");
