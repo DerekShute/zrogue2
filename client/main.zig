@@ -8,7 +8,11 @@ const net = std.net;
 const print = std.debug.print; // TODO not this
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
     // TODO: better
+
     var args = std.process.args();
     // The first (0 index) Argument is the path to the program.
     _ = args.skip();
@@ -23,8 +27,8 @@ pub fn main() !void {
     defer stream.close();
     print("Connecting to {f}\n", .{peer});
 
-    // var rbuf: [1024]u8 = undefined;
-    // var reader = stream.reader(&rbuf);
+    var rbuf: [1024]u8 = undefined;
+    var reader = stream.reader(&rbuf);
     var writer = stream.writer(&.{});
 
     // TODO handle errors
@@ -32,4 +36,10 @@ pub fn main() !void {
     try server.writeEntryRequest(&writer.interface, "anonymous");
 
     // TODO: next step
+
+    // TODO handle errors
+    var depart = try server.readDepart(allocator, reader.interface());
+    defer depart.deinit(allocator);
+
+    print("Disconnected from {f}, message '{s}'\n", .{ peer, depart.message });
 }
