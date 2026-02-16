@@ -51,10 +51,12 @@ pub const Error = error{
 
 fn Wrap(comptime T: type) type {
     return struct {
+        // OutOfMemory also includes failure of message validation
         pub fn read(allocator: std.mem.Allocator, reader: *Reader) !*T {
             const m = T.read(reader, allocator) catch |err| switch (err) {
                 error.EndOfStream => return Error.ConnectionDropped,
                 error.InvalidFormat => return Error.BadMessage, // not msgpack, etc.
+                error.MissingStructFields => return Error.BadMessage,
                 error.OutOfMemory => return Error.BadMessage, // Too long, etc.
                 error.UnknownStructField => return Error.BadMessage,
                 else => return Error.UnexpectedError,
