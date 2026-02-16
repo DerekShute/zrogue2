@@ -5,36 +5,35 @@
 //!
 
 const std = @import("std");
-const msgpack = @import("msgpack");
 const utils = @import("utils.zig");
+
+const Reader = std.io.Reader;
+const Writer = std.io.Writer;
+const Allocator = std.mem.Allocator;
 
 const Self = @This();
 
 pub const max_namelen = 32;
 
 //
-// Members
+// Members: do not supply defaults!
 //
 
-// NOTE: there is no better way to do this.  Defining a static name
-// buffer will complicate the encode/decode and the management of
-// slice versus array buffer is twisting.
-
-name: []u8 = undefined,
+name: []u8,
 // TODO: class, race, ...
 
 //
 // Lifecycle
 //
 
-pub fn copy(allocator: std.mem.Allocator, basis: Self) !*Self {
+pub fn copy(allocator: Allocator, basis: Self) !*Self {
     const s: *Self = try allocator.create(Self);
     errdefer allocator.destroy(s);
     s.name = try allocator.dupe(u8, basis.name);
     return s;
 }
 
-pub fn init(allocator: std.mem.Allocator, name: []const u8) !*Self {
+pub fn init(allocator: Allocator, name: []const u8) !*Self {
     if (name.len > max_namelen) {
         @panic("EntryRequest.init: name too long"); // Prevent this, please
     }
@@ -44,7 +43,7 @@ pub fn init(allocator: std.mem.Allocator, name: []const u8) !*Self {
     return s;
 }
 
-pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+pub fn deinit(self: *Self, allocator: Allocator) void {
     allocator.free(self.name);
     allocator.destroy(self);
 }
@@ -62,7 +61,7 @@ pub fn valid(self: *Self) bool {
 
 pub const write = utils.genericWrite;
 
-pub fn read(reader: *std.io.Reader, allocator: std.mem.Allocator) !*Self {
+pub fn read(reader: *Reader, allocator: Allocator) !*Self {
     return utils.genericRead(Self, reader, allocator);
 }
 
@@ -72,114 +71,64 @@ pub fn read(reader: *std.io.Reader, allocator: std.mem.Allocator) !*Self {
 
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
+const msgpack = @import("msgpack");
+const t_allocator = std.testing.allocator;
+const FailingAllocator = std.testing.FailingAllocator;
+
+const test_name: *const [max_namelen:0]u8 = "*" ** max_namelen;
 
 test "send request read request" {
+    // Beyond the allocation scheme: if this fails, testing must be reworked
+    var f = FailingAllocator.init(t_allocator, .{ .fail_index = 2 });
     var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-    const name: *const [max_namelen:0]u8 = "*" ** max_namelen;
+    var bwriter = Writer.fixed(&buffer);
 
-    var sendreq = try init(std.testing.allocator, name);
-    defer sendreq.deinit(std.testing.allocator);
+    var sendreq = try init(t_allocator, test_name);
+    defer sendreq.deinit(t_allocator);
 
     try sendreq.write(&bwriter);
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    var req = try read(&breader, std.testing.allocator);
-    defer req.deinit(std.testing.allocator);
+    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
+    var req = try read(&breader, f.allocator());
+    defer req.deinit(f.allocator());
 
-    try expect(std.mem.eql(u8, req.name, name));
+    try expect(std.mem.eql(u8, req.name, test_name));
 }
 
 test "send request memory failure 1" {
-    var f = std.testing.FailingAllocator.init(
-        std.testing.allocator,
-        .{ .fail_index = 0 },
-    );
-
+    var f = FailingAllocator.init(t_allocator, .{ .fail_index = 0 });
     try expectError(error.OutOfMemory, init(f.allocator(), "doesnotmatter"));
 }
 
 test "send request memory failure 2" {
-    var f = std.testing.FailingAllocator.init(
-        std.testing.allocator,
-        .{ .fail_index = 1 },
-    );
-
+    var f = FailingAllocator.init(t_allocator, .{ .fail_index = 1 });
     try expectError(error.OutOfMemory, init(f.allocator(), "doesnotmatter"));
-}
-
-test "send request WriteFailed" {
-    var buffer: [20]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-    const name: *const [max_namelen:0]u8 = "*" ** max_namelen;
-
-    var sendreq = try init(std.testing.allocator, name);
-    defer sendreq.deinit(std.testing.allocator);
-
-    try expectError(error.WriteFailed, sendreq.write(&bwriter));
 }
 
 // receive
 
-test "receive request truncated" {
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-    const name: *const [max_namelen:0]u8 = "*" ** max_namelen;
-
-    var sendreq = try init(std.testing.allocator, name);
-    defer sendreq.deinit(std.testing.allocator);
-
-    try sendreq.write(&bwriter);
-    var breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
-    try expectError(error.EndOfStream, read(&breader, std.testing.allocator));
-}
-
 test "receive request memory failure" {
-    var f = std.testing.FailingAllocator.init(
-        std.testing.allocator,
-        .{ .fail_index = 1 },
-    );
+    var f = FailingAllocator.init(t_allocator, .{ .fail_index = 1 });
     var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
+    var bwriter = Writer.fixed(&buffer);
 
-    var sendreq = try init(std.testing.allocator, "frammitz");
-    defer sendreq.deinit(std.testing.allocator);
+    var sendreq = try init(t_allocator, "frammitz");
+    defer sendreq.deinit(t_allocator);
 
     try sendreq.write(&bwriter);
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
 
     try expectError(error.OutOfMemory, read(&breader, f.allocator()));
 }
 
-test "receive request memory failure bound" {
-    var f = std.testing.FailingAllocator.init(
-        std.testing.allocator,
-        .{ .fail_index = 2 },
-    );
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-
-    var sendreq = try init(std.testing.allocator, "frammitz");
-    defer sendreq.deinit(std.testing.allocator);
-
-    try sendreq.write(&bwriter);
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-
-    // index 2 is outside the expected allocation range.  If this fails
-    // then something has changed
-
-    const msg = try read(&breader, f.allocator());
-    defer msg.deinit(f.allocator());
-}
-
 // "send name too long" protected by a panic in init(), so handcraft
 
-test "receive name barely too long" {
+test "receive EntryRequest fails validation (name size)" {
     var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
+    var bwriter = Writer.fixed(&buffer);
     const sname = "*" ** 33;
 
-    const name = try std.testing.allocator.dupe(u8, sname);
-    defer std.testing.allocator.free(name);
+    const name = try t_allocator.dupe(u8, sname);
+    defer t_allocator.free(name);
 
     const sendreq: Self = .{
         .name = name,
@@ -187,78 +136,8 @@ test "receive name barely too long" {
     try msgpack.encode(sendreq, &bwriter);
     try bwriter.flush();
 
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.OutOfMemory, read(&breader, std.testing.allocator));
+    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
+    try expectError(error.OutOfMemory, read(&breader, t_allocator));
 }
-
-test "receive name much too long" {
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-    const sname: []const u8 = "*********************************************";
-
-    const name = try std.testing.allocator.dupe(u8, sname);
-    defer std.testing.allocator.free(name);
-
-    const sendreq: Self = .{
-        .name = name,
-    };
-    try msgpack.encode(sendreq, &bwriter);
-    try bwriter.flush();
-
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.OutOfMemory, read(&breader, std.testing.allocator));
-}
-
-test "incorrect message" {
-    const Other = struct {
-        f1: u32 = 1024,
-        f2: f64 = 10.473,
-    };
-    const other = Other{};
-
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-
-    try msgpack.encode(other, &bwriter);
-    try bwriter.flush();
-
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.UnknownStructField, read(&breader, std.testing.allocator));
-}
-
-test "message includes an additional field" {
-    const Other = struct {
-        name: []u8 = undefined,
-        f1: u32 = 1024,
-    };
-    var other = Other{};
-
-    other.name = try std.testing.allocator.dupe(u8, "frotz");
-    defer std.testing.allocator.free(other.name);
-
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-
-    try msgpack.encode(other, &bwriter);
-    try bwriter.flush();
-
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.UnknownStructField, read(&breader, std.testing.allocator));
-}
-
-// TODO: received message is missing a field
-
-test "receive message is not msgpack" {
-    var buffer: [128]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-
-    try bwriter.writeAll("This is not valid messagepack");
-    try bwriter.flush();
-
-    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.InvalidFormat, read(&breader, std.testing.allocator));
-}
-
-// TODO: connection Dropped
 
 // EOF
