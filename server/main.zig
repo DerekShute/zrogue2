@@ -40,6 +40,10 @@ fn writeDepart(writer: *std.io.Writer, msg: []const u8) !void {
     try server.writeDepart(writer, msg); // TODO catch
 }
 
+fn writeMessage(writer: *std.io.Writer, msg: []const u8) !void {
+    try server.writeMessage(writer, msg);
+}
+
 // TODO: accepts allocator for game creation etc
 fn handleClient(conn: *net.Server.Connection) void {
     var buffer: [1000]u8 = undefined; // TODO: or 1000 bytes from incoming
@@ -58,6 +62,10 @@ fn handleClient(conn: *net.Server.Connection) void {
         defer req.deinit(fba.allocator());
 
         log.info("[{f} EntryRequest] player '{s}'", .{ conn.address, req.name });
+        writeMessage(&writer.interface, "Welcome to the Dungeon of Doom") catch |err| {
+            log.info("[{f} '{s}'] Message returned {}", .{ conn.address, req.name, err });
+            return;
+        };
         writeDepart(&writer.interface, "you are done") catch |err| {
             log.info("[{f} '{s}'] Depart returned {}", .{ conn.address, req.name, err });
             return;

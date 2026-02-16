@@ -36,6 +36,10 @@ pub fn main() !void {
     try server.writeEntryRequest(&writer.interface, "anonymous");
 
     // TODO: next step
+    var msg = try server.readMessage(allocator, reader.interface());
+    defer msg.deinit(allocator);
+
+    print("Server reports '{s}'\n", .{msg.message});
 
     // TODO handle errors
     var depart = try server.readDepart(allocator, reader.interface());

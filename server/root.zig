@@ -49,9 +49,9 @@ pub const Error = error{
 // Service Routines
 //
 
-fn WrapRead(comptime T: type) *const fn (std.mem.Allocator, *Reader) Error!*T {
+fn Wrap(comptime T: type) type {
     return struct {
-        fn read(allocator: std.mem.Allocator, reader: *Reader) !*T {
+        pub fn read(allocator: std.mem.Allocator, reader: *Reader) !*T {
             const m = T.read(reader, allocator) catch |err| switch (err) {
                 error.EndOfStream => return Error.ConnectionDropped,
                 error.InvalidFormat => return Error.BadMessage, // not msgpack, etc.
@@ -61,18 +61,14 @@ fn WrapRead(comptime T: type) *const fn (std.mem.Allocator, *Reader) Error!*T {
             };
             return m;
         }
-    }.read;
-}
 
-fn WrapWrite(comptime T: type) *const fn (*T, *Writer) Error!void {
-    return struct {
-        fn write(self: *T, writer: *Writer) !void {
+        pub fn write(self: *T, writer: *Writer) !void {
             self.write(writer) catch |err| switch (err) {
                 error.WriteFailed => return Error.SendError,
                 else => return Error.UnexpectedError,
             };
         }
-    }.write;
+    };
 }
 
 //
@@ -81,13 +77,13 @@ fn WrapWrite(comptime T: type) *const fn (*T, *Writer) Error!void {
 
 // Entry Request
 
-pub const readEntryRequest = WrapRead(EntryRequest);
+pub const readEntryRequest = Wrap(EntryRequest).read;
 
 pub fn writeEntryRequest(
     writer: *Writer,
     name: []const u8,
 ) !void {
-    const rawWrite = WrapWrite(EntryRequest);
+    const write = Wrap(EntryRequest).write;
 
     var alloc_b: [30]u8 = undefined; // Calculated
     var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
@@ -96,18 +92,18 @@ pub fn writeEntryRequest(
 
     // TODO: write identifier
 
-    try rawWrite(msg, writer);
+    try write(msg, writer);
 }
 
 // Depart
 
-pub const readDepart = WrapRead(Depart);
+pub const readDepart = Wrap(Depart).read;
 
 pub fn writeDepart(
     writer: *Writer,
     message: []const u8,
 ) !void {
-    const rawWrite = WrapWrite(Depart);
+    const write = Wrap(Depart).write;
 
     var alloc_b: [100]u8 = undefined; // Calculated
     var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
@@ -116,18 +112,18 @@ pub fn writeDepart(
 
     // TODO: write identifier
 
-    try rawWrite(msg, writer);
+    try write(msg, writer);
 }
 
 // Message
 
-pub const readMessage = WrapRead(Message);
+pub const readMessage = Wrap(Message).read;
 
 pub fn writeMessage(
     writer: *Writer,
     message: []const u8,
 ) !void {
-    const rawWrite = WrapWrite(Message);
+    const write = Wrap(Message).write;
 
     var alloc_b: [100]u8 = undefined; // Calculated
     var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
@@ -136,7 +132,7 @@ pub fn writeMessage(
 
     // TODO: write identifier
 
-    try rawWrite(msg, writer);
+    try write(msg, writer);
 }
 
 //
