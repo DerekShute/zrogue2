@@ -1,5 +1,6 @@
 //!
-//! Depart (either side) : player is leaving or is booted
+//! Message (from server)
+//!   For now, only boring game-action related
 //!
 //!   message : max 80 characters
 //!
@@ -31,7 +32,7 @@ pub fn copy(allocator: std.mem.Allocator, basis: Self) !*Self {
 
 pub fn init(allocator: std.mem.Allocator, message: []const u8) !*Self {
     if (message.len > max_message_len) {
-        @panic("Depart.init: message too long"); // Prevent this, please
+        @panic("Message.init: message too long"); // Prevent this, please
     }
     const s: *Self = try allocator.create(Self);
     errdefer allocator.destroy(s);
