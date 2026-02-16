@@ -6,9 +6,7 @@
 
 const std = @import("std");
 const msgpack = @import("msgpack");
-
-const Writer = std.io.Writer;
-const Reader = std.io.Reader;
+const utils = @import("utils.zig");
 
 const Self = @This();
 
@@ -29,6 +27,13 @@ name: []u8 = undefined,
 // Lifecycle
 //
 
+pub fn copy(allocator: std.mem.Allocator, basis: Self) !*Self {
+    const s: *Self = try allocator.create(Self);
+    errdefer allocator.destroy(s);
+    s.name = try allocator.dupe(u8, basis.name);
+    return s;
+}
+
 pub fn init(allocator: std.mem.Allocator, name: []const u8) !*Self {
     if (name.len > max_namelen) {
         @panic("EntryRequest.init: name too long"); // Prevent this, please
@@ -44,30 +49,21 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     allocator.destroy(self);
 }
 
+pub fn valid(self: *Self) bool {
+    if (self.name.len > max_namelen) { // Borderline but enforce
+        return false;
+    }
+    return true;
+}
+
 //
 // Methods
 //
 
-pub fn write(self: Self, writer: *Writer) !void {
-    var buffer: [100]u8 = undefined;
-    var bwriter = std.io.Writer.fixed(&buffer);
-    try msgpack.encode(self, &bwriter);
-    try writer.writeAll(bwriter.buffered());
-    try writer.flush();
-}
+pub const write = utils.genericWrite;
 
-pub fn read(reader: *Reader, allocator: std.mem.Allocator) !*Self {
-    // Uses a constrained allocator here to prevent malicious actors
-    var buffer: [150]u8 = undefined; // Calculated size
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-
-    const msg = try msgpack.decode(Self, fba.allocator(), reader);
-    // error.OutOfMemory -> name could be too long
-
-    if (msg.value.name.len > max_namelen) { // Borderline but enforce
-        return error.OutOfMemory;
-    }
-    return try init(allocator, msg.value.name);
+pub fn read(reader: *std.io.Reader, allocator: std.mem.Allocator) !*Self {
+    return utils.genericRead(Self, reader, allocator);
 }
 
 //

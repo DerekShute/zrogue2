@@ -25,12 +25,14 @@ const Reader = std.io.Reader;
 
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
+pub const Message = @import("protocol/Message.zig");
 
 //
 // Constants
 //
 
 pub const max_player_name_length = EntryRequest.max_name_len;
+pub const max_game_message_length = Message.max_message_len;
 
 //
 // Errors, to purify the raw error results
@@ -117,6 +119,26 @@ pub fn writeDepart(
     try rawWrite(msg, writer);
 }
 
+// Message
+
+pub const readMessage = WrapRead(Message);
+
+pub fn writeMessage(
+    writer: *Writer,
+    message: []const u8,
+) !void {
+    const rawWrite = WrapWrite(Message);
+
+    var alloc_b: [100]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    var msg = Message.init(fba.allocator(), message) catch unreachable;
+    defer msg.deinit(fba.allocator());
+
+    // TODO: write identifier
+
+    try rawWrite(msg, writer);
+}
+
 //
 // Unit Testing
 //
@@ -159,6 +181,7 @@ test "Entry sequence" {
 comptime {
     _ = @import("protocol/Depart.zig");
     _ = @import("protocol/EntryRequest.zig");
+    _ = @import("protocol/Message.zig");
 }
 
 // EOF
