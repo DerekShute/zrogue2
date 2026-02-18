@@ -5,74 +5,41 @@
 const std = @import("std");
 const server = @import("root.zig");
 
+const Allocator = std.mem.Allocator;
+const Reader = std.io.Reader;
+const Writer = std.io.Writer;
+
 const log = std.log.scoped(.server);
 const net = std.net;
 
+const PlayerConnection = @import("PlayerConnection.zig");
+
 //
-// Service routines
+// State machine
 //
-
-fn readEntry(
-    allocator: std.mem.Allocator,
-    reader: *std.io.Reader,
-    address: net.Address,
-) ?*server.EntryRequest {
-    // TODO: local routine to capture this
-    const req = server.readEntryRequest(allocator, reader) catch |err| {
-        switch (err) {
-            server.Error.ConnectionDropped => {
-                log.info("Unexpected disconnection from {f}", .{address});
-            },
-            server.Error.BadMessage => {
-                log.info("Invalid message from {f}, expecting EntryRequest", .{address});
-            },
-            else => {
-                log.info("Unexpected error {} from {f}", .{ err, address });
-            },
-        }
-        return null;
-    };
-
-    return req;
-}
-
-fn writeDepart(writer: *std.io.Writer, msg: []const u8) !void {
-    try server.writeDepart(writer, msg); // TODO catch
-}
-
-fn writeMessage(writer: *std.io.Writer, msg: []const u8) !void {
-    try server.writeMessage(writer, msg);
-}
 
 // TODO: accepts allocator for game creation etc
+
 fn handleClient(conn: *net.Server.Connection) void {
     var buffer: [1000]u8 = undefined; // TODO: or 1000 bytes from incoming
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    // TODO: arena allocator underneath this, and deinit() for safety?
-
     var rbuf: [1024]u8 = undefined; // TODO allocate
     var reader = conn.stream.reader(&rbuf);
     var writer = conn.stream.writer(&.{});
 
     log.info("[{f}] Accepted connection", .{conn.address});
 
-    // TODO: reads header that identifies type
-    // TODO: loop
-    if (readEntry(fba.allocator(), reader.interface(), conn.address)) |req| {
-        defer req.deinit(fba.allocator());
+    var pc = PlayerConnection{
+        .address = conn.address,
+        .reader = reader.interface(),
+        .writer = &writer.interface,
+    };
 
-        log.info("[{f} EntryRequest] player '{s}'", .{ conn.address, req.name });
-        writeMessage(&writer.interface, "Welcome to the Dungeon of Doom") catch |err| {
-            log.info("[{f} '{s}'] Message returned {}", .{ conn.address, req.name, err });
-            return;
-        };
-        writeDepart(&writer.interface, "you are done") catch |err| {
-            log.info("[{f} '{s}'] Depart returned {}", .{ conn.address, req.name, err });
-            return;
-        };
+    var cont: bool = true;
+    while (cont) {
+        // TODO: arena
+        var fba = std.heap.FixedBufferAllocator.init(&buffer);
+        cont = pc.readNextAndAct(fba.allocator());
     }
-
-    // TODO: next step
 
     log.info("[{f}] End session", .{conn.address});
 }
@@ -89,7 +56,7 @@ pub fn main() !void {
     });
     defer service.deinit();
 
-    log.info("Listening on {}", .{service.listen_address.getPort()});
+    log.info("[{}] Listening", .{service.listen_address.getPort()});
     while (true) {
         var connection = try service.accept();
         defer connection.stream.close();

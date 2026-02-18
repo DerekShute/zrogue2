@@ -23,6 +23,44 @@ const std = @import("std");
 const Writer = std.io.Writer;
 const Reader = std.io.Reader;
 
+//
+// Master enumeration for messages
+//
+
+pub const MessageType = enum(u16) { // List controlled by protocol version
+    depart,
+    entry_request,
+    message,
+
+    const Self = @This();
+
+    pub fn read(reader: *Reader) !Self {
+        var buffer: [2]u8 = undefined;
+
+        try reader.readSliceAll(&buffer);
+        const val = std.mem.readInt(u16, &buffer, .big);
+
+        if (val > @intFromEnum(Self.message)) {
+            return Error.BadMessage;
+        }
+        return @enumFromInt(val);
+    }
+
+    pub fn write(mt: Self, writer: *Writer) !void {
+        var buffer: [2]u8 = undefined;
+
+        // TODO Could panic on > message
+
+        std.mem.writeInt(u16, &buffer, @intFromEnum(mt), .big);
+        try writer.writeAll(buffer[0..]);
+        try writer.flush();
+    }
+};
+
+//
+// Message listing
+//
+
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
 pub const Message = @import("protocol/Message.zig");
@@ -41,6 +79,7 @@ pub const max_game_message_length = Message.max_message_len;
 pub const Error = error{
     BadMessage,
     ConnectionDropped,
+    ProtocolError,
     SendError,
     UnexpectedError,
 };
@@ -92,8 +131,7 @@ pub fn writeEntryRequest(
     const msg = EntryRequest.init(fba.allocator(), name) catch unreachable;
     defer msg.deinit(fba.allocator());
 
-    // TODO: write identifier
-
+    try MessageType.write(.entry_request, writer);
     try write(msg, writer);
 }
 
@@ -112,8 +150,7 @@ pub fn writeDepart(
     var msg = Depart.init(fba.allocator(), message) catch unreachable;
     defer msg.deinit(fba.allocator());
 
-    // TODO: write identifier
-
+    try MessageType.write(.depart, writer);
     try write(msg, writer);
 }
 
@@ -132,9 +169,20 @@ pub fn writeMessage(
     var msg = Message.init(fba.allocator(), message) catch unreachable;
     defer msg.deinit(fba.allocator());
 
-    // TODO: write identifier
-
+    try MessageType.write(.message, writer);
     try write(msg, writer);
+}
+
+//
+// Dispatch reader
+//
+
+pub fn readNext(reader: *Reader, allocator: std.mem.Allocator) !void {
+    _ = try switch (try MessageType.read(reader)) {
+        .depart => readDepart(allocator, reader),
+        .entry_request => readEntryRequest(allocator, reader),
+        .message => readMessage(allocator, reader),
+    };
 }
 
 //
@@ -151,6 +199,8 @@ test "Entry sequence" {
 
     var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
 
+    _ = try MessageType.read(&breader);
+
     const req = try readEntryRequest(std.testing.allocator, &breader);
     defer req.deinit(std.testing.allocator);
 
@@ -164,10 +214,45 @@ test "Entry sequence" {
 
     breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
 
+    _ = try MessageType.read(&breader);
+
     const depart = try readDepart(std.testing.allocator, &breader);
     defer depart.deinit(std.testing.allocator);
 
     try expect(std.mem.eql(u8, depart.message, "client is disconnecting"));
+}
+
+test "MessageType mappings" {
+    var buffer: [10]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+
+    var mt: MessageType = .message; // Last one by design
+
+    try mt.write(&bwriter);
+
+    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    try expect(mt == try MessageType.read(&breader));
+}
+
+test "MessageType bad mappings" {
+    var buf: [2]u8 = undefined;
+
+    std.mem.writeInt(u16, &buf, @intFromEnum(MessageType.message) + 1, .big);
+
+    var breader = std.io.Reader.fixed(buf[0..]);
+
+    try expectError(error.BadMessage, MessageType.read(&breader));
+}
+
+test "MessageType very bad mappings" {
+    var buf: [2]u8 = undefined;
+
+    std.mem.writeInt(u16, &buf, 0xFFFF, .big);
+
+    var breader = std.io.Reader.fixed(buf[0..]);
+
+    try expectError(error.BadMessage, MessageType.read(&breader));
 }
 
 // TODO: byzantine errors and state machine disorder
