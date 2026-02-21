@@ -53,6 +53,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    // TODO: server_mod.addImport("msgpack", msgpack.module("msgpack"));
+
     //
     // Rogue single-user CLI
     //
@@ -90,6 +92,18 @@ pub fn build(b: *std.Build) void {
 
     server_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
     b.installArtifact(server_exe);
+
+    const fuzz_client_exe = b.addExecutable(.{
+        .name = "fuzz",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("server/fuzz.zig"),
+            .target = target,
+            .optimize = test_optimize,
+        }),
+    });
+
+    fuzz_client_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
+    b.installArtifact(fuzz_client_exe);
 
     //
     // Client
