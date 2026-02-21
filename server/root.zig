@@ -104,8 +104,9 @@ fn Wrap(comptime T: type) type {
         }
 
         pub fn write(self: *T, writer: *Writer) !void {
+            // receiver disconnected -> WriteFailed
             self.write(writer) catch |err| switch (err) {
-                error.WriteFailed => return Error.SendError,
+                error.WriteFailed => return Error.ConnectionDropped,
                 else => return Error.UnexpectedError,
             };
         }

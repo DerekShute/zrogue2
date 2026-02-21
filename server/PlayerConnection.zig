@@ -29,9 +29,12 @@ fn writeDepart(self: *Self, msg: []const u8) !void {
 }
 
 fn writeMessage(self: *Self, msg: []const u8) !void {
-    server.writeMessage(self.writer, msg) catch |err| {
-        log.info("[{f}] Message returned {}", .{ self.address, err });
-        return error.UnexpectedError;
+    server.writeMessage(self.writer, msg) catch |err| switch (err) {
+        error.ConnectionDropped => return error.ConnectionDropped,
+        else => {
+            log.info("[{f}] Message returned {}", .{ self.address, err });
+            return error.UnexpectedError;
+        },
     };
 }
 
