@@ -51,13 +51,13 @@ fn reportError(self: *Self, err: server.Error) void {
     switch (err) {
         // TODO protocol/state error
         error.ConnectionDropped => {
-            log.info("[{f}] Unexpected disconnection", .{self.address});
+            log.info("[{f}] Unexpected disconnection", .{self});
         },
         error.BadMessage => {
-            log.info("[{f}] Invalid message", .{self.address});
+            log.info("[{f}] Invalid message", .{self});
         },
         else => {
-            log.info("[{f}] Unexpected error {}", .{ self.address, err });
+            log.info("[{f}] Unexpected error {}", .{ self, err });
         },
     }
 }
@@ -131,12 +131,18 @@ pub fn writeMessage(self: *Self, msg: []const u8) !void {
     server.writeMessage(self.writer, msg) catch |err| switch (err) {
         error.ConnectionDropped => return error.ConnectionDropped,
         else => {
-            log.info("[{f}] Message returned {}", .{ self.address, err });
+            log.info("[{f}] Message returned {}", .{ self, err });
             return error.UnexpectedError;
         },
     };
 }
 
-// TODO: pub fn format(self: Self, args: anytype) Writer.Error!void
+//
+// Formatter
+//
+
+pub fn format(self: Self, w: *Writer) Writer.Error!void {
+    return w.print("{f}", .{self.address}); // TODO player name
+}
 
 // EOF
