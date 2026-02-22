@@ -15,9 +15,54 @@ const net = std.net;
 const PlayerConnection = @import("PlayerConnection.zig");
 
 //
-// State machine
+// State machine callbacks
 //
 
+fn doDepart(pc: *PlayerConnection, ptr: *anyopaque) void {
+    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
+    log.info(
+        "[{f}] Disconnecting: message '{s}'",
+        .{ pc.address, msg.message },
+    );
+    pc.setState(.closing);
+}
+
+fn doEntryRequest(pc: *PlayerConnection, ptr: *anyopaque) void {
+    const msg: *server.EntryRequest = @ptrCast(@alignCast(ptr));
+    if (pc.getState() != .init) {
+        log.info(
+            "[{f}] EntryRequest in wrong state '{}'",
+            .{ pc.address, pc.getState() },
+        );
+        pc.setState(.closing);
+        return;
+    }
+
+    log.info("[{f}] Connected: player '{s}'", .{ pc.address, msg.name });
+    pc.setState(.connected);
+
+    pc.writeMessage("Welcome to the Dungeon of Doom!") catch {
+        log.info("[{f}] Send error, disconnecting", .{pc.address});
+        pc.setState(.closing);
+        return;
+    };
+}
+
+fn doMessage(pc: *PlayerConnection, ptr: *anyopaque) void {
+    _ = ptr; // Don't care, possibly pathological
+    log.info("[{f}] Unexpected message", .{pc.address});
+    pc.setState(.closing);
+}
+
+const rig = &[_]PlayerConnection.MsgAction{
+    .{ .cb = doDepart },
+    .{ .cb = doEntryRequest },
+    .{ .cb = doMessage },
+};
+
+//
+// Client connection
+//
 // TODO: accepts allocator for game creation etc
 
 fn handleClient(conn: *net.Server.Connection) void {
@@ -32,13 +77,13 @@ fn handleClient(conn: *net.Server.Connection) void {
         .address = conn.address,
         .reader = reader.interface(),
         .writer = &writer.interface,
+        .sm = rig,
     };
 
-    var cont: bool = true;
-    while (cont) {
+    while (pc.getState() != .closing) {
         // TODO: arena
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
-        cont = pc.readNextAndAct(fba.allocator());
+        pc.readNextAndAct(fba.allocator());
     }
 
     log.info("[{f}] End session", .{conn.address});

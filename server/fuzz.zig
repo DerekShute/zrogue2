@@ -29,7 +29,7 @@ const Connect = struct {
             log.info("Connect.init parseIp4: {}", .{err});
             @panic("Connect.init");
         };
-        log.info("Connecting to {f}\n", .{peer});
+        log.info("Connecting to {f}", .{peer});
 
         // TODO: ConnectionRefused
         self.stream = net.tcpConnectToAddress(peer) catch |err| {
@@ -69,6 +69,14 @@ const Connect = struct {
             @panic("writeDepart");
         };
     }
+
+    pub fn writeMessage(self: *Self, msg: []const u8) void {
+        var writer = self.stream.writer(&.{});
+        server.writeMessage(&writer.interface, msg) catch |err| {
+            log.info("writeDepart: {}", .{err});
+            @panic("writeDepart");
+        };
+    }
 };
 
 //
@@ -78,6 +86,14 @@ const Connect = struct {
 fn doNothing(connect: *Connect, name: []const u8) void {
     _ = connect;
     _ = name;
+}
+
+fn dualEntry(connect: *Connect, name: []const u8) void {
+    connect.writeEntryRequest(name);
+    connect.writeEntryRequest(name);
+    connect.writeEntryRequest(name);
+    connect.writeEntryRequest(name);
+    connect.writeEntryRequest(name);
 }
 
 fn entryExit(connect: *Connect, name: []const u8) void {
@@ -91,6 +107,10 @@ fn justDepart(connect: *Connect, name: []const u8) void {
 
 fn justEntry(connect: *Connect, name: []const u8) void {
     connect.writeEntryRequest(name);
+}
+
+fn useMessage(connect: *Connect, name: []const u8) void {
+    connect.writeMessage(name);
 }
 
 //
@@ -107,9 +127,11 @@ const TestRig = struct {
 // TODO: some clever comptime thing
 const rig = &[_]TestRig{
     .{ .name = "doNothing", .testfn = doNothing },
+    .{ .name = "dualEntry", .testfn = dualEntry },
     .{ .name = "justDepart", .testfn = justDepart },
     .{ .name = "justEntry", .testfn = justEntry },
     .{ .name = "entryExit", .testfn = entryExit },
+    .{ .name = "useMessage", .testfn = useMessage },
 };
 
 //

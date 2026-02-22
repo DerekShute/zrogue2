@@ -4,10 +4,32 @@ const server = @import("root.zig");
 const Allocator = std.mem.Allocator;
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
+const MessageType = server.MessageType;
 
 const log = std.log.scoped(.player);
 
 const Self = @This();
+
+//
+// Types
+//
+
+const CallbackFn = *const fn (conn: *Self, ctx: *anyopaque) void;
+
+pub const MsgAction = struct {
+    cb: CallbackFn,
+};
+
+// const rig = &[_]MsgAction{
+//    .{ .cb = doThing },
+//    ...,
+// };
+
+pub const State = enum {
+    init,
+    connected,
+    closing,
+};
 
 //
 // Members
@@ -17,26 +39,13 @@ const Self = @This();
 address: std.net.Address = undefined,
 reader: *Reader = undefined,
 writer: *Writer = undefined,
+sm: []const MsgAction = undefined,
+state: State = .init,
 // TODO: player name
-// TODO connection state
 
 //
 // Service
 //
-
-fn writeDepart(self: *Self, msg: []const u8) !void {
-    try server.writeDepart(self.writer, msg); // TODO catch
-}
-
-fn writeMessage(self: *Self, msg: []const u8) !void {
-    server.writeMessage(self.writer, msg) catch |err| switch (err) {
-        error.ConnectionDropped => return error.ConnectionDropped,
-        else => {
-            log.info("[{f}] Message returned {}", .{ self.address, err });
-            return error.UnexpectedError;
-        },
-    };
-}
 
 fn reportError(self: *Self, err: server.Error) void {
     switch (err) {
@@ -54,48 +63,77 @@ fn reportError(self: *Self, err: server.Error) void {
 }
 
 //
-// Callbacks
+// Callback hooks
 //
+// TODO: this is all boilerplate...how to consolidate?
 
-fn receiveDepart(self: *Self, allocator: Allocator) !bool {
-    _ = allocator;
-    log.info("[{f}] disconnecting", .{self.address});
-    return false;
+fn receiveDepart(self: *Self, allocator: Allocator) !void {
+    const msg = try server.readDepart(allocator, self.reader);
+    defer msg.deinit(allocator);
+
+    const act = self.sm[@intFromEnum(MessageType.depart)];
+    act.cb(self, msg);
 }
 
-fn recieveEntryRequest(self: *Self, allocator: Allocator) !bool {
-    const req = try server.readEntryRequest(allocator, self.reader);
-    defer req.deinit(allocator);
+fn receiveEntryRequest(self: *Self, allocator: Allocator) !void {
+    const msg = try server.readEntryRequest(allocator, self.reader);
+    defer msg.deinit(allocator);
 
-    log.info("[{f}] Connected - player '{s}'", .{ self.address, req.name });
+    const act = self.sm[@intFromEnum(MessageType.entry_request)];
+    act.cb(self, msg);
+}
 
-    try self.writeMessage("Welcome to the Dungeon of Doom");
+fn receiveMessage(self: *Self, allocator: Allocator) !void {
+    const msg = try server.readMessage(allocator, self.reader);
+    defer msg.deinit(allocator);
 
-    return true;
+    const act = self.sm[@intFromEnum(MessageType.message)];
+    act.cb(self, msg);
 }
 
 //
 // Interface
 //
 
-pub fn readNextAndAct(self: *Self, allocator: Allocator) bool {
+pub fn setState(self: *Self, state: State) void {
+    self.state = state;
+}
+
+pub fn getState(self: *Self) State {
+    return self.state;
+}
+
+pub fn readNextAndAct(self: *Self, allocator: Allocator) void {
     const mt = server.MessageType.read(self.reader) catch {
+        self.setState(.closing);
+        return;
         // self.reportError(err);
         // EndOfStream / ReadFailed
-        return false;
     };
-
-    // TODO: maps per state as provided
 
     const retval = switch (mt) {
         .depart => self.receiveDepart(allocator),
-        .entry_request => self.recieveEntryRequest(allocator),
-        .message => error.ProtocolError,
+        .entry_request => self.receiveEntryRequest(allocator),
+        .message => self.receiveMessage(allocator),
     };
 
     return retval catch |err| {
         self.reportError(err);
-        return false;
+        self.setState(.closing);
+    };
+}
+
+pub fn writeDepart(self: *Self, msg: []const u8) !void {
+    try server.writeDepart(self.writer, msg); // TODO catch
+}
+
+pub fn writeMessage(self: *Self, msg: []const u8) !void {
+    server.writeMessage(self.writer, msg) catch |err| switch (err) {
+        error.ConnectionDropped => return error.ConnectionDropped,
+        else => {
+            log.info("[{f}] Message returned {}", .{ self.address, err });
+            return error.UnexpectedError;
+        },
     };
 }
 
