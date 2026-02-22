@@ -20,10 +20,7 @@ const PlayerConnection = @import("PlayerConnection.zig");
 
 fn doDepart(pc: *PlayerConnection, ptr: *anyopaque) void {
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
-    log.info(
-        "[{f}] Disconnecting: message '{s}'",
-        .{ pc.address, msg.message },
-    );
+    log.info("[{f}] Disconnecting: message '{s}'", .{ pc, msg.message });
     pc.setState(.closing);
 }
 
@@ -32,13 +29,13 @@ fn doEntryRequest(pc: *PlayerConnection, ptr: *anyopaque) void {
     if (pc.getState() != .init) {
         log.info(
             "[{f}] EntryRequest in wrong state '{}'",
-            .{ pc.address, pc.getState() },
+            .{ pc, pc.getState() },
         );
         pc.setState(.closing);
         return;
     }
 
-    log.info("[{f}] Connected: player '{s}'", .{ pc.address, msg.name });
+    log.info("[{f}] Connected: player '{s}'", .{ pc, msg.name });
     pc.setState(.connected);
 
     pc.writeMessage("Welcome to the Dungeon of Doom!") catch {
@@ -50,7 +47,7 @@ fn doEntryRequest(pc: *PlayerConnection, ptr: *anyopaque) void {
 
 fn doMessage(pc: *PlayerConnection, ptr: *anyopaque) void {
     _ = ptr; // Don't care, possibly pathological
-    log.info("[{f}] Unexpected message", .{pc.address});
+    log.info("[{f}] Unexpected message", .{pc});
     pc.setState(.closing);
 }
 
