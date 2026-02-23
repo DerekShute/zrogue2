@@ -137,7 +137,7 @@ test "receive EntryRequest fails validation (name size)" {
     try bwriter.flush();
 
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.OutOfMemory, read(&breader, t_allocator));
+    try expectError(error.Invalid, read(&breader, t_allocator));
 }
 
 // EOF
