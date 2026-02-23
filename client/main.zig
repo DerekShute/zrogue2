@@ -7,6 +7,39 @@ const server = @import("server");
 const net = std.net;
 const print = std.debug.print; // TODO not this
 
+const Remote = server.Remote;
+
+//
+// State machine callbacks
+//
+
+fn doDepart(remote: *Remote, ptr: *anyopaque) void {
+    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
+    print("[{f}] Disconnecting: message '{s}'\n", .{ remote, msg.message });
+    remote.setState(.closing);
+}
+
+fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
+    _ = ptr;
+    print("[{f}] Unexpected message\n", .{remote});
+    remote.setState(.closing);
+}
+
+fn doMessage(remote: *Remote, ptr: *anyopaque) void {
+    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
+    print("[{f}] : '{s}'\n", .{ remote, msg.message });
+}
+
+const rig = &[_]Remote.Dispatch{
+    .{ .cb = doDepart },
+    .{ .cb = doEntryRequest },
+    .{ .cb = doMessage },
+};
+
+//
+// Main
+//
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -20,30 +53,38 @@ pub fn main() !void {
         print("expect port as command line argument\n", .{});
         return error.NoPort;
     };
-    // TODO: subroutine returns stream
+
     const port = try std.fmt.parseInt(u16, port_value, 10);
     const peer = try net.Address.parseIp4("127.0.0.1", port);
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
-    print("Connecting to {f}\n", .{peer});
 
-    var rbuf: [1024]u8 = undefined;
-    var reader = stream.reader(&rbuf);
+    const name = try std.fmt.allocPrint(allocator, "{f}", .{peer});
+    defer allocator.free(name);
+
+    print("Connecting to {s}\n", .{name});
+
+    const rbuf = allocator.alloc(u8, 1000) catch |err| {
+        print("alloc read buffer: {}", .{err});
+        return err;
+    };
+    errdefer allocator.free(rbuf);
+
+    var reader = stream.reader(rbuf);
     var writer = stream.writer(&.{});
+
+    var remote = Remote{
+        .name = name,
+        .reader = reader.interface(),
+        .writer = &writer.interface,
+        .sm = rig,
+    };
 
     // TODO handle errors
     // TODO player name
-    try server.writeEntryRequest(&writer.interface, "anonymous");
+    try remote.writeEntryRequest("anonymous");
+    remote.run(allocator);
+    try remote.writeDepart("ending");
 
-    // TODO: next step
-    var msg = try server.readMessage(allocator, reader.interface());
-    defer msg.deinit(allocator);
-
-    print("Server reports '{s}'\n", .{msg.message});
-
-    // TODO handle errors
-    var depart = try server.readDepart(allocator, reader.interface());
-    defer depart.deinit(allocator);
-
-    print("Disconnected from {f}, message '{s}'\n", .{ peer, depart.message });
+    print("Disconnected from {s}\n", .{name});
 }

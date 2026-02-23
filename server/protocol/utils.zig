@@ -33,7 +33,7 @@ pub fn genericRead(T: type, reader: *Reader, allocator: Allocator) !*T {
     errdefer msg.deinit();
 
     if (!msg.value.valid()) { // Borderline but enforce
-        return error.OutOfMemory;
+        return error.Invalid;
     }
     return try T.copy(allocator, msg.value);
 }
@@ -147,7 +147,7 @@ test "received message fails validation" {
 
     try send.write(&bwriter);
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
-    try expectError(error.OutOfMemory, TestStruct.read(&breader, t_allocator));
+    try expectError(error.Invalid, TestStruct.read(&breader, t_allocator));
 }
 
 test "receive message too large" {

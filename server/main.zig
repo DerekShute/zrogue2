@@ -12,46 +12,49 @@ const Writer = std.io.Writer;
 const log = std.log.scoped(.server);
 const net = std.net;
 
-const PlayerConnection = @import("PlayerConnection.zig");
+const Remote = @import("Remote.zig");
 
 //
 // State machine callbacks
 //
 
-fn doDepart(pc: *PlayerConnection, ptr: *anyopaque) void {
+fn doDepart(remote: *Remote, ptr: *anyopaque) void {
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
-    log.info("[{f}] Disconnecting: message '{s}'", .{ pc, msg.message });
-    pc.setState(.closing);
+
+    log.info("[{f}] Disconnecting: message '{s}'", .{ remote, msg.message });
+    remote.setState(.closing);
 }
 
-fn doEntryRequest(pc: *PlayerConnection, ptr: *anyopaque) void {
+fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
     const msg: *server.EntryRequest = @ptrCast(@alignCast(ptr));
-    if (pc.getState() != .init) {
+
+    if (remote.getState() != .init) {
         log.info(
             "[{f}] EntryRequest in wrong state '{}'",
-            .{ pc, pc.getState() },
+            .{ remote, remote.getState() },
         );
-        pc.setState(.closing);
+        remote.setState(.closing);
         return;
     }
 
-    log.info("[{f}] Connected: player '{s}'", .{ pc, msg.name });
-    pc.setState(.connected);
+    log.info("[{f}] Connected: player '{s}'", .{ remote, msg.name });
+    remote.setState(.connected);
 
-    pc.writeMessage("Welcome to the Dungeon of Doom!") catch {
-        log.info("[{f}] Send error, disconnecting", .{pc.address});
-        pc.setState(.closing);
+    remote.writeMessage("Welcome to the Dungeon of Doom!") catch {
+        log.info("[{f}] Send error, disconnecting", .{remote});
+        remote.setState(.closing);
         return;
     };
 }
 
-fn doMessage(pc: *PlayerConnection, ptr: *anyopaque) void {
+fn doMessage(remote: *Remote, ptr: *anyopaque) void {
     _ = ptr; // Don't care, possibly pathological
-    log.info("[{f}] Unexpected message", .{pc});
-    pc.setState(.closing);
+
+    log.info("[{f}] Unexpected message", .{remote});
+    remote.setState(.closing);
 }
 
-const rig = &[_]PlayerConnection.MsgAction{
+const rig = &[_]Remote.Dispatch{
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
     .{ .cb = doMessage },
@@ -60,30 +63,39 @@ const rig = &[_]PlayerConnection.MsgAction{
 //
 // Client connection
 //
-// TODO: accepts allocator for game creation etc
 
-fn handleClient(conn: *net.Server.Connection) void {
-    var buffer: [1000]u8 = undefined; // TODO: or 1000 bytes from incoming
-    var rbuf: [1024]u8 = undefined; // TODO allocate
-    var reader = conn.stream.reader(&rbuf);
+fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
+    const name = try std.fmt.allocPrint(allocator, "{f}", .{conn.address});
+    defer allocator.free(name);
+
+    log.info("[{s}] Accepted connection", .{name});
+
+    const rbuf = try allocator.alloc(u8, 1024);
+    defer allocator.free(rbuf);
+    var reader = conn.stream.reader(rbuf);
     var writer = conn.stream.writer(&.{});
 
-    log.info("[{f}] Accepted connection", .{conn.address});
-
-    var pc = PlayerConnection{
-        .address = conn.address,
+    var remote = Remote{
+        .name = name,
         .reader = reader.interface(),
         .writer = &writer.interface,
         .sm = rig,
     };
 
-    while (pc.getState() != .closing) {
-        // TODO: arena
-        var fba = std.heap.FixedBufferAllocator.init(&buffer);
-        pc.readNextAndAct(fba.allocator());
+    //
+    // Create a limited allocator here for catching incoming messages
+    //
+    const buffer = try allocator.alloc(u8, 1000);
+    defer allocator.free(buffer);
+    var fb = std.heap.FixedBufferAllocator.init(buffer);
+
+    while (remote.getState() != .closing) {
+        var arena = std.heap.ArenaAllocator.init(fb.allocator());
+        defer arena.deinit();
+        remote.run(arena.allocator());
     }
 
-    log.info("[{f}] End session", .{conn.address});
+    log.info("[{s}] End session", .{name});
 }
 
 //
@@ -91,6 +103,8 @@ fn handleClient(conn: *net.Server.Connection) void {
 //
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+
     const loopback = try net.Ip4Address.parse("127.0.0.1", 0);
     const localhost = net.Address{ .in = loopback };
     var service = try localhost.listen(.{
@@ -103,7 +117,7 @@ pub fn main() !void {
         var connection = try service.accept();
         defer connection.stream.close();
 
-        handleClient(&connection);
+        try handleClient(&connection, gpa.allocator());
     }
 }
 
