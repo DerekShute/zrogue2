@@ -242,4 +242,12 @@ pub fn setStatInt(self: *Self, name: []const u8, value: i32) void {
 
 // See testing/MockProvider.zig
 
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+pub var log_fields = genFields(MessageLog);
+
 // EOF

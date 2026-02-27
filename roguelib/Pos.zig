@@ -164,4 +164,11 @@ test "try out Range" {
     try expect(hitlowx and hitlowy and hithighx and hithighy);
 }
 
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+
 // EOF

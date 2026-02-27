@@ -180,6 +180,30 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_testing_exe.step);
     test_step.dependOn(&run_roguelib_tests.step);
     test_step.dependOn(&run_server_tests.step);
+
+    //
+    // Visualization
+    //
+
+    const viz = b.addExecutable(.{
+        .name = "visualization",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("roguelib/vis_main.zig"),
+            .target = target,
+            .optimize = test_optimize,
+            .imports = &.{
+                .{ .name = "roguelib", .module = roguelib_mod },
+            },
+        }),
+    });
+
+    b.installArtifact(viz);
+
+    const viz_cmd = b.addRunArtifact(viz);
+    viz_cmd.step.dependOn(b.getInstallStep());
+
+    const viz_step = b.step("visual", "Create Visualization");
+    viz_step.dependOn(&viz_cmd.step);
 }
 
 // EOF
