@@ -407,4 +407,13 @@ test "map multiple rooms" {
     map.addRoom(r2);
 }
 
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+pub var place_fields = genFields(Place);
+pub var room_fields = genFields(Room);
+
 // EOF

@@ -84,4 +84,11 @@ test "entity action" {
     try expect(action.getType() == .move);
 }
 
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+
 // EOF

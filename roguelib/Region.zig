@@ -165,4 +165,11 @@ test "Region radius constructor" {
     try expect(r.getMax().getY() == 17);
 }
 
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+
 // EOF

@@ -83,4 +83,9 @@ Clearly a work in progress for Zig 0.14.  I will try for due diligence.
 
 ## Visualization
 
-Worked in the previous repository but not here.
+Generates zig-out/visual.svg, which is a directed graph showing relationships
+between structures in the roguelib subdir.  This is done by amazing comptime
+magic threaded through some gross Python logic to hammer it into something
+vaguely YAML-shaped.
+
+Invoked by the Makefile, the visual target.

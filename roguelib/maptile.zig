@@ -74,3 +74,12 @@ test "lock MapTile behavior" {
         try expect(tile.isPassable() == passable);
     }
 }
+
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Tileset);
+
+// EOF

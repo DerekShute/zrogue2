@@ -125,4 +125,11 @@ test "entity queue" {
     try expect(eq.next() == &e);
 }
 
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+
 // EOF

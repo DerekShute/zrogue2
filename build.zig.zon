@@ -15,10 +15,12 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "client",
         "doc",
         "game",
         "roguelib",
         "linux-cli",
+        "server",
         "testing",
         "LICENSE",
     },

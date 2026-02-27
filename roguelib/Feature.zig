@@ -54,4 +54,15 @@ pub fn enter(self: Self, entity: *Entity, map: *Map, pos: Pos) bool {
     return false;
 }
 
+//
+// TODO: unit test
+//
+
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
+
 // EOF
