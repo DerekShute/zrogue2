@@ -26,14 +26,20 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
 }
 
 fn doMessage(remote: *Remote, ptr: *anyopaque) void {
-    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
+    const msg: *server.Message = @ptrCast(@alignCast(ptr));
     print("[{f}] : '{s}'\n", .{ remote, msg.message });
 }
 
-const rig = &[_]Remote.Dispatch{
+fn doTableUpdate(remote: *Remote, ptr: *anyopaque) void {
+    const msg: *server.TableUpdate = @ptrCast(@alignCast(ptr));
+    print("[{f}] : update {s}/{s} : {s}\n", .{ remote, msg.table, msg.entry, msg.value });
+}
+
+const rig = [_]Remote.Dispatch{
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
     .{ .cb = doMessage },
+    .{ .cb = doTableUpdate },
 };
 
 //
@@ -83,6 +89,9 @@ pub fn main() !void {
     // TODO handle errors
     // TODO player name
     try remote.writeEntryRequest("anonymous");
+
+    // TODO: need to absorb messages, reply, etc
+    remote.run(allocator);
     remote.run(allocator);
     try remote.writeDepart("ending");
 
