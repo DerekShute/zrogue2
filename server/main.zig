@@ -18,6 +18,20 @@ const Remote = @import("Remote.zig");
 // State machine callbacks
 //
 
+fn doAction(remote: *Remote, ptr: *anyopaque) void {
+    const msg: *server.Action = @ptrCast(@alignCast(ptr));
+
+    if (remote.getState() != .connected) {
+        log.info(
+            "[{f}] Action in wrong state '{}'",
+            .{ remote, remote.getState() },
+        );
+        remote.setState(.closing);
+        return;
+    }
+    log.info("[{f}] Action: {} {},{}", .{ remote, msg.kind, msg.x, msg.y });
+}
+
 fn doDepart(remote: *Remote, ptr: *anyopaque) void {
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
 
@@ -67,6 +81,7 @@ fn doTableUpdate(remote: *Remote, ptr: *anyopaque) void {
 }
 
 const rig = [_]Remote.Dispatch{
+    .{ .cb = doAction },
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
     .{ .cb = doMessage },
