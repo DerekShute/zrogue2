@@ -17,6 +17,10 @@ const Error = error{
     AnyError,
 };
 
+fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) Error!void {
+    remote.writeAction(kind, pos) catch return error.AnyError;
+}
+
 fn writeDepart(remote: *Remote, name: []const u8) Error!void {
     remote.writeDepart(name) catch return error.AnyError;
 }
@@ -52,6 +56,7 @@ fn dualEntry(remote: *Remote, name: []const u8) Error!void {
 
 fn entryExit(remote: *Remote, name: []const u8) Error!void {
     try writeEntryRequest(remote, name);
+    try writeAction(remote, .none, &.{ 0, 0 });
     try writeDepart(remote, name);
 }
 
@@ -73,6 +78,11 @@ fn useTableUpdate(remote: *Remote, name: []const u8) Error!void {
     try writeTableUpdate(remote, "does", "not", "matter");
 }
 
+fn justAction(remote: *Remote, name: []const u8) Error!void {
+    _ = name;
+    try writeAction(remote, .none, &.{ 0, 0 });
+}
+
 //
 // Test rig
 //
@@ -91,6 +101,7 @@ const rig = &[_]TestRig{
     .{ .name = "entryExit", .testfn = entryExit },
     .{ .name = "useMessage", .testfn = useMessage },
     .{ .name = "useTableUpdate", .testfn = useTableUpdate },
+    .{ .name = "justAction", .testfn = justAction },
 };
 
 //

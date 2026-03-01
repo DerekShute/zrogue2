@@ -29,6 +29,7 @@ pub const Remote = @import("Remote.zig");
 //
 
 pub const MessageType = enum(u16) { // List controlled by protocol version
+    action,
     depart,
     entry_request,
     message,
@@ -44,7 +45,7 @@ pub const MessageType = enum(u16) { // List controlled by protocol version
         try reader.readSliceAll(&buffer);
         const val = std.mem.readInt(u16, &buffer, .big);
 
-        if (val > @intFromEnum(Self.table_update)) {
+        if (val > Self.count) {
             return error.BadMessage;
         }
         return @enumFromInt(val);
@@ -65,6 +66,7 @@ pub const MessageType = enum(u16) { // List controlled by protocol version
 // Message listing
 //
 
+pub const Action = @import("protocol/Action.zig");
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
 pub const Message = @import("protocol/Message.zig");
@@ -77,12 +79,14 @@ pub const TableUpdate = @import("protocol/TableUpdate.zig");
 pub const max_player_name_length = EntryRequest.max_name_len;
 pub const max_game_message_length = Message.max_message_len;
 pub const max_table_length = TableUpdate.max_len;
+
 //
 // Imports
 //
 
 comptime {
     _ = @import("Remote.zig");
+    _ = @import("protocol/Action.zig");
     _ = @import("protocol/Depart.zig");
     _ = @import("protocol/EntryRequest.zig");
     _ = @import("protocol/Message.zig");

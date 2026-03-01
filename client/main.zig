@@ -13,6 +13,12 @@ const Remote = server.Remote;
 // State machine callbacks
 //
 
+fn doAction(remote: *Remote, ptr: *anyopaque) void {
+    _ = ptr;
+    print("[{f}] Unexpected Action\n", .{remote});
+    remote.setState(.closing);
+}
+
 fn doDepart(remote: *Remote, ptr: *anyopaque) void {
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
     print("[{f}] Disconnecting: message '{s}'\n", .{ remote, msg.message });
@@ -36,6 +42,7 @@ fn doTableUpdate(remote: *Remote, ptr: *anyopaque) void {
 }
 
 const rig = [_]Remote.Dispatch{
+    .{ .cb = doAction },
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
     .{ .cb = doMessage },
@@ -92,6 +99,8 @@ pub fn main() !void {
 
     // TODO: need to absorb messages, reply, etc
     remote.run(allocator);
+
+    try remote.writeAction(.none, &.{ 0, 0 });
     remote.run(allocator);
     try remote.writeDepart("ending");
 

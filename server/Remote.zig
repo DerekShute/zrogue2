@@ -10,6 +10,7 @@ const Reader = std.io.Reader;
 const Writer = std.io.Writer;
 const MessageType = server.MessageType;
 
+pub const Action = @import("protocol/Action.zig");
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
 pub const Message = @import("protocol/Message.zig");
@@ -80,6 +81,7 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
     };
 }
 
+const receiveAction = Wrap(Action, .action).receive;
 const receiveDepart = Wrap(Depart, .depart).receive;
 const receiveEntryRequest = Wrap(EntryRequest, .entry_request).receive;
 const receiveMessage = Wrap(Message, .message).receive;
@@ -92,6 +94,7 @@ fn dispatch(self: *Self, allocator: Allocator) !void {
 
     const mt = try server.MessageType.read(self.reader);
     try switch (mt) {
+        .action => self.receiveAction(allocator),
         .depart => self.receiveDepart(allocator),
         .entry_request => self.receiveEntryRequest(allocator),
         .message => self.receiveMessage(allocator),
@@ -120,6 +123,16 @@ pub fn run(self: *Self, allocator: Allocator) void {
 //
 // TODO: comptime / duck-typing trick?
 //
+
+pub fn writeAction(self: *Self, kind: Action.Kind, pos: []const i16) !void {
+    var alloc_b: [100]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    var msg = Action.init(fba.allocator(), kind, pos) catch unreachable;
+    defer msg.deinit(fba.allocator());
+    try MessageType.write(.action, self.writer);
+    try msg.write(self.writer);
+}
+
 pub const writeDepart = Wrap(Depart, .depart).write;
 pub const writeMessage = Wrap(Message, .message).write;
 pub const writeEntryRequest = Wrap(EntryRequest, .entry_request).write;
@@ -165,6 +178,7 @@ fn testNoHit(remote: *Self, ptr: *anyopaque) void {
 }
 
 const test_rig = [_]Dispatch{
+    .{ .cb = testNoHit },
     .{ .cb = testNoHit },
     .{ .cb = testEntry },
     .{ .cb = testNoHit },
