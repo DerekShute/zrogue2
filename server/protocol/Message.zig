@@ -6,7 +6,6 @@
 //!
 
 const std = @import("std");
-const msgpack = @import("msgpack");
 const utils = @import("utils.zig");
 
 const Reader = std.io.Reader;
@@ -77,7 +76,11 @@ const FailingAllocator = std.testing.FailingAllocator;
 
 const test_msg: *const [max_message_len:0]u8 = "*" ** max_message_len;
 
+const msgpack = @import("msgpack");
+
 // boring use case
+
+// NOCOMMIT: not using the f.allocator()
 
 test "write and read" {
     // Beyond the allocation scheme: if this fails, testing must be reworked
@@ -98,12 +101,12 @@ test "write and read" {
 
 // write
 
-test "write, memory failure 1" {
+test "memory failure 1" {
     var f = FailingAllocator.init(t_allocator, .{ .fail_index = 0 });
     try expectError(error.OutOfMemory, init(f.allocator(), "doesnotmatter"));
 }
 
-test "write, memory failure 2" {
+test "memory failure 2" {
     var f = FailingAllocator.init(t_allocator, .{ .fail_index = 1 });
     try expectError(error.OutOfMemory, init(f.allocator(), "doesnotmatter"));
 }

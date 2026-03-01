@@ -45,6 +45,12 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
         remote.setState(.closing);
         return;
     };
+
+    remote.writeTableUpdate("stats", "purse", "0") catch {
+        log.info("[{f}] Send error table-update, disconnecting", .{remote});
+        remote.setState(.closing);
+        return;
+    };
 }
 
 fn doMessage(remote: *Remote, ptr: *anyopaque) void {
@@ -54,10 +60,17 @@ fn doMessage(remote: *Remote, ptr: *anyopaque) void {
     remote.setState(.closing);
 }
 
-const rig = &[_]Remote.Dispatch{
+fn doTableUpdate(remote: *Remote, ptr: *anyopaque) void {
+    _ = ptr;
+    log.info("[{f}] Unexpected table update", .{remote});
+    remote.setState(.closing);
+}
+
+const rig = [_]Remote.Dispatch{
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
     .{ .cb = doMessage },
+    .{ .cb = doTableUpdate },
 };
 
 //
@@ -85,7 +98,7 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
     //
     // Create a limited allocator here for catching incoming messages
     //
-    const buffer = try allocator.alloc(u8, 1000);
+    const buffer = try allocator.alloc(u8, 2000);
     defer allocator.free(buffer);
     var fb = std.heap.FixedBufferAllocator.init(buffer);
 

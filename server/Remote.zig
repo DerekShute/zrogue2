@@ -13,6 +13,7 @@ const MessageType = server.MessageType;
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
 pub const Message = @import("protocol/Message.zig");
+pub const TableUpdate = @import("protocol/TableUpdate.zig");
 
 const Self = @This();
 
@@ -24,8 +25,11 @@ pub const Dispatch = struct {
     cb: *const fn (conn: *Self, ctx: *anyopaque) void,
 };
 
-// const rig = &[_]MsgAction{
+// const rig = [_]Dispatch{
 //    .{ .cb = doThing },
+//
+//    required size via MessageType.count
+//
 //    ...,
 // };
 
@@ -41,7 +45,7 @@ pub const State = enum {
 
 reader: *Reader = undefined,
 writer: *Writer = undefined,
-sm: ?[]const Dispatch = null,
+sm: ?[MessageType.count]Dispatch = null,
 state: State = .init,
 name: []const u8 = undefined,
 
@@ -54,6 +58,7 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
         //
         //
         pub fn receive(self: *Self, allocator: Allocator) !void {
+            // TODO: A bad value here generates no message
             const msg = try T.read(self.reader, allocator);
             defer msg.deinit(allocator);
 
@@ -78,15 +83,19 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
 const receiveDepart = Wrap(Depart, .depart).receive;
 const receiveEntryRequest = Wrap(EntryRequest, .entry_request).receive;
 const receiveMessage = Wrap(Message, .message).receive;
+const receiveTableUpdate = Wrap(TableUpdate, .table_update).receive;
 
 // Dispatch
 
 fn dispatch(self: *Self, allocator: Allocator) !void {
+    // TODO: test for length of sm array?
+
     const mt = try server.MessageType.read(self.reader);
     try switch (mt) {
         .depart => self.receiveDepart(allocator),
         .entry_request => self.receiveEntryRequest(allocator),
         .message => self.receiveMessage(allocator),
+        .table_update => self.receiveTableUpdate(allocator),
     };
 }
 
@@ -108,9 +117,21 @@ pub fn run(self: *Self, allocator: Allocator) void {
     };
 }
 
+//
+// TODO: comptime / duck-typing trick?
+//
 pub const writeDepart = Wrap(Depart, .depart).write;
 pub const writeMessage = Wrap(Message, .message).write;
 pub const writeEntryRequest = Wrap(EntryRequest, .entry_request).write;
+
+pub fn writeTableUpdate(self: *Self, table: []const u8, entry: []const u8, value: []const u8) !void {
+    var alloc_b: [200]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    var msg = TableUpdate.init(fba.allocator(), table, entry, value) catch unreachable;
+    defer msg.deinit(fba.allocator());
+    try MessageType.write(.table_update, self.writer);
+    try msg.write(self.writer);
+}
 
 //
 // Formatter
@@ -143,9 +164,10 @@ fn testNoHit(remote: *Self, ptr: *anyopaque) void {
     @panic("test failure"); // No error return possible
 }
 
-const test_rig = &[_]Dispatch{
+const test_rig = [_]Dispatch{
     .{ .cb = testNoHit },
     .{ .cb = testEntry },
+    .{ .cb = testNoHit },
     .{ .cb = testNoHit },
 };
 

@@ -29,6 +29,10 @@ fn writeMessage(remote: *Remote, name: []const u8) Error!void {
     remote.writeMessage(name) catch return error.AnyError;
 }
 
+fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) Error!void {
+    remote.writeTableUpdate(table, entry, value) catch return error.AnyError;
+}
+
 //
 // Test series
 //
@@ -63,6 +67,12 @@ fn useMessage(remote: *Remote, name: []const u8) Error!void {
     try writeMessage(remote, name);
 }
 
+fn useTableUpdate(remote: *Remote, name: []const u8) Error!void {
+    _ = name;
+    try writeTableUpdate(remote, "does", "not", "matter");
+    try writeTableUpdate(remote, "does", "not", "matter");
+}
+
 //
 // Test rig
 //
@@ -80,6 +90,7 @@ const rig = &[_]TestRig{
     .{ .name = "justEntry", .testfn = justEntry },
     .{ .name = "entryExit", .testfn = entryExit },
     .{ .name = "useMessage", .testfn = useMessage },
+    .{ .name = "useTableUpdate", .testfn = useTableUpdate },
 };
 
 //
