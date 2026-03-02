@@ -60,11 +60,31 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
         return;
     };
 
+    const tile = server.MapUpdate.DisplayTile{
+        .entity = .unknown,
+        .item = .gold,
+        .floor = .wall,
+        .visible = true,
+    };
+
+    remote.writeMapUpdate(&.{ 0, 1 }, tile) catch {
+        log.info("[{f}] Send error map-update, disconnecting", .{remote});
+        remote.setState(.closing);
+        return;
+    };
+
     remote.writeTableUpdate("stats", "purse", "0") catch {
         log.info("[{f}] Send error table-update, disconnecting", .{remote});
         remote.setState(.closing);
         return;
     };
+}
+
+fn doMapUpdate(remote: *Remote, ptr: *anyopaque) void {
+    _ = ptr; // Don't care, possibly pathological
+
+    log.info("[{f}] Unexpected map update", .{remote});
+    remote.setState(.closing);
 }
 
 fn doMessage(remote: *Remote, ptr: *anyopaque) void {
@@ -84,6 +104,7 @@ const rig = [_]Remote.Dispatch{
     .{ .cb = doAction },
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
+    .{ .cb = doMapUpdate },
     .{ .cb = doMessage },
     .{ .cb = doTableUpdate },
 };

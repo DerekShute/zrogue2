@@ -32,9 +32,9 @@ pub const MessageType = enum(u16) { // List controlled by protocol version
     action,
     depart,
     entry_request,
+    map_update,
     message,
     table_update,
-    // add here? fix read validation
 
     const Self = @This();
     pub const count = @typeInfo(Self).@"enum".fields.len;
@@ -69,6 +69,7 @@ pub const MessageType = enum(u16) { // List controlled by protocol version
 pub const Action = @import("protocol/Action.zig");
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
+pub const MapUpdate = @import("protocol/MapUpdate.zig");
 pub const Message = @import("protocol/Message.zig");
 pub const TableUpdate = @import("protocol/TableUpdate.zig");
 
@@ -89,6 +90,7 @@ comptime {
     _ = @import("protocol/Action.zig");
     _ = @import("protocol/Depart.zig");
     _ = @import("protocol/EntryRequest.zig");
+    _ = @import("protocol/MapUpdate.zig");
     _ = @import("protocol/Message.zig");
     _ = @import("protocol/TableUpdate.zig");
 }
