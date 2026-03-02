@@ -31,6 +31,16 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
     remote.setState(.closing);
 }
 
+fn doMapUpdate(remote: *Remote, ptr: *anyopaque) void {
+    const msg: *server.MapUpdate = @ptrCast(@alignCast(ptr));
+    print(
+        "[{f}] : map ({},{}) : {} {} {} {}\n",
+        .{
+            remote, msg.x, msg.y, msg.tile.entity, msg.tile.item, msg.tile.floor, msg.tile.visible,
+        },
+    );
+}
+
 fn doMessage(remote: *Remote, ptr: *anyopaque) void {
     const msg: *server.Message = @ptrCast(@alignCast(ptr));
     print("[{f}] : '{s}'\n", .{ remote, msg.message });
@@ -45,6 +55,7 @@ const rig = [_]Remote.Dispatch{
     .{ .cb = doAction },
     .{ .cb = doDepart },
     .{ .cb = doEntryRequest },
+    .{ .cb = doMapUpdate },
     .{ .cb = doMessage },
     .{ .cb = doTableUpdate },
 };

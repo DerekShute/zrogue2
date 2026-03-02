@@ -13,6 +13,7 @@ const MessageType = server.MessageType;
 pub const Action = @import("protocol/Action.zig");
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
+pub const MapUpdate = @import("protocol/MapUpdate.zig");
 pub const Message = @import("protocol/Message.zig");
 pub const TableUpdate = @import("protocol/TableUpdate.zig");
 
@@ -84,6 +85,7 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
 const receiveAction = Wrap(Action, .action).receive;
 const receiveDepart = Wrap(Depart, .depart).receive;
 const receiveEntryRequest = Wrap(EntryRequest, .entry_request).receive;
+const receiveMapUpdate = Wrap(MapUpdate, .map_update).receive;
 const receiveMessage = Wrap(Message, .message).receive;
 const receiveTableUpdate = Wrap(TableUpdate, .table_update).receive;
 
@@ -97,6 +99,7 @@ fn dispatch(self: *Self, allocator: Allocator) !void {
         .action => self.receiveAction(allocator),
         .depart => self.receiveDepart(allocator),
         .entry_request => self.receiveEntryRequest(allocator),
+        .map_update => self.receiveMapUpdate(allocator),
         .message => self.receiveMessage(allocator),
         .table_update => self.receiveTableUpdate(allocator),
     };
@@ -134,6 +137,16 @@ pub fn writeAction(self: *Self, kind: Action.Kind, pos: []const i16) !void {
 }
 
 pub const writeDepart = Wrap(Depart, .depart).write;
+
+pub fn writeMapUpdate(self: *Self, pos: []const i16, tile: MapUpdate.DisplayTile) !void {
+    var alloc_b: [100]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    var msg = MapUpdate.init(fba.allocator(), pos, tile) catch unreachable;
+    defer msg.deinit(fba.allocator());
+    try MessageType.write(.map_update, self.writer);
+    try msg.write(self.writer);
+}
+
 pub const writeMessage = Wrap(Message, .message).write;
 pub const writeEntryRequest = Wrap(EntryRequest, .entry_request).write;
 
@@ -178,11 +191,12 @@ fn testNoHit(remote: *Self, ptr: *anyopaque) void {
 }
 
 const test_rig = [_]Dispatch{
-    .{ .cb = testNoHit },
-    .{ .cb = testNoHit },
-    .{ .cb = testEntry },
-    .{ .cb = testNoHit },
-    .{ .cb = testNoHit },
+    .{ .cb = testNoHit }, // action
+    .{ .cb = testNoHit }, // depart
+    .{ .cb = testEntry }, // entry_request
+    .{ .cb = testNoHit }, // map_update
+    .{ .cb = testNoHit }, // message
+    .{ .cb = testNoHit }, // table_update
 };
 
 test "basic usage" {

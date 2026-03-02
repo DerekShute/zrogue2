@@ -29,6 +29,17 @@ fn writeEntryRequest(remote: *Remote, name: []const u8) Error!void {
     remote.writeEntryRequest(name) catch return error.AnyError;
 }
 
+fn writeMapUpdate(remote: *Remote) Error!void {
+    const tile = server.MapUpdate.DisplayTile{ // TODO: phooey
+        .entity = .unknown,
+        .item = .gold,
+        .floor = .wall,
+        .visible = true,
+    };
+
+    remote.writeMapUpdate(&.{ 0, 1 }, tile) catch return error.AnyError;
+}
+
 fn writeMessage(remote: *Remote, name: []const u8) Error!void {
     remote.writeMessage(name) catch return error.AnyError;
 }
@@ -83,6 +94,12 @@ fn justAction(remote: *Remote, name: []const u8) Error!void {
     try writeAction(remote, .none, &.{ 0, 0 });
 }
 
+fn useMapUpdate(remote: *Remote, name: []const u8) Error!void {
+    _ = name;
+    try writeMapUpdate(remote);
+    try writeMapUpdate(remote);
+}
+
 //
 // Test rig
 //
@@ -102,6 +119,7 @@ const rig = &[_]TestRig{
     .{ .name = "useMessage", .testfn = useMessage },
     .{ .name = "useTableUpdate", .testfn = useTableUpdate },
     .{ .name = "justAction", .testfn = justAction },
+    .{ .name = "useMapUpdate", .testfn = useMapUpdate },
 };
 
 //
