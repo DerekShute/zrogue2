@@ -5,11 +5,6 @@
 //!
 
 const std = @import("std");
-const utils = @import("utils.zig");
-
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
-const Allocator = std.mem.Allocator;
 
 const Self = @This();
 
@@ -23,11 +18,7 @@ table: []u8,
 entry: []u8,
 value: []u8,
 
-pub fn copy(allocator: Allocator, basis: Self) !*Self {
-    return init(allocator, basis.table, basis.entry, basis.value);
-}
-
-pub fn init(allocator: Allocator, table: []const u8, entry: []const u8, value: []const u8) !*Self {
+pub fn init(allocator: std.mem.Allocator, table: []const u8, entry: []const u8, value: []const u8) !*Self {
     if ((table.len > max_len) or (entry.len > max_len) or (value.len > max_len)) {
         @panic("TableUpdate.init: field too long"); // Prevent this, please
     }
@@ -42,7 +33,7 @@ pub fn init(allocator: Allocator, table: []const u8, entry: []const u8, value: [
     return s;
 }
 
-pub fn deinit(self: *Self, allocator: Allocator) void {
+pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     allocator.free(self.value);
     allocator.free(self.entry);
     allocator.free(self.table);
@@ -57,16 +48,6 @@ pub fn valid(self: *Self) bool {
 }
 
 //
-// Methods
-//
-
-pub const write = utils.genericWrite;
-
-pub fn read(reader: *Reader, allocator: Allocator) !*Self {
-    return utils.genericRead(Self, reader, allocator);
-}
-
-//
 // Unit testing
 //
 
@@ -77,37 +58,9 @@ const FailingAllocator = std.testing.FailingAllocator;
 
 const test_msg: *const [max_len:0]u8 = "*" ** max_len;
 
-const msgpack = @import("msgpack");
-
-test "copy correctness" {
-    var msg = try init(t_allocator, "1", "23", "456");
+test "basic usage" {
+    var msg = try init(t_allocator, test_msg, test_msg, test_msg);
     defer msg.deinit(t_allocator);
-
-    var comp = try copy(t_allocator, msg.*);
-    defer comp.deinit(t_allocator);
-
-    try expect(std.mem.eql(u8, comp.table, msg.table));
-    try expect(std.mem.eql(u8, comp.entry, msg.entry));
-    try expect(std.mem.eql(u8, comp.value, msg.value));
-}
-
-test "write and read" {
-    var buffer: [256]u8 = undefined;
-    var bwriter = Writer.fixed(&buffer);
-
-    var sendmsg = try init(t_allocator, test_msg, test_msg, test_msg);
-    defer sendmsg.deinit(t_allocator);
-
-    try expect(valid(sendmsg));
-
-    try sendmsg.write(&bwriter);
-    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
-    var msg = try read(&breader, t_allocator);
-    defer msg.deinit(t_allocator);
-
-    try expect(std.mem.eql(u8, msg.table, test_msg));
-    try expect(std.mem.eql(u8, msg.entry, test_msg));
-    try expect(std.mem.eql(u8, msg.value, test_msg));
 }
 
 test "memory failure 1" {
@@ -139,21 +92,6 @@ test "allocate" {
     var f = FailingAllocator.init(t_allocator, .{ .fail_index = 4 });
     var sendmsg = try init(f.allocator(), test_msg, test_msg, test_msg);
     defer sendmsg.deinit(f.allocator());
-}
-
-test "read, memory failure" {
-    // Fails at the end of the chain
-    var f = FailingAllocator.init(t_allocator, .{ .fail_index = 3 });
-    var buffer: [128]u8 = undefined;
-    var bwriter = Writer.fixed(&buffer);
-
-    var sendreq = try init(t_allocator, "xx", "xx", "xx");
-    defer sendreq.deinit(t_allocator);
-
-    try sendreq.write(&bwriter);
-    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
-
-    try expectError(error.OutOfMemory, read(&breader, f.allocator()));
 }
 
 test "validation" {
