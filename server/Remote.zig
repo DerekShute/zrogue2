@@ -3,6 +3,8 @@
 //!
 
 const std = @import("std");
+const msgpack = @import("msgpack");
+
 const server = @import("root.zig"); // TODO this is recursive
 
 const Allocator = std.mem.Allocator;
@@ -60,13 +62,19 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
         //
         //
         pub fn receive(self: *Self, allocator: Allocator) !void {
-            // TODO: A bad value here generates no message
-            const msg = try T.read(self.reader, allocator);
-            defer msg.deinit(allocator);
+            const buffer = try allocator.alloc(u8, 325);
+            defer allocator.free(buffer);
+            var fba = std.heap.FixedBufferAllocator.init(buffer);
+            // Abandon this allocator...handled by the buffer free
+
+            var msg = try msgpack.decode(T, fba.allocator(), self.reader);
+            if (!msg.value.valid()) {
+                return error.Invalid;
+            }
 
             if (self.sm) |sm| {
                 const act = sm[@intFromEnum(MT)];
-                act.cb(self, msg);
+                act.cb(self, &msg.value);
             }
         }
         //
@@ -74,10 +82,15 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
         pub fn write(self: *Self, text: []const u8) !void {
             var alloc_b: [100]u8 = undefined; // Calculated
             var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-            var msg = T.init(fba.allocator(), text) catch unreachable;
-            defer msg.deinit(fba.allocator());
+            const allocator = fba.allocator();
+
+            var msg = try T.init(allocator, text);
+            defer msg.deinit(allocator);
+
             try MessageType.write(MT, self.writer);
-            try msg.write(self.writer);
+            // TODO: write size of message
+            try msgpack.encode(msg, self.writer);
+            try self.writer.flush();
         }
     };
 }
