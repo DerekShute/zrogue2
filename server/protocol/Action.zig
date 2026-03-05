@@ -5,11 +5,7 @@
 //!
 
 const std = @import("std");
-const msgpack = @import("msgpack");
-const utils = @import("utils.zig");
 
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
 const Allocator = std.mem.Allocator;
 
 const Self = @This();
@@ -40,10 +36,6 @@ pub fn init(allocator: Allocator, kind: Kind, pos: []const i16) !*Self {
     return s;
 }
 
-pub fn copy(allocator: Allocator, basis: Self) !*Self {
-    return Self.init(allocator, basis.kind, &.{ basis.x, basis.y });
-}
-
 pub fn deinit(self: *Self, allocator: Allocator) void {
     allocator.destroy(self);
 }
@@ -54,40 +46,24 @@ pub fn valid(self: *Self) bool {
 }
 
 //
-// Methods
+// Unit testing
 //
 
-pub const write = utils.genericWrite;
-
-pub fn read(reader: *Reader, allocator: Allocator) !*Self {
-    return utils.genericRead(Self, reader, allocator);
-}
-
-//
-// Unit Tests
-//
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 const t_allocator = std.testing.allocator;
 const FailingAllocator = std.testing.FailingAllocator;
 
-test "write and read" {
-    var buffer: [256]u8 = undefined;
-    var bwriter = Writer.fixed(&buffer);
+// write
 
-    var sendmsg = try init(t_allocator, .quit, &.{ 0, 1 });
-    defer sendmsg.deinit(t_allocator);
-
-    try expect(valid(sendmsg));
-
-    try sendmsg.write(&bwriter);
-    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
-    var msg = try read(&breader, t_allocator);
+test "basic usage" {
+    var msg = try init(t_allocator, .none, &.{ 0, 1 });
     defer msg.deinit(t_allocator);
+}
 
-    try expect(msg.kind == sendmsg.kind);
-    try expect(msg.x == sendmsg.x);
-    try expect(msg.y == sendmsg.y);
+test "init, memory failure 1" {
+    var f = FailingAllocator.init(t_allocator, .{ .fail_index = 0 });
+    try expectError(error.OutOfMemory, init(f.allocator(), .none, &.{ 0, 1 }));
 }
 
 // EOF

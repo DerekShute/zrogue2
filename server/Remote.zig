@@ -146,7 +146,9 @@ pub fn writeAction(self: *Self, kind: Action.Kind, pos: []const i16) !void {
     var msg = Action.init(fba.allocator(), kind, pos) catch unreachable;
     defer msg.deinit(fba.allocator());
     try MessageType.write(.action, self.writer);
-    try msg.write(self.writer);
+    // TODO: write size of message
+    try msgpack.encode(msg, self.writer);
+    try self.writer.flush();
 }
 
 pub const writeDepart = Wrap(Depart, .depart).write;
@@ -157,7 +159,9 @@ pub fn writeMapUpdate(self: *Self, pos: []const i16, tile: MapUpdate.DisplayTile
     var msg = MapUpdate.init(fba.allocator(), pos, tile) catch unreachable;
     defer msg.deinit(fba.allocator());
     try MessageType.write(.map_update, self.writer);
-    try msg.write(self.writer);
+    // TODO: write size of message
+    try msgpack.encode(msg, self.writer);
+    try self.writer.flush();
 }
 
 pub const writeMessage = Wrap(Message, .message).write;
@@ -169,7 +173,9 @@ pub fn writeTableUpdate(self: *Self, table: []const u8, entry: []const u8, value
     var msg = TableUpdate.init(fba.allocator(), table, entry, value) catch unreachable;
     defer msg.deinit(fba.allocator());
     try MessageType.write(.table_update, self.writer);
-    try msg.write(self.writer);
+    // TODO: write size of message
+    try msgpack.encode(msg, self.writer);
+    try self.writer.flush();
 }
 
 //
@@ -185,6 +191,8 @@ pub fn format(self: Self, w: *Writer) Writer.Error!void {
 //
 
 const expect = std.testing.expect;
+const expectError = std.testing.expectError;
+const t_allocator = std.testing.allocator;
 
 var hit: bool = false; // Testing instrumentation
 
@@ -232,9 +240,81 @@ test "basic usage" {
     client.reader = &breader;
 
     try expect(try MessageType.read(&breader) == .entry_request);
-    try client.receiveEntryRequest(std.testing.allocator);
+    try client.receiveEntryRequest(t_allocator);
 
     try expect(hit);
 }
+
+test "write WriteFailed" {
+    var buffer: [10]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    var client = Self{
+        .name = "whatever",
+        .reader = &breader,
+        .writer = &bwriter,
+        .sm = test_rig,
+    };
+
+    try expectError(error.WriteFailed, client.writeEntryRequest("frammitzor"));
+}
+
+test "receive message truncated EndOfStream" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    var client = Self{
+        .name = "whatever",
+        .reader = &breader,
+        .writer = &bwriter,
+        .sm = test_rig,
+    };
+
+    try client.writeEntryRequest("frammitzor");
+
+    // Dirty trick
+
+    breader = std.io.Reader.fixed(buffer[0 .. bwriter.buffered().len - 5]);
+    client.reader = &breader;
+
+    try expect(try MessageType.read(&breader) == .entry_request);
+    try expectError(error.EndOfStream, client.receiveEntryRequest(t_allocator));
+}
+
+test "receive message invalid" {
+    var buffer: [128]u8 = undefined;
+    var bwriter = std.io.Writer.fixed(&buffer);
+    var breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    var client = Self{
+        .name = "whatever",
+        .reader = &breader,
+        .writer = &bwriter,
+        .sm = test_rig,
+    };
+
+    try client.writeEntryRequest("frammitzor");
+
+    // Dirty trick
+
+    breader = std.io.Reader.fixed(buffer[0..bwriter.buffered().len]);
+    client.reader = &breader;
+
+    try expect(try MessageType.read(&breader) == .entry_request);
+    try expectError(error.UnknownStructField, client.receiveMessage(t_allocator));
+}
+
+//
+// TODO: once generalized, this needs the full testing from protocol/utils
+//
+// MissingStructFields
+// renamed field name in received message: UnknownStructField
+// Not msgpack: InvalidFormat
+// additional field: UnknownStructField
+//
+// Probably want to wait for the next IO scandal
+//
 
 // EOF
