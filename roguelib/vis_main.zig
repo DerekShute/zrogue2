@@ -18,6 +18,7 @@ const Feature = @import("Feature.zig");
 const Map = @import("Map.zig");
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
+const Remote = @import("Remote.zig");
 const Tileset = @import("maptile.zig"); // Slightly a lie
 
 fn printer(array: []const []const u8) void {
@@ -38,6 +39,7 @@ pub fn main() !void {
     printer(Map.room_fields);
     printer(Pos.fields);
     printer(Region.fields);
+    printer(Remote.fields);
     printer(Tileset.fields);
 }
 

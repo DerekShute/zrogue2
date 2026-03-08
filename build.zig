@@ -39,6 +39,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("roguelib/root.zig"),
         .target = target,
     });
+    roguelib_mod.addImport("msgpack", msgpack.module("msgpack"));
 
     const game_mod = b.addModule("game", .{
         .root_source_file = b.path("game/root.zig"),
@@ -52,8 +53,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("server/root.zig"),
         .target = target,
     });
-
-    // TODO: server_mod.addImport("msgpack", msgpack.module("msgpack"));
 
     //
     // Rogue single-user CLI
