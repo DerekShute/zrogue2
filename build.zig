@@ -52,6 +52,9 @@ pub fn build(b: *std.Build) void {
     const server_mod = b.addModule("server", .{
         .root_source_file = b.path("server/root.zig"),
         .target = target,
+        .imports = &.{
+            .{ .name = "roguelib", .module = roguelib_mod },
+        },
     });
 
     //
@@ -86,10 +89,12 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("server/main.zig"),
             .target = target,
             .optimize = optimize,
+            .imports = &.{
+                .{ .name = "roguelib", .module = roguelib_mod },
+            },
         }),
     });
 
-    server_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
     b.installArtifact(server_exe);
 
     const fuzz_client_exe = b.addExecutable(.{
@@ -98,10 +103,12 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("server/fuzz.zig"),
             .target = target,
             .optimize = test_optimize,
+            .imports = &.{
+                .{ .name = "roguelib", .module = roguelib_mod },
+            },
         }),
     });
 
-    fuzz_client_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
     b.installArtifact(fuzz_client_exe);
 
     //
@@ -120,7 +127,6 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    client_exe.root_module.addImport("msgpack", msgpack.module("msgpack"));
     b.installArtifact(client_exe);
 
     //

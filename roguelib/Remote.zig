@@ -20,6 +20,12 @@ pub const Error = error{
     Invalid,
 };
 
+pub const State = enum {
+    init,
+    connected,
+    closing,
+};
+
 // TODO: arg0 is interface context
 pub const DispatchFn = *const fn (conn: *Self, allocator: Allocator) Error!void;
 pub const ReadFn = *const fn (conn: *Self, ctx: *anyopaque) Error!void;
@@ -37,6 +43,7 @@ reader: *Reader = undefined,
 writer: *Writer = undefined,
 sm: []const DispatchFn = undefined,
 name: []const u8 = undefined, // TODO - context problem
+state: State = .init,
 
 //
 // Messaging wrappers
@@ -78,7 +85,15 @@ pub fn Dispatch(comptime T: type, comptime FN: ReadFn) type {
 // Interface
 //
 
-fn run(self: *Self, allocator: Allocator) !void {
+pub fn setState(self: *Self, state: State) void {
+    self.state = state;
+}
+
+pub fn getState(self: *Self) State {
+    return self.state;
+}
+
+pub fn run(self: *Self, allocator: Allocator) !void {
     const buffer = try allocator.alloc(u8, 325);
     defer allocator.free(buffer);
     var fba = std.heap.FixedBufferAllocator.init(buffer);
@@ -93,6 +108,14 @@ fn run(self: *Self, allocator: Allocator) !void {
 
     const cb = self.sm[val];
     try cb(self, fba.allocator());
+}
+
+//
+// Formatter
+//
+
+pub fn format(self: Self, w: *Writer) Writer.Error!void {
+    return w.print("{s}", .{self.name});
 }
 
 //
