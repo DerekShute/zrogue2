@@ -15,35 +15,6 @@ const net = std.net;
 const Remote = server.Remote;
 
 //
-// Service Routines
-//
-// TODO buffer allocator sucks
-
-fn writeMessage(remote: *Remote, text: []const u8) !void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.Message.init(fba.allocator(), text);
-    // abandoned
-    try server.writeMessage(remote, msg.*);
-}
-
-fn writeMapUpdate(remote: *Remote, pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.MapUpdate.init(fba.allocator(), pos, tile);
-    // abandoned
-    try server.writeMapUpdate(remote, msg.*);
-}
-
-pub fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) !void {
-    var alloc_b: [200]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.TableUpdate.init(fba.allocator(), table, entry, value);
-    // abandoned
-    try server.writeTableUpdate(remote, msg.*);
-}
-
-//
 // State machine callbacks
 //
 
@@ -83,7 +54,7 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     log.info("[{f}] Connected: player '{s}'", .{ remote, msg.name });
     remote.setState(.connected);
 
-    writeMessage(remote, "Welcome to the Dungeon of Doom!") catch {
+    server.writeMessage(remote, "Welcome to the Dungeon of Doom!") catch {
         log.info("[{f}] Send error, disconnecting", .{remote});
         remote.setState(.closing);
         return;
@@ -96,13 +67,13 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
         .visible = true,
     };
 
-    writeMapUpdate(remote, &.{ 0, 1 }, tile) catch {
+    server.writeMapUpdate(remote, &.{ 0, 1 }, tile) catch {
         log.info("[{f}] Send error map-update, disconnecting", .{remote});
         remote.setState(.closing);
         return;
     };
 
-    writeTableUpdate(remote, "stats", "purse", "0") catch {
+    server.writeTableUpdate(remote, "stats", "purse", "0") catch {
         log.info("[{f}] Send error table-update, disconnecting", .{remote});
         remote.setState(.closing);
         return;

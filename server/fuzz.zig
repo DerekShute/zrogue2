@@ -9,59 +9,39 @@ const net = std.net;
 
 const Remote = server.Remote;
 
-// TODO: boilerplate
+//
+// Eat errors because these can be called from callback function pointers
+//
+// This should be compiled with full debug protections
+//
 fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) void {
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = server.Action.init(fba.allocator(), kind, pos) catch unreachable;
-    // abandoned
-    server.writeAction(remote, msg.*) catch unreachable;
+    server.writeAction(remote, kind, pos) catch unreachable;
 }
 
 fn writeDepart(remote: *Remote, text: []const u8) void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = server.Depart.init(fba.allocator(), text) catch unreachable;
-    // abandoned
-    server.writeDepart(remote, msg.*) catch unreachable;
+    server.writeDepart(remote, text) catch unreachable;
 }
 
 fn writeEntryRequest(remote: *Remote, text: []const u8) void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = server.EntryRequest.init(fba.allocator(), text) catch unreachable;
-    // abandoned
-    server.writeEntryRequest(remote, msg.*) catch unreachable;
+    server.writeEntryRequest(remote, text) catch unreachable;
 }
 
 fn writeMessage(remote: *Remote, text: []const u8) void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = server.Message.init(fba.allocator(), text) catch unreachable;
-    // abandoned
-    server.writeMessage(remote, msg.*) catch unreachable;
+    server.writeMessage(remote, text) catch unreachable;
 }
 
 fn writeMapUpdate(remote: *Remote) void {
-    const update = server.MapUpdate{ // TODO: phooey
-        .x = 0,
-        .y = 1,
-        .tile = .{
-            .entity = .unknown,
-            .item = .gold,
-            .floor = .wall,
-            .visible = true,
-        },
+    const tile = server.MapUpdate.DisplayTile{
+        .entity = .unknown,
+        .item = .gold,
+        .floor = .wall,
+        .visible = true,
     };
-    server.writeMapUpdate(remote, update) catch unreachable;
+    server.writeMapUpdate(remote, &.{ 0, 1 }, tile) catch unreachable;
 }
 
 fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) void {
-    var alloc_b: [200]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = server.TableUpdate.init(fba.allocator(), table, entry, value) catch unreachable;
-    // abandoned
-    server.writeTableUpdate(remote, msg.*) catch unreachable;
+    server.writeTableUpdate(remote, table, entry, value) catch unreachable;
 }
 
 //

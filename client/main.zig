@@ -9,59 +9,10 @@ const print = std.debug.print; // TODO not this
 
 const Remote = server.Remote;
 
-// TODO: boilerplate
-
-pub fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) !void {
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.Action.init(fba.allocator(), kind, pos);
-    // abandoned
-    try server.writeAction(remote, msg.*);
-}
-
-fn writeDepart(remote: *Remote, text: []const u8) !void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.Depart.init(fba.allocator(), text);
-    // abandoned
-    try server.writeDepart(remote, msg.*);
-}
-
-fn writeEntryRequest(remote: *Remote, text: []const u8) !void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.EntryRequest.init(fba.allocator(), text);
-    // abandoned
-    try server.writeEntryRequest(remote, msg.*);
-}
-
-fn writeMessage(remote: *Remote, text: []const u8) !void {
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.Message.init(fba.allocator(), text);
-    // abandoned
-    try server.writeMessage(remote, msg.*);
-}
-
-fn writeMapUpdate(remote: *Remote, pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.MapUpdate.init(fba.allocator(), pos, tile);
-    // abandoned
-    try server.writeMapUpdate(remote, msg.*);
-}
-
-pub fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) !void {
-    var alloc_b: [200]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try server.TableUpdate.init(fba.allocator(), table, entry, value);
-    // abandoned
-    try server.writeTableUpdate(remote, msg.*);
-}
-
 //
 // State machine callbacks
 //
+// TODO: returns error to close connection
 
 fn doAction(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     _ = ptr;
@@ -148,6 +99,7 @@ pub fn main() !void {
     var reader = stream.reader(rbuf);
     var writer = stream.writer(&.{});
 
+    // TODO: server struct with methods
     var remote = Remote{
         .name = name,
         .reader = reader.interface(),
@@ -157,14 +109,14 @@ pub fn main() !void {
 
     // TODO handle errors
     // TODO player name
-    try writeEntryRequest(&remote, "anonymous");
+    try server.writeEntryRequest(&remote, "anonymous");
 
     // TODO: need to absorb messages, reply, etc
     try remote.run(allocator);
 
-    try writeAction(&remote, .none, &.{ 0, 0 });
+    try server.writeAction(&remote, .none, &.{ 0, 0 });
     try remote.run(allocator);
-    try writeDepart(&remote, "ending");
+    try server.writeDepart(&remote, "ending");
 
     print("Disconnected from {s}\n", .{name});
 }
