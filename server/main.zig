@@ -12,13 +12,42 @@ const Writer = std.io.Writer;
 const log = std.log.scoped(.server);
 const net = std.net;
 
-const Remote = @import("Remote.zig");
+const Remote = server.Remote;
+
+//
+// Service Routines
+//
+// TODO buffer allocator sucks
+
+fn writeMessage(remote: *Remote, text: []const u8) !void {
+    var alloc_b: [100]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = try server.Message.init(fba.allocator(), text);
+    // abandoned
+    try server.writeMessage(remote, msg.*);
+}
+
+fn writeMapUpdate(remote: *Remote, pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
+    var alloc_b: [100]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = try server.MapUpdate.init(fba.allocator(), pos, tile);
+    // abandoned
+    try server.writeMapUpdate(remote, msg.*);
+}
+
+pub fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) !void {
+    var alloc_b: [200]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = try server.TableUpdate.init(fba.allocator(), table, entry, value);
+    // abandoned
+    try server.writeTableUpdate(remote, msg.*);
+}
 
 //
 // State machine callbacks
 //
 
-fn doAction(remote: *Remote, ptr: *anyopaque) void {
+fn doAction(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     const msg: *server.Action = @ptrCast(@alignCast(ptr));
 
     if (remote.getState() != .connected) {
@@ -32,14 +61,14 @@ fn doAction(remote: *Remote, ptr: *anyopaque) void {
     log.info("[{f}] Action: {} {},{}", .{ remote, msg.kind, msg.x, msg.y });
 }
 
-fn doDepart(remote: *Remote, ptr: *anyopaque) void {
+fn doDepart(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
 
     log.info("[{f}] Disconnecting: message '{s}'", .{ remote, msg.message });
     remote.setState(.closing);
 }
 
-fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
+fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     const msg: *server.EntryRequest = @ptrCast(@alignCast(ptr));
 
     if (remote.getState() != .init) {
@@ -54,7 +83,7 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
     log.info("[{f}] Connected: player '{s}'", .{ remote, msg.name });
     remote.setState(.connected);
 
-    remote.writeMessage("Welcome to the Dungeon of Doom!") catch {
+    writeMessage(remote, "Welcome to the Dungeon of Doom!") catch {
         log.info("[{f}] Send error, disconnecting", .{remote});
         remote.setState(.closing);
         return;
@@ -67,46 +96,46 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) void {
         .visible = true,
     };
 
-    remote.writeMapUpdate(&.{ 0, 1 }, tile) catch {
+    writeMapUpdate(remote, &.{ 0, 1 }, tile) catch {
         log.info("[{f}] Send error map-update, disconnecting", .{remote});
         remote.setState(.closing);
         return;
     };
 
-    remote.writeTableUpdate("stats", "purse", "0") catch {
+    writeTableUpdate(remote, "stats", "purse", "0") catch {
         log.info("[{f}] Send error table-update, disconnecting", .{remote});
         remote.setState(.closing);
         return;
     };
 }
 
-fn doMapUpdate(remote: *Remote, ptr: *anyopaque) void {
+fn doMapUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     _ = ptr; // Don't care, possibly pathological
 
     log.info("[{f}] Unexpected map update", .{remote});
     remote.setState(.closing);
 }
 
-fn doMessage(remote: *Remote, ptr: *anyopaque) void {
+fn doMessage(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     _ = ptr; // Don't care, possibly pathological
 
     log.info("[{f}] Unexpected message", .{remote});
     remote.setState(.closing);
 }
 
-fn doTableUpdate(remote: *Remote, ptr: *anyopaque) void {
+fn doTableUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     _ = ptr;
     log.info("[{f}] Unexpected table update", .{remote});
     remote.setState(.closing);
 }
 
-const rig = [_]Remote.Dispatch{
-    .{ .cb = doAction },
-    .{ .cb = doDepart },
-    .{ .cb = doEntryRequest },
-    .{ .cb = doMapUpdate },
-    .{ .cb = doMessage },
-    .{ .cb = doTableUpdate },
+const rig = [_]Remote.DispatchFn{
+    Remote.Dispatch(server.Action, doAction).dispatch,
+    Remote.Dispatch(server.Depart, doDepart).dispatch,
+    Remote.Dispatch(server.EntryRequest, doEntryRequest).dispatch,
+    Remote.Dispatch(server.MapUpdate, doMapUpdate).dispatch,
+    Remote.Dispatch(server.Message, doMessage).dispatch,
+    Remote.Dispatch(server.TableUpdate, doTableUpdate).dispatch,
 };
 
 //
@@ -128,7 +157,7 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
         .name = name,
         .reader = reader.interface(),
         .writer = &writer.interface,
-        .sm = rig,
+        .sm = &rig,
     };
 
     //
@@ -141,7 +170,10 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
     while (remote.getState() != .closing) {
         var arena = std.heap.ArenaAllocator.init(fb.allocator());
         defer arena.deinit();
-        remote.run(arena.allocator());
+        remote.run(arena.allocator()) catch |err| {
+            log.info("[{s}] error {}", .{ name, err });
+            remote.setState(.closing);
+        };
     }
 
     log.info("[{s}] End session", .{name});

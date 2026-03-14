@@ -9,95 +9,111 @@ const net = std.net;
 
 const Remote = server.Remote;
 
-//
-// Distill error to this because no inferred error sets allowed
-//
-
-const Error = error{
-    AnyError,
-};
-
-fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) Error!void {
-    remote.writeAction(kind, pos) catch return error.AnyError;
+// TODO: boilerplate
+fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) void {
+    var alloc_b: [100]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = server.Action.init(fba.allocator(), kind, pos) catch unreachable;
+    // abandoned
+    server.writeAction(remote, msg.*) catch unreachable;
 }
 
-fn writeDepart(remote: *Remote, name: []const u8) Error!void {
-    remote.writeDepart(name) catch return error.AnyError;
+fn writeDepart(remote: *Remote, text: []const u8) void {
+    var alloc_b: [100]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = server.Depart.init(fba.allocator(), text) catch unreachable;
+    // abandoned
+    server.writeDepart(remote, msg.*) catch unreachable;
 }
 
-fn writeEntryRequest(remote: *Remote, name: []const u8) Error!void {
-    remote.writeEntryRequest(name) catch return error.AnyError;
+fn writeEntryRequest(remote: *Remote, text: []const u8) void {
+    var alloc_b: [100]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = server.EntryRequest.init(fba.allocator(), text) catch unreachable;
+    // abandoned
+    server.writeEntryRequest(remote, msg.*) catch unreachable;
 }
 
-fn writeMapUpdate(remote: *Remote) Error!void {
-    const tile = server.MapUpdate.DisplayTile{ // TODO: phooey
-        .entity = .unknown,
-        .item = .gold,
-        .floor = .wall,
-        .visible = true,
+fn writeMessage(remote: *Remote, text: []const u8) void {
+    var alloc_b: [100]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = server.Message.init(fba.allocator(), text) catch unreachable;
+    // abandoned
+    server.writeMessage(remote, msg.*) catch unreachable;
+}
+
+fn writeMapUpdate(remote: *Remote) void {
+    const update = server.MapUpdate{ // TODO: phooey
+        .x = 0,
+        .y = 1,
+        .tile = .{
+            .entity = .unknown,
+            .item = .gold,
+            .floor = .wall,
+            .visible = true,
+        },
     };
-
-    remote.writeMapUpdate(&.{ 0, 1 }, tile) catch return error.AnyError;
+    server.writeMapUpdate(remote, update) catch unreachable;
 }
 
-fn writeMessage(remote: *Remote, name: []const u8) Error!void {
-    remote.writeMessage(name) catch return error.AnyError;
-}
-
-fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) Error!void {
-    remote.writeTableUpdate(table, entry, value) catch return error.AnyError;
+fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) void {
+    var alloc_b: [200]u8 = undefined; // Calculated
+    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
+    const msg = server.TableUpdate.init(fba.allocator(), table, entry, value) catch unreachable;
+    // abandoned
+    server.writeTableUpdate(remote, msg.*) catch unreachable;
 }
 
 //
 // Test series
 //
 
-fn doNothing(remote: *Remote, name: []const u8) Error!void {
+fn doNothing(remote: *Remote, name: []const u8) void {
     _ = remote;
     _ = name;
 }
 
-fn dualEntry(remote: *Remote, name: []const u8) Error!void {
-    try writeEntryRequest(remote, name);
-    try writeEntryRequest(remote, name);
-    try writeEntryRequest(remote, name);
-    try writeEntryRequest(remote, name);
-    try writeEntryRequest(remote, name);
+fn dualEntry(remote: *Remote, name: []const u8) void {
+    writeEntryRequest(remote, name);
+    writeEntryRequest(remote, name);
+    writeEntryRequest(remote, name);
+    writeEntryRequest(remote, name);
+    writeEntryRequest(remote, name);
 }
 
-fn entryExit(remote: *Remote, name: []const u8) Error!void {
-    try writeEntryRequest(remote, name);
-    try writeAction(remote, .none, &.{ 0, 0 });
-    try writeDepart(remote, name);
+fn entryExit(remote: *Remote, name: []const u8) void {
+    writeEntryRequest(remote, name);
+    writeAction(remote, .none, &.{ 0, 0 });
+    writeDepart(remote, name);
 }
 
-fn justDepart(remote: *Remote, name: []const u8) Error!void {
-    try writeDepart(remote, name);
+fn justDepart(remote: *Remote, name: []const u8) void {
+    writeDepart(remote, name);
 }
 
-fn justEntry(remote: *Remote, name: []const u8) Error!void {
-    try writeEntryRequest(remote, name);
+fn justEntry(remote: *Remote, name: []const u8) void {
+    writeEntryRequest(remote, name);
 }
 
-fn useMessage(remote: *Remote, name: []const u8) Error!void {
-    try writeMessage(remote, name);
+fn useMessage(remote: *Remote, name: []const u8) void {
+    writeMessage(remote, name);
 }
 
-fn useTableUpdate(remote: *Remote, name: []const u8) Error!void {
+fn useTableUpdate(remote: *Remote, name: []const u8) void {
     _ = name;
-    try writeTableUpdate(remote, "does", "not", "matter");
-    try writeTableUpdate(remote, "does", "not", "matter");
+    writeTableUpdate(remote, "does", "not", "matter");
+    writeTableUpdate(remote, "does", "not", "matter");
 }
 
-fn justAction(remote: *Remote, name: []const u8) Error!void {
+fn justAction(remote: *Remote, name: []const u8) void {
     _ = name;
-    try writeAction(remote, .none, &.{ 0, 0 });
+    writeAction(remote, .none, &.{ 0, 0 });
 }
 
-fn useMapUpdate(remote: *Remote, name: []const u8) Error!void {
+fn useMapUpdate(remote: *Remote, name: []const u8) void {
     _ = name;
-    try writeMapUpdate(remote);
-    try writeMapUpdate(remote);
+    writeMapUpdate(remote);
+    writeMapUpdate(remote);
 }
 
 //
@@ -106,7 +122,7 @@ fn useMapUpdate(remote: *Remote, name: []const u8) Error!void {
 
 const TestRig = struct {
     name: []const u8,
-    testfn: *const fn (remote: *Remote, name: []const u8) Error!void,
+    testfn: *const fn (remote: *Remote, name: []const u8) void,
 };
 
 // TODO: some clever comptime thing
@@ -176,7 +192,7 @@ pub fn main() !void {
         };
 
         log.info("* * * START {s} * * *", .{item.name});
-        try item.testfn(&remote, item.name);
+        item.testfn(&remote, item.name);
         log.info("* * * END {s} * * *", .{item.name});
     }
 
