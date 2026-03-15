@@ -40,6 +40,8 @@ fn doDepart(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
 }
 
 fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+    errdefer remote.setState(.closing);
+
     const msg: *server.EntryRequest = @ptrCast(@alignCast(ptr));
 
     if (remote.getState() != .init) {
@@ -47,7 +49,6 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
             "[{f}] EntryRequest in wrong state '{}'",
             .{ remote, remote.getState() },
         );
-        remote.setState(.closing);
         return;
     }
 
@@ -56,7 +57,6 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
 
     server.writeMessage(remote, "Welcome to the Dungeon of Doom!") catch {
         log.info("[{f}] Send error, disconnecting", .{remote});
-        remote.setState(.closing);
         return;
     };
 
@@ -69,13 +69,11 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
 
     server.writeMapUpdate(remote, &.{ 0, 1 }, tile) catch {
         log.info("[{f}] Send error map-update, disconnecting", .{remote});
-        remote.setState(.closing);
         return;
     };
 
     server.writeTableUpdate(remote, "stats", "purse", "0") catch {
         log.info("[{f}] Send error table-update, disconnecting", .{remote});
-        remote.setState(.closing);
         return;
     };
 }
@@ -100,14 +98,18 @@ fn doTableUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     remote.setState(.closing);
 }
 
-const rig = [_]Remote.DispatchFn{
-    Remote.Dispatch(server.Action, doAction).dispatch,
-    Remote.Dispatch(server.Depart, doDepart).dispatch,
-    Remote.Dispatch(server.EntryRequest, doEntryRequest).dispatch,
-    Remote.Dispatch(server.MapUpdate, doMapUpdate).dispatch,
-    Remote.Dispatch(server.Message, doMessage).dispatch,
-    Remote.Dispatch(server.TableUpdate, doTableUpdate).dispatch,
+//
+// Dispatch table for server run
+//
+const fns = [_]Remote.ReadFn{
+    doAction,
+    doDepart,
+    doEntryRequest,
+    doMapUpdate,
+    doMessage,
+    doTableUpdate,
 };
+const rig = server.genDispatch(fns);
 
 //
 // Client connection
