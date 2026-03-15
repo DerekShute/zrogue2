@@ -48,8 +48,6 @@ pub const TableUpdate = @import("protocol/TableUpdate.zig");
 //
 // Write methods
 //
-// TODO still a lot of boilerplate here, and need for an allocator is ugh.
-// It might be fixable if all he init routines accept a tuple or something
 
 fn Wrap(comptime T: type, comptime MT: MessageType) type {
     // You can return the function body as '.write' here but that makes the
@@ -62,56 +60,32 @@ fn Wrap(comptime T: type, comptime MT: MessageType) type {
 
 pub fn writeAction(remote: *Remote, kind: Action.Kind, pos: []const i16) !void {
     const write = Wrap(Action, .action).write;
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try Action.init(fba.allocator(), kind, pos);
-    // abandoned
-    try write(remote, msg.*);
+    try write(remote, .{ .kind = kind, .x = pos[0], .y = pos[1] });
 }
 
 pub fn writeDepart(remote: *Remote, text: []const u8) !void {
     const write = Wrap(Depart, .depart).write;
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try Depart.init(fba.allocator(), text);
-    // abandoned
-    try write(remote, msg.*);
+    try write(remote, .{ .message = text });
 }
 
 pub fn writeEntryRequest(remote: *Remote, text: []const u8) !void {
     const write = Wrap(EntryRequest, .entry_request).write;
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try EntryRequest.init(fba.allocator(), text);
-    // abandoned
-    try write(remote, msg.*);
+    try write(remote, .{ .name = text });
 }
 
 pub fn writeMapUpdate(remote: *Remote, pos: []const i16, tile: MapUpdate.DisplayTile) !void {
     const write = Wrap(MapUpdate, .map_update).write;
-    var alloc_b: [100]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try MapUpdate.init(fba.allocator(), pos, tile);
-    // abandoned
-    try write(remote, msg.*);
+    try write(remote, .{ .x = pos[0], .y = pos[1], .tile = tile });
 }
 
 pub fn writeMessage(remote: *Remote, text: []const u8) !void {
     const write = Wrap(Message, .message).write;
-    var alloc_b: [100]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try Message.init(fba.allocator(), text);
-    // abandoned
-    try write(remote, msg.*);
+    try write(remote, .{ .message = text });
 }
 
 pub fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) !void {
     const write = Wrap(TableUpdate, .table_update).write;
-    var alloc_b: [200]u8 = undefined; // Calculated
-    var fba = std.heap.FixedBufferAllocator.init(&alloc_b);
-    const msg = try TableUpdate.init(fba.allocator(), table, entry, value);
-    // abandoned
-    try write(remote, msg.*);
+    try write(remote, .{ .table = table, .entry = entry, .value = value });
 }
 
 //
@@ -126,15 +100,21 @@ pub const max_table_length = TableUpdate.max_len;
 // Dispatch Table
 //
 
+fn getDispatch(fns: [MessageType.len]Remote.ReadFn, mt: MessageType) Remote.ReadFn {
+    // Syntactic sugar
+    return fns[@intFromEnum(mt)];
+}
+
 pub fn genDispatch(fns: [MessageType.len]Remote.ReadFn) [MessageType.len]Remote.DispatchFn {
     // This guarantees that all clients have entries for each message type
+    const Dispatch = Remote.Dispatch;
     return .{
-        Remote.Dispatch(Action, fns[@intFromEnum(MessageType.action)]).dispatch,
-        Remote.Dispatch(Depart, fns[@intFromEnum(MessageType.depart)]).dispatch,
-        Remote.Dispatch(EntryRequest, fns[@intFromEnum(MessageType.entry_request)]).dispatch,
-        Remote.Dispatch(MapUpdate, fns[@intFromEnum(MessageType.map_update)]).dispatch,
-        Remote.Dispatch(Message, fns[@intFromEnum(MessageType.message)]).dispatch,
-        Remote.Dispatch(TableUpdate, fns[@intFromEnum(MessageType.table_update)]).dispatch,
+        Dispatch(Action, getDispatch(fns, .action)).dispatch,
+        Dispatch(Depart, getDispatch(fns, .depart)).dispatch,
+        Dispatch(EntryRequest, getDispatch(fns, .entry_request)).dispatch,
+        Dispatch(MapUpdate, getDispatch(fns, .map_update)).dispatch,
+        Dispatch(Message, getDispatch(fns, .message)).dispatch,
+        Dispatch(TableUpdate, getDispatch(fns, .table_update)).dispatch,
     };
 }
 

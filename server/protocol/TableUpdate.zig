@@ -14,9 +14,9 @@ pub const max_len = 20;
 // Members: do not supply defaults!
 //
 
-table: []u8,
-entry: []u8,
-value: []u8,
+table: []const u8,
+entry: []const u8,
+value: []const u8,
 
 pub fn init(allocator: std.mem.Allocator, table: []const u8, entry: []const u8, value: []const u8) !*Self {
     if ((table.len > max_len) or (entry.len > max_len) or (value.len > max_len)) {
