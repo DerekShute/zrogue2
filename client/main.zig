@@ -52,15 +52,18 @@ fn doTableUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
     print("[{f}] : update {s}/{s} : {s}\n", .{ remote, msg.table, msg.entry, msg.value });
 }
 
-// TODO: boilerplate, some kind of wrapper?
-const rig = [_]Remote.DispatchFn{
-    Remote.Dispatch(server.Action, doAction).dispatch,
-    Remote.Dispatch(server.Depart, doDepart).dispatch,
-    Remote.Dispatch(server.EntryRequest, doEntryRequest).dispatch,
-    Remote.Dispatch(server.MapUpdate, doMapUpdate).dispatch,
-    Remote.Dispatch(server.Message, doMessage).dispatch,
-    Remote.Dispatch(server.TableUpdate, doTableUpdate).dispatch,
+//
+// Dispatch table for server run
+//
+const fns = [_]Remote.ReadFn{
+    doAction,
+    doDepart,
+    doEntryRequest,
+    doMapUpdate,
+    doMessage,
+    doTableUpdate,
 };
+const rig = server.genDispatch(fns);
 
 //
 // Main
