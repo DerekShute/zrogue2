@@ -14,7 +14,7 @@ pub const max_namelen = 32;
 // Members: do not supply defaults!
 //
 
-name: []u8,
+name: []const u8,
 // TODO: class, race, ...
 
 //

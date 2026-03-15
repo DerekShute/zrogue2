@@ -15,7 +15,7 @@ pub const max_message_len = 80;
 // Members: do not supply defaults!
 //
 
-message: []u8,
+message: []const u8,
 
 //
 // Lifecycle
