@@ -105,18 +105,37 @@ const TestRig = struct {
     testfn: *const fn (remote: *Remote, name: []const u8) void,
 };
 
-// TODO: some clever comptime thing
-const rig = &[_]TestRig{
-    .{ .name = "doNothing", .testfn = doNothing },
-    .{ .name = "dualEntry", .testfn = dualEntry },
-    .{ .name = "justDepart", .testfn = justDepart },
-    .{ .name = "justEntry", .testfn = justEntry },
-    .{ .name = "entryExit", .testfn = entryExit },
-    .{ .name = "useMessage", .testfn = useMessage },
-    .{ .name = "useTableUpdate", .testfn = useTableUpdate },
-    .{ .name = "justAction", .testfn = justAction },
-    .{ .name = "useMapUpdate", .testfn = useMapUpdate },
+// The names of the test functions to execute
+//
+// In deep theory the 'make' can look up the declarations via comptime
+// reflection but that creates a storage problem for the name strings.  It
+// would be clever, though.
+//
+const functions = .{
+    "doNothing",
+    "dualEntry",
+    "justDepart",
+    "justEntry",
+    "entryExit",
+    "useMessage",
+    "useTableUpdate",
+    "justAction",
+    "useMapUpdate",
 };
+
+// Convert the array of names to function bodies and assemble the rig
+fn make(comptime fns: anytype) [fns.len]TestRig {
+    var entries: [fns.len]TestRig = undefined;
+    inline for (fns, 0..) |function, index| {
+        entries[index] = .{
+            .name = function,
+            .testfn = @field(@This(), function),
+        };
+    }
+    return entries;
+}
+
+const rig = make(functions); // Your rig
 
 //
 // Main routine
