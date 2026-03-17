@@ -4,16 +4,14 @@
 
 const std = @import("std");
 
-const Action = @import("roguelib").Action;
-const Client = @import("roguelib").Client;
-const Entity = @import("roguelib").Entity;
-const Map = @import("roguelib").Map;
-const MapTile = @import("roguelib").MapTile;
-const Pos = @import("roguelib").Pos;
-const Region = @import("roguelib").Region;
-const Tileset = @import("roguelib").Tileset;
-
-const util = @import("util.zig");
+const Action = @import("Action.zig");
+const Client = @import("Client.zig");
+const Entity = @import("Entity.zig");
+const Map = @import("Map.zig");
+const MapTile = @import("maptile.zig").MapTile;
+const Pos = @import("Pos.zig");
+const Region = @import("Region.zig");
+const Tileset = @import("maptile.zig").Tileset;
 
 //
 // Types
@@ -235,6 +233,6 @@ fn takeItem(self: *Self, i: MapTile) void {
 // Unit Tests
 //
 
-// See testing/ - we don't have mock clients here
+// Part of the larger test rig...no mock Clients here
 
 // EOF
