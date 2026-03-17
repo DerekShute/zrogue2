@@ -16,6 +16,7 @@ const Client = @import("Client.zig");
 const Entity = @import("Entity.zig");
 const Feature = @import("Feature.zig");
 const Map = @import("Map.zig");
+const Player = @import("Player.zig");
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
 const Remote = @import("Remote.zig");
@@ -37,6 +38,7 @@ pub fn main() !void {
     printer(Map.fields);
     printer(Map.place_fields);
     printer(Map.room_fields);
+    printer(Player.fields);
     printer(Pos.fields);
     printer(Region.fields);
     printer(Remote.fields);
