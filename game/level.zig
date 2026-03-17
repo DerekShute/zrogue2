@@ -8,7 +8,7 @@ const features = @import("features.zig");
 const Map = @import("roguelib").Map;
 const mapgen = @import("roguelib").mapgen;
 const MapTile = @import("roguelib").MapTile;
-const Player = @import("Player.zig");
+const Player = @import("roguelib").Player;
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
