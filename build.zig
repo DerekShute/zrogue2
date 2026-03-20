@@ -35,6 +35,11 @@ pub fn build(b: *std.Build) void {
     // Modules
     //
 
+    const curses_mod = b.addModule("ncurses", .{
+        .root_source_file = b.path("ui/NCurses.zig"),
+        .target = target,
+    });
+
     const roguelib_mod = b.addModule("roguelib", .{
         .root_source_file = b.path("roguelib/root.zig"),
         .target = target,
@@ -70,6 +75,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "ncurses", .module = curses_mod },
             },
         }),
     });

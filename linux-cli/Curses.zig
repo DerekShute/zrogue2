@@ -6,9 +6,11 @@
 //! * Y incrementing down the display,
 //! * X incrementing right
 //!
+//! TODO: cursor management, mouse events
+//!
 
 const std = @import("std");
-const curses = @cImport(@cInclude("curses.h"));
+const NCurses = @import("ncurses");
 
 const Client = @import("roguelib").Client;
 const MapTile = @import("roguelib").MapTile;
@@ -28,28 +30,6 @@ pub const Config = struct {
 //
 // Members
 //
-
-//
-// Lifted from https://github.com/Akuli/curses-minesweeper
-//
-// Causes:
-//
-//   * Move cursor to x,y not supported by window size
-//
-fn checkError(res: c_int) Client.Error!c_int {
-    if (res == curses.ERR) {
-        return Client.Error.ClientError; // Cop-out
-    }
-    return res;
-}
-
-// We really don't expect this to fail.
-fn paranoia(res: c_int) c_int {
-    if (res == curses.ERR) {
-        unreachable;
-    }
-    return res;
-}
 
 //
 // Convert map location to what it is displayed as
@@ -89,76 +69,61 @@ fn renderChar(tile: Client.DisplayMapTile) u8 {
     return mapToChar(tile.floor);
 }
 
-fn renderMap(c: *Client) void {
+fn renderMap(self: *Self) void {
     // Row 0 is message line, last row (23) is stats, so map 0,0 is at
     // position 0,1
 
-    if (c.displayChange()) |dc| { // if there's a change
+    if (self.c.displayChange()) |dc| { // if there's a change
         var _dc = dc;
         while (_dc.next()) |loc| {
-            if (loc.getY() < c.y - 2) { // Reserve bottom display line
-                _ = paranoia(curses.mvaddch(
-                    loc.getY() + 1, // Shift one to reserve top line
-                    loc.getX(),
-                    renderChar(c.getTile(loc)),
-                ));
+            if (loc.getY() < self.c.y - 2) { // Reserve bottom display line
+                self.setChar(
+                    @intCast(loc.getX()),
+                    @intCast(loc.getY() + 1),
+                    renderChar(self.c.getTile(loc)),
+                );
             }
         }
     }
 }
 
 //
-// Global state
-//
-
-var global_win: ?*curses.WINDOW = null;
-
-//
 // Members
 //
 
 c: Client = undefined,
+curses: NCurses = undefined,
 // Stats
 purse: i32 = 0,
 depth: i32 = 0,
 
-// TODO: cursor management
+//
+// Utilities
+//
+
+fn readKeypress(self: *Self) NCurses.Keypress {
+    return self.curses.readKeypress();
+}
+
+fn refresh(self: *Self) void {
+    self.curses.refresh();
+}
+
+fn setChar(self: *Self, x: u16, y: u16, c: u8) void {
+    self.curses.setChar(x, y, c);
+}
+
+fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
+    self.curses.setText(x, y, s);
+}
 
 //
 // Constructor / Destructor
 //
 
-pub fn init(config: Config) Client.Error!Self {
-    if (global_win != null) {
-        return Client.Error.AlreadyInitialized;
-    }
-
-    // Note technically can fail
-    const res = curses.initscr();
-    errdefer {
-        _ = curses.endwin(); // error only if window uninitialized.
-    }
-    if (res) |res_val| {
-        global_win = res_val;
-    }
-
-    // Instantly process events, and activate arrow keys
-    // TODO Future: mouse events
-
-    // raw/keypad/noecho: no defined error cases
-    _ = paranoia(curses.raw());
-    _ = paranoia(curses.keypad(global_win, true));
-    _ = paranoia(curses.noecho());
-    // curs_set: ERR only if argument value is unsupported
-    _ = paranoia(curses.curs_set(0));
-
-    // getmaxx/getmaxy ERR iff null window parameter
-    const display_maxx = paranoia(curses.getmaxx(global_win));
-    const display_maxy = paranoia(curses.getmaxy(global_win));
-
-    if ((display_maxx < config.maxx) or (display_maxy < config.maxy)) {
-        return Client.Error.DisplayTooSmall;
-    }
+pub fn init(config: Config) !Self {
+    var curses = try NCurses.init();
+    errdefer curses.deinit();
 
     const c: Client.Config = .{
         .allocator = config.allocator,
@@ -173,13 +138,13 @@ pub fn init(config: Config) Client.Error!Self {
 
     return .{
         .c = try Client.init(c),
+        .curses = curses,
     };
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+    self.curses.deinit();
     self.c.deinit(allocator);
-    global_win = null;
-    _ = curses.endwin(); // Liberal shut-up-and-do-it
 }
 
 //
@@ -192,41 +157,23 @@ pub fn client(self: *Self) *Client {
 }
 
 //
-// Gross Utility Wrappers
-//
-
-fn mvaddstr(x: u16, y: u16, s: []const u8) void {
-    // TODO errors here probably only because of display sizing
-
-    if (s.len > 0) { // Interface apparently insists
-        _ = paranoia(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
-    }
-}
-
-fn refresh() void {
-    // refresh: no error cases defined
-    _ = paranoia(curses.refresh());
-}
-
-//
 // Input Utility
 //
 
-fn readCommand() Client.Command {
-    // TODO Future: resize 'key'
+fn readCommand(self: *Self) Client.Command {
+    const kp = self.readKeypress();
 
-    const ch = paranoia(curses.getch());
-    return switch (ch) {
-        curses.KEY_LEFT => .go_west,
-        curses.KEY_RIGHT => .go_east,
-        curses.KEY_UP => .go_north,
-        curses.KEY_DOWN => .go_south,
-        '<' => .ascend,
-        '>' => .descend,
-        '?' => .help,
-        'q' => .quit,
-        's' => .search,
-        ',' => .take_item,
+    return switch (kp) {
+        .key_left => .go_west,
+        .key_right => .go_east,
+        .key_up => .go_north,
+        .key_down => .go_south,
+        @as(NCurses.Keypress, @enumFromInt('<')) => .ascend,
+        @as(NCurses.Keypress, @enumFromInt('>')) => .descend,
+        @as(NCurses.Keypress, @enumFromInt('?')) => .help,
+        @as(NCurses.Keypress, @enumFromInt('q')) => .quit,
+        @as(NCurses.Keypress, @enumFromInt('s')) => .search,
+        @as(NCurses.Keypress, @enumFromInt(',')) => .take_item,
         else => .wait,
     };
 }
@@ -235,28 +182,29 @@ fn readCommand() Client.Command {
 // Display Utility
 //
 
-fn displayHelp() void {
+fn displayHelp(self: *Self) void {
     // FIXME : This is horrible and adding to it is painful
-    //         Create a map of command <-> keypress for display here?
-    mvaddstr(0, 0, "*                                                                              *");
-    mvaddstr(0, 1, "         Welcome to the Dungeon of Doom          ");
-    mvaddstr(0, 2, "                                                 ");
-    mvaddstr(0, 3, " Use the arrow keys to move through the dungeon  ");
-    mvaddstr(0, 4, " and collect gold.  You can only return to the   ");
-    mvaddstr(0, 5, " surface after you have descended to the bottom. ");
-    mvaddstr(0, 6, "                                                 ");
-    mvaddstr(0, 7, " Commands include:                               ");
-    mvaddstr(0, 8, "    ? - help (this)                              ");
-    mvaddstr(0, 9, "    > - descend stairs (\">\")                     ");
-    mvaddstr(0, 10, "    < - ascend stairs (\"<\")                      ");
-    mvaddstr(0, 11, "    , - pick up gold  (\"$\")                      ");
-    mvaddstr(0, 12, "    s - search for hidden doors                  ");
-    mvaddstr(0, 13, "    q - chicken out and quit                     ");
-    mvaddstr(0, 14, "                                                 ");
-    mvaddstr(0, 15, " [type a command or any other key to continue]   ");
-    mvaddstr(0, 16, "                                                 ");
-    mvaddstr(0, 23, "*                                                                              *");
-    refresh();
+    //         Multiline string constant with dividers, go line by line?
+
+    self.setText(0, 0, "*                                                                              *");
+    self.setText(0, 1, "         Welcome to the Dungeon of Doom          ");
+    self.setText(0, 2, "                                                 ");
+    self.setText(0, 3, " Use the arrow keys to move through the dungeon  ");
+    self.setText(0, 4, " and collect gold.  You can only return to the   ");
+    self.setText(0, 5, " surface after you have descended to the bottom. ");
+    self.setText(0, 6, "                                                 ");
+    self.setText(0, 7, " Commands include:                               ");
+    self.setText(0, 8, "    ? - help (this)                              ");
+    self.setText(0, 9, "    > - descend stairs (\">\")                     ");
+    self.setText(0, 10, "    < - ascend stairs (\"<\")                      ");
+    self.setText(0, 11, "    , - pick up gold  (\"$\")                      ");
+    self.setText(0, 12, "    s - search for hidden doors                  ");
+    self.setText(0, 13, "    q - chicken out and quit                     ");
+    self.setText(0, 14, "                                                 ");
+    self.setText(0, 15, " [type a command or any other key to continue]   ");
+    self.setText(0, 16, "                                                 ");
+    self.setText(0, 23, "*                                                                              *");
+    self.refresh();
 }
 
 fn displayStatLine(self: *Self) void {
@@ -267,17 +215,21 @@ fn displayStatLine(self: *Self) void {
     const u_purse: u32 = @intCast(self.purse);
     const output = .{ self.depth, u_purse };
 
+    @memset(buf[0..], ' ');
     // We know that error.NoSpaceLeft can't happen here
-    const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
-    mvaddstr(0, @intCast(self.c.y - 1), line);
+    _ = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
+    self.setText(0, @intCast(self.c.y - 1), buf[0..]);
 }
 
-fn displayScreen(self: *Self) !void {
+fn displayScreen(self: *Self) void {
     //
     // Top line: messages
     //
-    mvaddstr(0, 0, "                                                  ");
-    mvaddstr(0, 0, self.c.getMessage());
+    var buf: [80]u8 = undefined;
+    @memset(buf[0..], ' ');
+    // We know that error.NoSpaceLeft can't happen here
+    _ = std.fmt.bufPrint(&buf, "{s}", .{self.c.getMessage()}) catch unreachable;
+    self.setText(0, 0, buf[0..]);
 
     //
     // Bottom line: stat block
@@ -288,11 +240,11 @@ fn displayScreen(self: *Self) !void {
     //
     // Middle: the map
     //
-    renderMap(&self.c);
+    renderMap(self);
 
     // Regenerate display
 
-    refresh();
+    self.refresh();
 }
 
 //
@@ -304,16 +256,11 @@ fn displayScreen(self: *Self) !void {
 fn cursesGetCommand(ptr: *anyopaque) Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
-    if (global_win == null) {
-        // Punish programmatic errors
-        @panic("getCommand but not initialized");
-    }
-
-    var cmd = readCommand();
+    var cmd = self.readCommand();
     while (cmd == .help) {
-        displayHelp();
+        self.displayHelp();
         self.c.needRefresh();
-        cmd = readCommand();
+        cmd = self.readCommand();
         // TODO: hit help a second time to rid menu
     }
 
@@ -324,13 +271,7 @@ fn cursesGetCommand(ptr: *anyopaque) Client.Command {
 
 fn cursesNotifyDisplay(ptr: *anyopaque) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-
-    if (global_win == null) {
-        // Punish programmatic errors
-        @panic("cursesNotifyDisplay but not initialized");
-    }
-
-    self.displayScreen() catch unreachable;
+    self.displayScreen();
 }
 
 fn cursesSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
@@ -342,10 +283,8 @@ fn cursesSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
         self.depth = value;
     }
 
-    if (global_win != null) {
-        self.displayStatLine();
-        refresh();
-    }
+    self.displayStatLine();
+    self.refresh();
 }
 
 //
