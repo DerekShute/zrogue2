@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-const server = @import("root.zig"); // TODO
+const server = @import("root.zig");
 const net = std.net;
 const print = std.debug.print; // TODO not this
 const Allocator = std.mem.Allocator;
@@ -12,29 +12,52 @@ const Writer = std.io.Writer;
 
 const Remote = server.Remote;
 
-// TODO: expanding to its own thing
+//
+// Service wrapper
+//
+
 const Service = struct {
     remote: Remote = undefined,
     peer: net.Address = undefined,
 
+    const Self = @This();
+
     // TODO should be unnecessary
-    pub fn format(self: @This(), w: *Writer) Writer.Error!void {
+    pub fn format(self: Self, w: *Writer) Writer.Error!void {
         return w.print("{f}", .{self.peer});
     }
 
-    pub fn writeEntryRequest(self: *@This(), text: []const u8) !void {
-        try server.writeEntryRequest(&self.remote, text);
+    //
+    // Message write wrappers
+    //
+
+    fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
+        // It's just wrappers all the way down.  This just simplifies the
+        // invocation in the write declaration
+        return struct {
+            pub fn write(self: *Self, msg: T) !void {
+                const r_write = Remote.Write(T, @intFromEnum(MT)).write;
+                try r_write(&self.remote, msg);
+            }
+        };
     }
 
-    pub fn writeAction(self: *@This(), kind: server.Action.Kind, pos: []const i16) !void {
-        try server.writeAction(&self.remote, kind, pos);
+    pub fn writeEntryRequest(self: *Self, text: []const u8) !void {
+        const write = Wrap(server.EntryRequest, .entry_request).write;
+        try write(self, .{ .name = text });
     }
 
-    pub fn writeDepart(self: *@This(), text: []const u8) !void {
-        try server.writeDepart(&self.remote, text);
+    pub fn writeAction(self: *Self, kind: server.Action.Kind, pos: []const i16) !void {
+        const write = Wrap(server.Action, .action).write;
+        try write(self, .{ .kind = kind, .x = pos[0], .y = pos[1] });
     }
 
-    pub fn run(self: *@This(), allocator: Allocator) !void {
+    pub fn writeDepart(self: *Self, text: []const u8) !void {
+        const write = Wrap(server.Depart, .depart).write;
+        try write(self, .{ .message = text });
+    }
+
+    pub fn run(self: *Self, allocator: Allocator) !void {
         try self.remote.run(allocator);
     }
 };
