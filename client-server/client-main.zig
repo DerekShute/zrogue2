@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-const server = @import("server");
+const server = @import("root.zig"); // TODO
 const net = std.net;
 const print = std.debug.print; // TODO not this
 const Allocator = std.mem.Allocator;

@@ -55,7 +55,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const server_mod = b.addModule("server", .{
-        .root_source_file = b.path("server/root.zig"),
+        .root_source_file = b.path("client-server/root.zig"),
         .target = target,
         .imports = &.{
             .{ .name = "roguelib", .module = roguelib_mod },
@@ -92,7 +92,7 @@ pub fn build(b: *std.Build) void {
     const server_exe = b.addExecutable(.{
         .name = "server",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("server/main.zig"),
+            .root_source_file = b.path("client-server/server-main.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -103,10 +103,10 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(server_exe);
 
-    const fuzz_client_exe = b.addExecutable(.{
+    const fuzz_exe = b.addExecutable(.{
         .name = "fuzz",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("server/fuzz.zig"),
+            .root_source_file = b.path("client-server/fuzz-main.zig"),
             .target = target,
             .optimize = test_optimize,
             .imports = &.{
@@ -115,7 +115,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    b.installArtifact(fuzz_client_exe);
+    b.installArtifact(fuzz_exe);
 
     //
     // Client
@@ -124,11 +124,11 @@ pub fn build(b: *std.Build) void {
     const client_exe = b.addExecutable(.{
         .name = "client",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("client/main.zig"),
+            .root_source_file = b.path("client-server/client-main.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "server", .module = server_mod },
+                .{ .name = "roguelib", .module = roguelib_mod },
             },
         }),
     });
