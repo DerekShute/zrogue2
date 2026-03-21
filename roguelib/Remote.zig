@@ -20,12 +20,6 @@ pub const Error = error{
     Invalid,
 };
 
-pub const State = enum {
-    init,
-    connected,
-    closing,
-};
-
 pub const DispatchFn = *const fn (conn: *Self, allocator: Allocator) Error!void;
 pub const ReadFn = *const fn (ctx: *anyopaque, ptr: *anyopaque) Error!void;
 
@@ -42,7 +36,6 @@ ctx: *anyopaque = undefined,
 reader: *Reader = undefined,
 writer: *Writer = undefined,
 sm: []const DispatchFn = undefined,
-state: State = .init,
 
 //
 // Messaging wrappers
