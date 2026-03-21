@@ -14,34 +14,51 @@ const Remote = server.Remote;
 //
 // This should be compiled with full debug protections
 //
+
+fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
+    return struct {
+        pub fn write(remote: *Remote, msg: T) void {
+            const r_write = Remote.Write(T, @intFromEnum(MT)).write;
+            r_write(remote, msg) catch unreachable;
+        }
+    };
+}
+
 fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) void {
-    server.writeAction(remote, kind, pos) catch unreachable;
+    const write = Wrap(server.Action, .action).write;
+    write(remote, .{ .x = pos[0], .y = pos[1], .kind = kind });
 }
 
 fn writeDepart(remote: *Remote, text: []const u8) void {
-    server.writeDepart(remote, text) catch unreachable;
+    const write = Wrap(server.Depart, .depart).write;
+    write(remote, .{ .message = text });
 }
 
 fn writeEntryRequest(remote: *Remote, text: []const u8) void {
-    server.writeEntryRequest(remote, text) catch unreachable;
+    const write = Wrap(server.EntryRequest, .entry_request).write;
+    write(remote, .{ .name = text });
 }
 
 fn writeMessage(remote: *Remote, text: []const u8) void {
-    server.writeMessage(remote, text) catch unreachable;
+    const write = Wrap(server.Message, .message).write;
+    write(remote, .{ .message = text });
 }
 
 fn writeMapUpdate(remote: *Remote) void {
+    const write = Wrap(server.MapUpdate, .map_update).write;
     const tile = server.MapUpdate.DisplayTile{
         .entity = .unknown,
         .item = .gold,
         .floor = .wall,
         .visible = true,
     };
-    server.writeMapUpdate(remote, &.{ 0, 1 }, tile) catch unreachable;
+
+    write(remote, .{ .x = 0, .y = 1, .tile = tile });
 }
 
 fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) void {
-    server.writeTableUpdate(remote, table, entry, value) catch unreachable;
+    const write = Wrap(server.TableUpdate, .table_update).write;
+    write(remote, .{ .table = table, .entry = entry, .value = value });
 }
 
 //

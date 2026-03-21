@@ -21,45 +21,63 @@ const Service = struct {
     name: []const u8 = undefined,
     state: Remote.State = .init, // TODO kind of gross
 
-    pub fn setState(self: *@This(), state: Remote.State) void {
+    const Self = @This();
+
+    pub fn setState(self: *Self, state: Remote.State) void {
         self.state = state;
     }
 
-    pub fn getState(self: *@This()) Remote.State {
+    pub fn getState(self: *Self) Remote.State {
         return self.state;
     }
 
-    pub fn format(self: @This(), w: *Writer) Writer.Error!void {
+    pub fn format(self: Self, w: *Writer) Writer.Error!void {
         return w.print("{s}:{}", .{ self.name, self.state });
     }
 
-    pub fn run(self: *@This(), allocator: Allocator) void {
+    pub fn run(self: *Self, allocator: Allocator) void {
         self.remote.run(allocator) catch |err| {
             log.info("[{f}] error {}", .{ self, err });
             self.setState(.closing);
         };
     }
 
-    // TODO: this demands refactoring.  server is losing its purpose
+    //
+    // Message write wrappers
+    //
 
-    pub fn writeMapUpdate(self: *@This(), pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
-        server.writeMapUpdate(&self.remote, &.{ pos[0], pos[1] }, tile) catch {
-            log.info("[{f}] Send error map-update", .{self});
-            return error.Failed;
+    fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
+        // It's just wrappers all the way down.  This just simplifies the
+        // invocation in the write declaration
+        return struct {
+            pub fn write(self: *Self, msg: T) !void {
+                const r_write = Remote.Write(T, @intFromEnum(MT)).write;
+                try r_write(&self.remote, msg);
+            }
+        };
+    }
+
+    pub fn writeMapUpdate(self: *Self, pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
+        const write = Wrap(server.MapUpdate, .map_update).write;
+        write(self, .{ .x = pos[0], .y = pos[1], .tile = tile }) catch |err| {
+            log.info("[{f}] Send error map-update {}", .{ self, err });
+            return err;
         };
     }
 
     pub fn writeMessage(self: *@This(), text: []const u8) !void {
-        server.writeMessage(&self.remote, text) catch {
-            log.info("[{f}] Send error message", .{self});
-            return error.Failed;
+        const write = Wrap(server.Message, .message).write;
+        write(self, .{ .message = text }) catch |err| {
+            log.info("[{f}] Send error message {}", .{ self, err });
+            return err;
         };
     }
 
     pub fn writeTableUpdate(self: *@This(), table: []const u8, entry: []const u8, value: []const u8) !void {
-        server.writeTableUpdate(&self.remote, table, entry, value) catch {
-            log.info("[{f}] Send error table-update", .{self});
-            return error.Failed;
+        const write = Wrap(server.TableUpdate, .table_update).write;
+        write(self, .{ .table = table, .entry = entry, .value = value }) catch |err| {
+            log.info("[{f}] Send error table-update {}", .{ self, err });
+            return err;
         };
     }
 };
@@ -101,7 +119,7 @@ fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     log.info("[{f}] Connected: player '{s}'", .{ self, msg.name });
     self.setState(.connected);
 
-    try self.writeMessage("Welcome to the Dungeon of Doom!");
+    self.writeMessage("Welcome to the Dungeon of Doom!") catch return error.Failed;
 
     const tile = server.MapUpdate.DisplayTile{
         .entity = .unknown,
@@ -109,11 +127,9 @@ fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
         .floor = .wall,
         .visible = true,
     };
-    try self.writeMapUpdate(&.{ 0, 1 }, tile);
-    try self.writeTableUpdate("stats", "purse", "0");
+    self.writeMapUpdate(&.{ 0, 1 }, tile) catch return error.Failed;
+    self.writeTableUpdate("stats", "purse", "0") catch return error.Failed;
 }
-
-// TODO: boilerplate 'not expected'
 
 fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     const self: *Service = @ptrCast(@alignCast(ctx));

@@ -46,48 +46,6 @@ pub const Message = @import("protocol/Message.zig");
 pub const TableUpdate = @import("protocol/TableUpdate.zig");
 
 //
-// Write methods
-//
-
-fn Wrap(comptime T: type, comptime MT: MessageType) type {
-    // It's just wrappers all the way down.  This just simplifies the
-    // invocation in the write declaration
-    return struct {
-        pub const write = Remote.Write(T, @intFromEnum(MT)).write;
-    };
-}
-
-pub fn writeAction(remote: *Remote, kind: Action.Kind, pos: []const i16) !void {
-    const write = Wrap(Action, .action).write;
-    try write(remote, .{ .kind = kind, .x = pos[0], .y = pos[1] });
-}
-
-pub fn writeDepart(remote: *Remote, text: []const u8) !void {
-    const write = Wrap(Depart, .depart).write;
-    try write(remote, .{ .message = text });
-}
-
-pub fn writeEntryRequest(remote: *Remote, text: []const u8) !void {
-    const write = Wrap(EntryRequest, .entry_request).write;
-    try write(remote, .{ .name = text });
-}
-
-pub fn writeMapUpdate(remote: *Remote, pos: []const i16, tile: MapUpdate.DisplayTile) !void {
-    const write = Wrap(MapUpdate, .map_update).write;
-    try write(remote, .{ .x = pos[0], .y = pos[1], .tile = tile });
-}
-
-pub fn writeMessage(remote: *Remote, text: []const u8) !void {
-    const write = Wrap(Message, .message).write;
-    try write(remote, .{ .message = text });
-}
-
-pub fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) !void {
-    const write = Wrap(TableUpdate, .table_update).write;
-    try write(remote, .{ .table = table, .entry = entry, .value = value });
-}
-
-//
 // Constants
 //
 
