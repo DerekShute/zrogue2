@@ -46,7 +46,7 @@ fn writeMessage(remote: *Remote, text: []const u8) void {
 
 fn writeMapUpdate(remote: *Remote) void {
     const write = Wrap(server.MapUpdate, .map_update).write;
-    const tile = server.MapUpdate.DisplayTile{
+    const tile = server.MapUpdate.Tile{
         .entity = .unknown,
         .item = .gold,
         .floor = .wall,

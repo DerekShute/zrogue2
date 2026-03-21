@@ -3,22 +3,12 @@
 //!
 
 const std = @import("std");
+const Allocator = std.mem.Allocator;
+pub const MapTile = @import("roguelib").MapTile;
 
 const Self = @This();
 
-pub const MapTile = enum {
-    unknown,
-    floor,
-    wall,
-    trap,
-    door,
-    stairs_down,
-    stairs_up,
-    gold,
-    player,
-};
-
-pub const DisplayTile = struct {
+pub const Tile = struct {
     entity: MapTile,
     item: MapTile,
     floor: MapTile,
@@ -31,14 +21,14 @@ pub const DisplayTile = struct {
 
 x: i16,
 y: i16,
-tile: DisplayTile,
+tile: Tile,
 // TODO: slice of tiles (row update), etc.
 
 //
 // Lifecycle
 //
 
-pub fn init(allocator: std.mem.Allocator, pos: []const i16, tile: DisplayTile) !*Self {
+pub fn init(allocator: Allocator, pos: []const i16, tile: Tile) !*Self {
     const s: *Self = try allocator.create(Self);
     errdefer allocator.destroy(s);
     s.x = pos[0];
@@ -47,7 +37,7 @@ pub fn init(allocator: std.mem.Allocator, pos: []const i16, tile: DisplayTile) !
     return s;
 }
 
-pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+pub fn deinit(self: *Self, allocator: Allocator) void {
     allocator.destroy(self);
 }
 
@@ -69,7 +59,7 @@ const t_allocator = std.testing.allocator;
 const FailingAllocator = std.testing.FailingAllocator;
 
 test "basic usage" {
-    const tile: DisplayTile = .{
+    const tile: Tile = .{
         .entity = .unknown,
         .item = .gold,
         .floor = .floor,

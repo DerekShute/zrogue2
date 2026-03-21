@@ -57,7 +57,7 @@ const Service = struct {
         };
     }
 
-    pub fn writeMapUpdate(self: *Self, pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
+    pub fn writeMapUpdate(self: *Self, pos: []const i16, tile: server.MapUpdate.Tile) !void {
         const write = Wrap(server.MapUpdate, .map_update).write;
         write(self, .{ .x = pos[0], .y = pos[1], .tile = tile }) catch |err| {
             log.info("[{f}] Send error map-update {}", .{ self, err });
@@ -121,7 +121,7 @@ fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
 
     self.writeMessage("Welcome to the Dungeon of Doom!") catch return error.Failed;
 
-    const tile = server.MapUpdate.DisplayTile{
+    const tile = server.MapUpdate.Tile{
         .entity = .unknown,
         .item = .gold,
         .floor = .wall,
