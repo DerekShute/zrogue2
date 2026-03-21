@@ -88,10 +88,10 @@ const Service = struct {
 
 fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     const self: *Service = @ptrCast(@alignCast(ctx));
-    const msg: *server.Action = @ptrCast(@alignCast(ptr));
+    const msg: *server.ActionMsg = @ptrCast(@alignCast(ptr));
 
     if (self.getState() != .connected) {
-        log.info("[{f}] Action in wrong state", .{self});
+        log.info("[{f}] ActionMsg in wrong state", .{self});
         self.setState(.closing);
         return;
     }

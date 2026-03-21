@@ -1,33 +1,26 @@
 //!
-//! Action placeholder
+//! Action message
 //!
-//! TODO: need to integrate, etc. with roguelib/Action.zig
+//! msgpack-safe
 //!
 
 const std = @import("std");
+const Action = @import("roguelib").Action;
 
 const Allocator = std.mem.Allocator;
-
 const Self = @This();
 
-pub const Kind = enum {
-    none,
-    quit,
-    ascend,
-    descend,
-    move, // Directional
-    search,
-    take, // Positional
-    wait,
-};
+pub const Type = Action.Type;
 
-kind: Kind,
-x: i16, // As slice/array is a problem
+//
+// Members
+//
+
+kind: Type,
+x: i16, // Slice/array is a problem for msgpack
 y: i16,
 
-// EOF
-
-pub fn init(allocator: Allocator, kind: Kind, pos: []const i16) !*Self {
+pub fn init(allocator: Allocator, kind: Type, pos: []const i16) !*Self {
     const s: *Self = try allocator.create(Self);
     errdefer allocator.destroy(s);
     s.kind = kind;
@@ -53,8 +46,6 @@ const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 const t_allocator = std.testing.allocator;
 const FailingAllocator = std.testing.FailingAllocator;
-
-// write
 
 test "basic usage" {
     var msg = try init(t_allocator, .none, &.{ 0, 1 });
