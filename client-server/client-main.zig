@@ -174,10 +174,8 @@ pub fn main() !void {
 
     // TODO: need to absorb messages, reply, etc
     try service.run(allocator);
-
+    try service.run(allocator);
     try service.writeAction(.none, &.{ 0, 0 });
-    try service.run(allocator);
-    try service.run(allocator);
     try service.writeDepart("ending");
 
     print("Disconnected from {f}\n", .{peer});

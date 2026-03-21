@@ -28,12 +28,10 @@ pub const Config = struct {
 };
 
 //
-// Members
+// Service Routines
 //
 
-//
 // Convert map location to what it is displayed as
-//
 fn mapToChar(ch: MapTile) u8 {
     // FUTURE: break out into types
     const c: u8 = switch (ch) {
@@ -209,7 +207,7 @@ fn displayHelp(self: *Self) void {
 
 fn displayStatLine(self: *Self) void {
     // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
-    var buf: [80]u8 = undefined; // does this need to be allocated?  size?
+    var buf: [80]u8 = undefined;
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
     const u_purse: u32 = @intCast(self.purse);
