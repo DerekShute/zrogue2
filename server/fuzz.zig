@@ -185,7 +185,6 @@ pub fn main() !void {
         var writer = stream.writer(&.{});
 
         var remote = Remote{
-            .name = name,
             .reader = reader.interface(),
             .writer = &writer.interface,
         };

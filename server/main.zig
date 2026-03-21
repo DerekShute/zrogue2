@@ -14,51 +14,94 @@ const net = std.net;
 
 const Remote = server.Remote;
 
+// TODO: expanding to its own thing
+const Service = struct {
+    remote: Remote = undefined,
+    // TODO game
+    name: []const u8 = undefined,
+    state: Remote.State = .init, // TODO kind of gross
+
+    pub fn setState(self: *@This(), state: Remote.State) void {
+        self.state = state;
+    }
+
+    pub fn getState(self: *@This()) Remote.State {
+        return self.state;
+    }
+
+    pub fn format(self: @This(), w: *Writer) Writer.Error!void {
+        return w.print("{s}:{}", .{ self.name, self.state });
+    }
+
+    pub fn run(self: *@This(), allocator: Allocator) void {
+        self.remote.run(allocator) catch |err| {
+            log.info("[{f}] error {}", .{ self, err });
+            self.setState(.closing);
+        };
+    }
+
+    // TODO: this demands refactoring.  server is losing its purpose
+
+    pub fn writeMapUpdate(self: *@This(), pos: []const i16, tile: server.MapUpdate.DisplayTile) !void {
+        server.writeMapUpdate(&self.remote, &.{ pos[0], pos[1] }, tile) catch {
+            log.info("[{f}] Send error map-update", .{self});
+            return error.Failed;
+        };
+    }
+
+    pub fn writeMessage(self: *@This(), text: []const u8) !void {
+        server.writeMessage(&self.remote, text) catch {
+            log.info("[{f}] Send error message", .{self});
+            return error.Failed;
+        };
+    }
+
+    pub fn writeTableUpdate(self: *@This(), table: []const u8, entry: []const u8, value: []const u8) !void {
+        server.writeTableUpdate(&self.remote, table, entry, value) catch {
+            log.info("[{f}] Send error table-update", .{self});
+            return error.Failed;
+        };
+    }
+};
+
 //
 // State machine callbacks
 //
 
-fn doAction(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.Action = @ptrCast(@alignCast(ptr));
 
-    if (remote.getState() != .connected) {
-        log.info(
-            "[{f}] Action in wrong state '{}'",
-            .{ remote, remote.getState() },
-        );
-        remote.setState(.closing);
+    if (self.getState() != .connected) {
+        log.info("[{f}] Action in wrong state", .{self});
+        self.setState(.closing);
         return;
     }
-    log.info("[{f}] Action: {} {},{}", .{ remote, msg.kind, msg.x, msg.y });
+    log.info("[{f}] Action: {} {},{}", .{ self, msg.kind, msg.x, msg.y });
 }
 
-fn doDepart(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
 
-    log.info("[{f}] Disconnecting: message '{s}'", .{ remote, msg.message });
-    remote.setState(.closing);
+    log.info("[{f}] Disconnecting: message '{s}'", .{ self, msg.message });
+    self.setState(.closing);
 }
 
-fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
-    errdefer remote.setState(.closing);
-
+fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
+    errdefer self.setState(.closing);
     const msg: *server.EntryRequest = @ptrCast(@alignCast(ptr));
 
-    if (remote.getState() != .init) {
-        log.info(
-            "[{f}] EntryRequest in wrong state '{}'",
-            .{ remote, remote.getState() },
-        );
+    if (self.getState() != .init) {
+        log.info("[{f}] EntryRequest in wrong state", .{self});
         return;
     }
 
-    log.info("[{f}] Connected: player '{s}'", .{ remote, msg.name });
-    remote.setState(.connected);
+    log.info("[{f}] Connected: player '{s}'", .{ self, msg.name });
+    self.setState(.connected);
 
-    server.writeMessage(remote, "Welcome to the Dungeon of Doom!") catch {
-        log.info("[{f}] Send error, disconnecting", .{remote});
-        return;
-    };
+    try self.writeMessage("Welcome to the Dungeon of Doom!");
 
     const tile = server.MapUpdate.DisplayTile{
         .entity = .unknown,
@@ -66,36 +109,33 @@ fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
         .floor = .wall,
         .visible = true,
     };
-
-    server.writeMapUpdate(remote, &.{ 0, 1 }, tile) catch {
-        log.info("[{f}] Send error map-update, disconnecting", .{remote});
-        return;
-    };
-
-    server.writeTableUpdate(remote, "stats", "purse", "0") catch {
-        log.info("[{f}] Send error table-update, disconnecting", .{remote});
-        return;
-    };
+    try self.writeMapUpdate(&.{ 0, 1 }, tile);
+    try self.writeTableUpdate("stats", "purse", "0");
 }
 
-fn doMapUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+// TODO: boilerplate 'not expected'
+
+fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     _ = ptr; // Don't care, possibly pathological
 
-    log.info("[{f}] Unexpected map update", .{remote});
-    remote.setState(.closing);
+    log.info("[{f}] Unexpected map update", .{self});
+    self.setState(.closing);
 }
 
-fn doMessage(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doMessage(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     _ = ptr; // Don't care, possibly pathological
 
-    log.info("[{f}] Unexpected message", .{remote});
-    remote.setState(.closing);
+    log.info("[{f}] Unexpected message", .{self});
+    self.setState(.closing);
 }
 
-fn doTableUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doTableUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     _ = ptr;
-    log.info("[{f}] Unexpected table update", .{remote});
-    remote.setState(.closing);
+    log.info("[{f}] Unexpected table update", .{self});
+    self.setState(.closing);
 }
 
 //
@@ -126,12 +166,18 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
     var reader = conn.stream.reader(rbuf);
     var writer = conn.stream.writer(&.{});
 
-    var remote = Remote{
+    // TODO: Create connection to Game but nothing happens and no step
+    // forward until state aligns
+
+    var service = Service{
         .name = name,
-        .reader = reader.interface(),
-        .writer = &writer.interface,
-        .sm = &rig,
+        .remote = Remote{
+            .reader = reader.interface(),
+            .writer = &writer.interface,
+            .sm = &rig,
+        },
     };
+    service.remote.ctx = &service;
 
     //
     // Create a limited allocator here for catching incoming messages
@@ -140,13 +186,11 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
     defer allocator.free(buffer);
     var fb = std.heap.FixedBufferAllocator.init(buffer);
 
-    while (remote.getState() != .closing) {
-        var arena = std.heap.ArenaAllocator.init(fb.allocator());
-        defer arena.deinit();
-        remote.run(arena.allocator()) catch |err| {
-            log.info("[{s}] error {}", .{ name, err });
-            remote.setState(.closing);
-        };
+    var arena = std.heap.ArenaAllocator.init(fb.allocator());
+    defer arena.deinit();
+
+    while (service.getState() != .closing) {
+        service.run(arena.allocator());
     }
 
     log.info("[{s}] End session", .{name});
