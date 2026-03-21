@@ -6,50 +6,86 @@ const std = @import("std");
 const server = @import("server");
 const net = std.net;
 const print = std.debug.print; // TODO not this
+const Allocator = std.mem.Allocator;
+const Reader = std.io.Reader;
+const Writer = std.io.Writer;
 
 const Remote = server.Remote;
+
+// TODO: expanding to its own thing
+const Service = struct {
+    remote: Remote = undefined,
+    peer: net.Address = undefined,
+
+    // TODO should be unnecessary
+    pub fn format(self: @This(), w: *Writer) Writer.Error!void {
+        return w.print("{f}", .{self.peer});
+    }
+
+    pub fn writeEntryRequest(self: *@This(), text: []const u8) !void {
+        try server.writeEntryRequest(&self.remote, text);
+    }
+
+    pub fn writeAction(self: *@This(), kind: server.Action.Kind, pos: []const i16) !void {
+        try server.writeAction(&self.remote, kind, pos);
+    }
+
+    pub fn writeDepart(self: *@This(), text: []const u8) !void {
+        try server.writeDepart(&self.remote, text);
+    }
+
+    pub fn run(self: *@This(), allocator: Allocator) !void {
+        try self.remote.run(allocator);
+    }
+};
 
 //
 // State machine callbacks
 //
-// TODO: returns error to close connection
 
-fn doAction(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     _ = ptr;
-    print("[{f}] Unexpected Action\n", .{remote});
-    remote.setState(.closing);
+    print("[{f}] Unexpected Action\n", .{self});
+    return error.Failed;
 }
 
-fn doDepart(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
-    print("[{f}] Disconnecting: message '{s}'\n", .{ remote, msg.message });
-    remote.setState(.closing);
+
+    print("[{f}] Disconnecting: message '{s}'\n", .{ self, msg.message });
+    return error.Failed; // TODO: elegance
 }
 
-fn doEntryRequest(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     _ = ptr;
-    print("[{f}] Unexpected message\n", .{remote});
-    remote.setState(.closing);
+    print("[{f}] Unexpected message\n", .{self});
+    return error.Failed;
 }
 
-fn doMapUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.MapUpdate = @ptrCast(@alignCast(ptr));
     print(
         "[{f}] : map ({},{}) : {} {} {} {}\n",
         .{
-            remote, msg.x, msg.y, msg.tile.entity, msg.tile.item, msg.tile.floor, msg.tile.visible,
+            self, msg.x, msg.y, msg.tile.entity, msg.tile.item, msg.tile.floor, msg.tile.visible,
         },
     );
 }
 
-fn doMessage(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doMessage(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.Message = @ptrCast(@alignCast(ptr));
-    print("[{f}] : '{s}'\n", .{ remote, msg.message });
+    print("[{f}] : '{s}'\n", .{ self, msg.message });
 }
 
-fn doTableUpdate(remote: *Remote, ptr: *anyopaque) Remote.Error!void {
+fn doTableUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.TableUpdate = @ptrCast(@alignCast(ptr));
-    print("[{f}] : update {s}/{s} : {s}\n", .{ remote, msg.table, msg.entry, msg.value });
+    print("[{f}] : update {s}/{s} : {s}\n", .{ self, msg.table, msg.entry, msg.value });
 }
 
 //
@@ -88,10 +124,7 @@ pub fn main() !void {
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
 
-    const name = try std.fmt.allocPrint(allocator, "{f}", .{peer});
-    defer allocator.free(name);
-
-    print("Connecting to {s}\n", .{name});
+    print("Connecting to {f}\n", .{peer});
 
     const rbuf = allocator.alloc(u8, 1000) catch |err| {
         print("alloc read buffer: {}", .{err});
@@ -102,24 +135,27 @@ pub fn main() !void {
     var reader = stream.reader(rbuf);
     var writer = stream.writer(&.{});
 
-    // TODO: server struct with methods
-    var remote = Remote{
-        .name = name,
-        .reader = reader.interface(),
-        .writer = &writer.interface,
-        .sm = &rig,
+    var service = Service{
+        .peer = peer,
+        .remote = Remote{
+            .reader = reader.interface(),
+            .writer = &writer.interface,
+            .sm = &rig,
+        },
     };
+    service.remote.ctx = &service;
 
     // TODO handle errors
     // TODO player name
-    try server.writeEntryRequest(&remote, "anonymous");
+    try service.writeEntryRequest("anonymous");
 
     // TODO: need to absorb messages, reply, etc
-    try remote.run(allocator);
+    try service.run(allocator);
 
-    try server.writeAction(&remote, .none, &.{ 0, 0 });
-    try remote.run(allocator);
-    try server.writeDepart(&remote, "ending");
+    try service.writeAction(.none, &.{ 0, 0 });
+    try service.run(allocator);
+    try service.run(allocator);
+    try service.writeDepart("ending");
 
-    print("Disconnected from {s}\n", .{name});
+    print("Disconnected from {f}\n", .{peer});
 }

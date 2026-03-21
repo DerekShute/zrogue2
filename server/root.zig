@@ -50,10 +50,9 @@ pub const TableUpdate = @import("protocol/TableUpdate.zig");
 //
 
 fn Wrap(comptime T: type, comptime MT: MessageType) type {
-    // You can return the function body as '.write' here but that makes the
-    // return type very complicated.
+    // It's just wrappers all the way down.  This just simplifies the
+    // invocation in the write declaration
     return struct {
-        // It's just wrappers all the way down
         pub const write = Remote.Write(T, @intFromEnum(MT)).write;
     };
 }

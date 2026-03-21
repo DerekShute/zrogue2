@@ -26,9 +26,8 @@ pub const State = enum {
     closing,
 };
 
-// TODO: arg0 is interface context
 pub const DispatchFn = *const fn (conn: *Self, allocator: Allocator) Error!void;
-pub const ReadFn = *const fn (conn: *Self, ctx: *anyopaque) Error!void;
+pub const ReadFn = *const fn (ctx: *anyopaque, ptr: *anyopaque) Error!void;
 
 // const rig = [_]DispatchFn{
 //    doThing,  (message 0)...
@@ -39,10 +38,10 @@ pub const ReadFn = *const fn (conn: *Self, ctx: *anyopaque) Error!void;
 // Members
 //
 
+ctx: *anyopaque = undefined,
 reader: *Reader = undefined,
 writer: *Writer = undefined,
 sm: []const DispatchFn = undefined,
-name: []const u8 = undefined, // TODO - context problem
 state: State = .init,
 
 //
@@ -50,6 +49,8 @@ state: State = .init,
 //
 
 pub fn Write(comptime T: type, comptime MT: u16) type {
+    // You can return the function body as '.write' here but that makes the
+    // return type very complicated.
     return struct {
         pub fn write(self: *Self, msg: T) !void {
             var intbuf: [2]u8 = undefined;
@@ -75,8 +76,7 @@ pub fn Dispatch(comptime T: type, comptime FN: ReadFn) type {
                 return error.Invalid;
             }
 
-            // TODO: FN(self.ctx, &msg.value)
-            FN(self, &msg.value) catch return error.Failed;
+            FN(self.ctx, &msg.value) catch return error.Failed;
         }
     };
 }
@@ -84,14 +84,6 @@ pub fn Dispatch(comptime T: type, comptime FN: ReadFn) type {
 //
 // Interface
 //
-
-pub fn setState(self: *Self, state: State) void {
-    self.state = state;
-}
-
-pub fn getState(self: *Self) State {
-    return self.state;
-}
 
 pub fn run(self: *Self, allocator: Allocator) !void {
     const buffer = try allocator.alloc(u8, 325);
@@ -108,14 +100,6 @@ pub fn run(self: *Self, allocator: Allocator) !void {
 
     const cb = self.sm[val];
     try cb(self, fba.allocator());
-}
-
-//
-// Formatter
-//
-
-pub fn format(self: Self, w: *Writer) Writer.Error!void {
-    return w.print("{s}", .{self.name});
 }
 
 //
@@ -147,9 +131,9 @@ const TestExtra = struct {
     }
 };
 
-fn testEntry(conn: *Self, ctx: *anyopaque) !void {
-    _ = conn;
+fn testEntry(ctx: *anyopaque, ptr: *anyopaque) !void {
     _ = ctx;
+    _ = ptr;
 }
 
 const testWrite = Write(Test, 0).write;
@@ -165,7 +149,7 @@ test "basic usage" {
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
 
     var client = Self{
-        .name = "whatever",
+        // TODO: ctx unhandled
         .reader = &breader,
         .writer = &bwriter,
         .sm = &test_rig,
@@ -186,7 +170,6 @@ test "internal validation" {
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
 
     var client = Self{
-        .name = "whatever",
         .reader = &breader,
         .writer = &bwriter,
         .sm = &test_rig,
@@ -207,7 +190,6 @@ test "invalid message type" {
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
 
     var client = Self{
-        .name = "whatever",
         .reader = &breader,
         .writer = &bwriter,
         .sm = &test_rig, // unused
@@ -231,7 +213,6 @@ test "truncated input" {
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
 
     var client = Self{
-        .name = "whatever",
         .reader = &breader,
         .writer = &bwriter,
         .sm = &test_rig,
@@ -253,7 +234,6 @@ test "added field" {
     var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
 
     var client = Self{
-        .name = "whatever",
         .reader = &breader,
         .writer = &bwriter,
         .sm = &test_rig,
