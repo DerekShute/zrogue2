@@ -38,7 +38,7 @@ pub const MessageType = enum(u16) { // List controlled by protocol version
     pub const len = @typeInfo(@This()).@"enum".fields.len;
 };
 
-pub const Action = @import("protocol/Action.zig");
+pub const ActionMsg = @import("protocol/ActionMsg.zig");
 pub const Depart = @import("protocol/Depart.zig");
 pub const EntryRequest = @import("protocol/EntryRequest.zig");
 pub const MapUpdate = @import("protocol/MapUpdate.zig");
@@ -66,7 +66,7 @@ pub fn genDispatch(fns: [MessageType.len]Remote.ReadFn) [MessageType.len]Remote.
     // This guarantees that all clients have entries for each message type
     const Dispatch = Remote.Dispatch;
     return .{
-        Dispatch(Action, getDispatch(fns, .action)).dispatch,
+        Dispatch(ActionMsg, getDispatch(fns, .action)).dispatch,
         Dispatch(Depart, getDispatch(fns, .depart)).dispatch,
         Dispatch(EntryRequest, getDispatch(fns, .entry_request)).dispatch,
         Dispatch(MapUpdate, getDispatch(fns, .map_update)).dispatch,
@@ -80,7 +80,7 @@ pub fn genDispatch(fns: [MessageType.len]Remote.ReadFn) [MessageType.len]Remote.
 //
 
 comptime {
-    _ = @import("protocol/Action.zig");
+    _ = @import("protocol/ActionMsg.zig");
     _ = @import("protocol/Depart.zig");
     _ = @import("protocol/EntryRequest.zig");
     _ = @import("protocol/MapUpdate.zig");

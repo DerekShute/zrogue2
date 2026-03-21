@@ -24,8 +24,8 @@ fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
     };
 }
 
-fn writeAction(remote: *Remote, kind: server.Action.Kind, pos: []const i16) void {
-    const write = Wrap(server.Action, .action).write;
+fn writeAction(remote: *Remote, kind: server.ActionMsg.Type, pos: []const i16) void {
+    const write = Wrap(server.ActionMsg, .action).write;
     write(remote, .{ .x = pos[0], .y = pos[1], .kind = kind });
 }
 

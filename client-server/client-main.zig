@@ -47,8 +47,8 @@ const Service = struct {
         try write(self, .{ .name = text });
     }
 
-    pub fn writeAction(self: *Self, kind: server.Action.Kind, pos: []const i16) !void {
-        const write = Wrap(server.Action, .action).write;
+    pub fn writeAction(self: *Self, kind: server.ActionMsg.Type, pos: []const i16) !void {
+        const write = Wrap(server.ActionMsg, .action).write;
         try write(self, .{ .kind = kind, .x = pos[0], .y = pos[1] });
     }
 
