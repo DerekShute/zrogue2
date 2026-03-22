@@ -180,11 +180,9 @@ pub fn main() !void {
     // TODO player name
     try service.writeEntryRequest("anonymous");
 
-    // TODO: need to absorb messages, reply, etc
-    try service.run(allocator);
-    try service.run(allocator);
-    try service.writeAction(.none, &.{ 0, 0 });
-    try service.writeDepart("ending");
+    while (true) {
+        try service.run(allocator);
+    }
 
     print("Disconnected from {f}\n", .{peer});
 }

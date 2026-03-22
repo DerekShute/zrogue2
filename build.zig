@@ -96,6 +96,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
+                .{ .name = "game", .module = game_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
             },
         }),

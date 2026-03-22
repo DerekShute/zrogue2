@@ -42,6 +42,7 @@ pub const State = enum {
 // Members
 //
 
+allocator: Allocator = undefined,
 c: Client = undefined,
 r: Remote = undefined,
 name: []const u8 = undefined,
@@ -82,6 +83,7 @@ pub fn init(config: Config) !*Self {
         },
     };
 
+    rc.allocator = pc.allocator;
     rc.c = try Client.init(pc);
     errdefer rc.c.deinit(pc.allocator);
     rc.name = config.name;
@@ -197,11 +199,17 @@ fn remoteAddMessage(ptr: *anyopaque, text: []const u8) void {
 fn remoteGetCommand(ptr: *anyopaque) Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
+    if (self.state != .connected) { // Prevent flood of failures
+        return .wait; // TODO: no error path here
+    }
+
+    self.run(self.allocator);
+
     if (self.next_command) |command| {
         self.next_command = null;
         return command;
     }
-    return .wait; // TODO need 'null' / 'no command'
+    return .wait; // TODO need optionalreturn or something
 }
 
 fn remoteNotifyDisplay(ptr: *anyopaque) void {
