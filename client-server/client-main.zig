@@ -4,8 +4,9 @@
 
 const std = @import("std");
 const server = @import("root.zig");
+const NCurses = @import("ncurses");
+
 const net = std.net;
-const print = std.debug.print; // TODO not this
 const Allocator = std.mem.Allocator;
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
@@ -17,15 +18,14 @@ const Remote = server.Remote;
 //
 
 const Service = struct {
+    ncurses: NCurses = undefined,
     remote: Remote = undefined,
     peer: net.Address = undefined,
+    // Stats
+    purse: i32 = 0,
+    depth: i32 = 0,
 
     const Self = @This();
-
-    // TODO should be unnecessary
-    pub fn format(self: Self, w: *Writer) Writer.Error!void {
-        return w.print("{f}", .{self.peer});
-    }
 
     //
     // Message write wrappers
@@ -60,62 +60,151 @@ const Service = struct {
     pub fn run(self: *Self, allocator: Allocator) !void {
         try self.remote.run(allocator);
     }
+
+    // NCurses service routines
+
+    fn refresh(self: *Self) void {
+        self.ncurses.refresh();
+    }
+
+    fn setChar(self: *Self, x: u16, y: u16, c: u8) void {
+        self.ncurses.setChar(x, y, c);
+    }
+
+    fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
+        self.ncurses.setText(x, y, s);
+    }
 };
+
+//
+// Service routines
+//
+
+fn mapToChar(ch: server.MapUpdate.MapTile) u8 {
+    const c: u8 = switch (ch) {
+        .unknown => ' ',
+        .floor => '.',
+        .gold => '$',
+        .wall => '#',
+        .door => '+',
+        .trap => '^',
+        .player => '@',
+        .stairs_down => '>',
+        .stairs_up => '<',
+    };
+    return c;
+}
+
+fn renderChar(tile: server.MapUpdate.Tile) u8 {
+    if (tile.visible) {
+        if (tile.entity != .unknown) {
+            return mapToChar(tile.entity);
+        }
+        if (tile.item != .unknown) {
+            return mapToChar(tile.item);
+        }
+        // Else floor
+    } else { // Not visible
+        // Client option: can use dimmed version of last known, etc
+        if (!tile.floor.isFeature()) {
+            return mapToChar(.unknown);
+        }
+    }
+
+    return mapToChar(tile.floor);
+}
+
+fn displayMessageLine(service: *Service, message: []const u8) void {
+    var buf: [80]u8 = undefined;
+
+    // TODO not great, should store messages here, not in Client
+
+    @memset(buf[0..], ' ');
+    // We know that error.NoSpaceLeft can't happen here
+    _ = std.fmt.bufPrint(&buf, "{s}", .{message}) catch unreachable;
+    service.setText(0, 0, buf[0..]);
+    service.refresh();
+}
+
+fn displayStatLine(service: *Service) void {
+    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
+    var buf: [80]u8 = undefined;
+
+    const fmt = "Level: {}  Gold: {:<5}  Hp: some";
+    const u_purse: u32 = @intCast(service.purse);
+    const output = .{ service.depth, u_purse };
+
+    @memset(buf[0..], ' ');
+    // We know that error.NoSpaceLeft can't happen here
+    _ = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
+    service.setText(0, 25, buf[0..]); // TODO line number
+    service.refresh();
+}
 
 //
 // State machine callbacks
 //
 
 fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
+    _ = ctx;
     _ = ptr;
-    print("[{f}] Unexpected Action\n", .{self});
     return error.Failed;
 }
 
 fn doCommand(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
+    _ = ctx;
     _ = ptr;
-    print("[{f}] Unexpected Command\n", .{self});
     return error.Failed;
 }
 
 fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
-    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
-
-    print("[{f}] Disconnecting: message '{s}'\n", .{ self, msg.message });
+    _ = ctx;
+    _ = ptr;
     return error.Failed; // TODO: elegance
 }
 
 fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
+    _ = ctx;
     _ = ptr;
-    print("[{f}] Unexpected message\n", .{self});
     return error.Failed;
 }
 
+//
+// Valid messages
+//
+
 fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
+    const service: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.MapUpdate = @ptrCast(@alignCast(ptr));
-    print(
-        "[{f}] : map ({},{}) : {} {} {} {}\n",
-        .{
-            self, msg.x, msg.y, msg.tile.entity, msg.tile.item, msg.tile.floor, msg.tile.visible,
-        },
+
+    service.setChar(
+        @intCast(msg.x),
+        @intCast(msg.y + 1),
+        renderChar(msg.tile),
     );
+    service.refresh();
 }
 
 fn doMessage(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
+    const service: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.Message = @ptrCast(@alignCast(ptr));
-    print("[{f}] : '{s}'\n", .{ self, msg.message });
+    displayMessageLine(service, msg.message);
 }
 
 fn doTableUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Service = @ptrCast(@alignCast(ctx));
+    const service: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.TableUpdate = @ptrCast(@alignCast(ptr));
-    print("[{f}] : update {s}/{s} : {s}\n", .{ self, msg.table, msg.entry, msg.value });
+    const val: i16 = std.fmt.parseInt(i16, msg.value, 10) catch return error.Failed;
+
+    // TODO: assuming table is "stats"
+
+    if (std.mem.eql(u8, "purse", msg.entry)) {
+        service.purse = val;
+    } else if (std.mem.eql(u8, "depth", msg.entry)) {
+        service.depth = val;
+    }
+
+    displayStatLine(service);
 }
 
 //
@@ -136,37 +225,24 @@ const rig = server.genDispatch(fns);
 // Main
 //
 
-pub fn main() !void {
+fn run_game(peer: net.Address) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    // TODO: better
-
-    var args = std.process.args();
-    // The first (0 index) Argument is the path to the program.
-    _ = args.skip();
-    const port_value = args.next() orelse {
-        print("expect port as command line argument\n", .{});
-        return error.NoPort;
-    };
-
-    const port = try std.fmt.parseInt(u16, port_value, 10);
-    const peer = try net.Address.parseIp4("127.0.0.1", port);
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
 
-    print("Connecting to {f}\n", .{peer});
-
-    const rbuf = allocator.alloc(u8, 1000) catch |err| {
-        print("alloc read buffer: {}", .{err});
-        return err;
-    };
+    const rbuf = try allocator.alloc(u8, 1000);
     errdefer allocator.free(rbuf);
 
     var reader = stream.reader(rbuf);
     var writer = stream.writer(&.{});
 
+    var curses = try NCurses.init();
+    defer curses.deinit();
+
     var service = Service{
+        .ncurses = curses,
         .peer = peer,
         .remote = Remote{
             .reader = reader.interface(),
@@ -183,6 +259,24 @@ pub fn main() !void {
     while (true) {
         try service.run(allocator);
     }
+}
 
-    print("Disconnected from {f}\n", .{peer});
+pub fn main() !void {
+    // TODO: better
+
+    var args = std.process.args();
+    // The first (0 index) Argument is the path to the program.
+    _ = args.skip();
+    const port_value = args.next() orelse {
+        std.debug.print("expect port as command line argument\n", .{});
+        return error.NoPort;
+    };
+
+    const port = try std.fmt.parseInt(u16, port_value, 10);
+    const peer = try net.Address.parseIp4("127.0.0.1", port);
+    std.debug.print("Connecting to {f}\n", .{peer});
+
+    run_game(peer) catch {};
+
+    std.debug.print("Disconnected from {f}\n", .{peer});
 }

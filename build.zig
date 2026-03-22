@@ -129,11 +129,14 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
+                .{ .name = "ncurses", .module = curses_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
             },
         }),
     });
 
+    client_exe.linkSystemLibrary("ncursesw");
+    client_exe.linkLibC();
     b.installArtifact(client_exe);
 
     //
