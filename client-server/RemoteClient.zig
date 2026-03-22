@@ -183,6 +183,11 @@ fn writeTableUpdate(self: *@This(), table: []const u8, entry: []const u8, value:
 
 fn remoteAddMessage(ptr: *anyopaque, text: []const u8) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
+
+    if (self.state != .connected) { // Prevent flood of failures
+        return;
+    }
+
     self.writeMessage(text) catch |err| {
         log.info("[{f}] remoteAddMessage {}", .{ self, err });
         self.setState(.closing);
@@ -200,15 +205,41 @@ fn remoteGetCommand(ptr: *anyopaque) Client.Command {
 }
 
 fn remoteNotifyDisplay(ptr: *anyopaque) void {
-    _ = ptr;
-    //const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Self = @ptrCast(@alignCast(ptr));
 
-    // NOCOMMIT: walk through and send X MapUpdate
+    // FUTURE: consolidate to a set of slices
+
+    if (self.state != .connected) { // Prevent flood of failures
+        return;
+    }
+
+    if (self.c.displayChange()) |dc| { // if there's a change
+        var _dc = dc;
+        while (_dc.next()) |loc| {
+            const dmt = self.c.getTile(loc);
+            const tile = server.MapUpdate.Tile{
+                .entity = dmt.entity,
+                .item = dmt.item,
+                .floor = dmt.floor,
+                .visible = dmt.visible,
+            };
+            const spot = &.{ loc.getX(), loc.getY() };
+            self.writeMapUpdate(spot, tile) catch |err| {
+                log.info("[{f}] remoteNotifyDisplay {}", .{ self, err });
+                self.setState(.closing);
+                return; // TODO no error return is a problem
+            };
+        }
+    }
 }
 
 fn remoteSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     var buf: [80]u8 = undefined;
+
+    if (self.state != .connected) { // Prevent flood of failures
+        return;
+    }
 
     const slice = std.fmt.bufPrint(&buf, "{}", .{value}) catch {
         // We know that error.NoSpaceLeft can't happen here
