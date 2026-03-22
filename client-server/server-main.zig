@@ -3,6 +3,7 @@
 //!
 
 const std = @import("std");
+const game = @import("game");
 const server = @import("root.zig");
 const RemoteClient = @import("RemoteClient.zig");
 
@@ -47,22 +48,21 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
     var arena = std.heap.ArenaAllocator.init(fb.allocator());
     defer arena.deinit();
 
-    // TODO: player and game get involved here somehow
-    while (rc.getState() != .closing) {
-        rc.run(arena.allocator());
+    rc.run(arena.allocator());
+    if (rc.getState() == .starting) {
+        rc.setState(.connected);
 
-        switch (rc.getState()) {
-            .closing => break,
-            .starting => {
-                var client = rc.client();
-                client.setStatInt("purse", 100);
-                client.setStatInt("depth", 1);
-                // TODO do some game creation here
-                rc.setState(.connected);
-            },
-            else => {},
-            // TODO : if state is connected, cycle the game here
-        }
+        var player = game.Player.init(.{
+            .client = rc.client(),
+            .allocator = allocator,
+            .maxx = 80, // TODO annoying fantasy
+            .maxy = 24,
+        });
+
+        try game.run(.{
+            .player = &player,
+            .allocator = allocator,
+        });
     }
 
     log.info("[{s}] End session", .{name});
