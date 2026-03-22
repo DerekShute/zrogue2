@@ -28,6 +28,7 @@ pub const Error = error{
 //
 // Input abstraction
 //
+// TODO: Converge on using Action
 
 pub const Command = enum {
     wait,
@@ -68,7 +69,7 @@ pub const DisplayMap = Grid(DisplayMapTile);
 //
 pub const VTable = struct {
     // input
-    getCommand: *const fn (ctx: *anyopaque) Command,
+    getCommand: *const fn (ctx: *anyopaque) Command, // TODO optional return
 
     // "Thing has changed" updates to send to implementation
     notifyDisplay: *const fn (ctx: *anyopaque) void,

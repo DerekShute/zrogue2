@@ -12,8 +12,6 @@ const Self = @This();
 // Types
 //
 
-// TODO: 'help' for more comprehensive handling
-// TODO: Use Provider.Command, or absorb it?
 pub const Type = enum {
     none,
     quit,

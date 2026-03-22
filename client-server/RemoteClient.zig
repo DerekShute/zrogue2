@@ -45,6 +45,7 @@ pub const State = enum {
 c: Client = undefined,
 r: Remote = undefined,
 name: []const u8 = undefined,
+next_command: ?Client.Command = null,
 state: State = .init,
 
 //
@@ -52,6 +53,7 @@ state: State = .init,
 //
 const fns = [_]Remote.ReadFn{
     doAction,
+    doCommand,
     doDepart,
     doEntryRequest,
     doMapUpdate,
@@ -188,11 +190,13 @@ fn remoteAddMessage(ptr: *anyopaque, text: []const u8) void {
 }
 
 fn remoteGetCommand(ptr: *anyopaque) Client.Command {
-    _ = ptr;
-    //const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Self = @ptrCast(@alignCast(ptr));
 
-    // NOCOMMIT: list gathered from remote, else wait or return none?
-    return .wait;
+    if (self.next_command) |command| {
+        self.next_command = null;
+        return command;
+    }
+    return .wait; // TODO need 'null' / 'no command'
 }
 
 fn remoteNotifyDisplay(ptr: *anyopaque) void {
@@ -219,19 +223,28 @@ fn remoteSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
 //
 // Remote callbacks from dispatch
 //
-// TODO SERIOUS: Not action message, Client.Command message!
 
 fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     const self: *Self = @ptrCast(@alignCast(ctx));
     const msg: *server.ActionMsg = @ptrCast(@alignCast(ptr));
 
+    // FUTURE: this takes over
+
+    log.info("[{f}] ActionMsg: {} {},{}", .{ self, msg.kind, msg.x, msg.y });
+}
+
+fn doCommand(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Self = @ptrCast(@alignCast(ctx));
+    const msg: *server.CommandMsg = @ptrCast(@alignCast(ptr));
+
     if (self.getState() != .connected) {
-        log.info("[{f}] ActionMsg in wrong state", .{self});
+        log.info("[{f}] CommandMsg in wrong state", .{self});
         return error.Failed;
     }
 
-    log.info("[{f}] ActionMsg: {} {},{}", .{ self, msg.kind, msg.x, msg.y });
-    // TODO: attach to list, or set to 'next' value
+    self.next_command = msg.c;
+
+    log.info("[{f}] CommandMsg: {}", .{ self, msg.c });
 }
 
 fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {

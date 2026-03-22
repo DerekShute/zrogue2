@@ -73,6 +73,13 @@ fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     return error.Failed;
 }
 
+fn doCommand(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Service = @ptrCast(@alignCast(ctx));
+    _ = ptr;
+    print("[{f}] Unexpected Command\n", .{self});
+    return error.Failed;
+}
+
 fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     const self: *Service = @ptrCast(@alignCast(ctx));
     const msg: *server.Depart = @ptrCast(@alignCast(ptr));
@@ -116,6 +123,7 @@ fn doTableUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
 //
 const fns = [_]Remote.ReadFn{
     doAction,
+    doCommand,
     doDepart,
     doEntryRequest,
     doMapUpdate,
