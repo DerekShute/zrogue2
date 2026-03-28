@@ -12,13 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.0
 
-      # This is v1.0.0, Apr 14, 2022
-      - uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd
+      - uses: tlylt/install-graphviz@v1.0.0
 
-      # This is v2.0.5, July 22, 2025
-      - uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f
+      - uses: mlugg/setup-zig@v2.2.1
 
       - name: Build
         run: zig build
@@ -29,7 +27,7 @@ jobs:
       - name: make structure graph
         run: make
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.0
         with:
           name: visualization
           path: |
