@@ -5,7 +5,7 @@
 //!
 
 const std = @import("std");
-const Command = @import("roguelib").Client.Command;
+pub const Command = @import("roguelib").Client.Command;
 
 const Allocator = std.mem.Allocator;
 const Self = @This();

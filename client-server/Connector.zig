@@ -60,6 +60,11 @@ fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
     };
 }
 
+pub fn writeCommandMsg(self: *Self, cmd: server.CommandMsg.Command) !void {
+    const write = Wrap(server.CommandMsg, .command).write;
+    try write(self, .{ .c = cmd });
+}
+
 pub fn writeEntryRequest(self: *Self, text: []const u8) !void {
     const write = Wrap(server.EntryRequest, .entry_request).write;
     try write(self, .{ .name = text });

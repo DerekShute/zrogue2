@@ -29,6 +29,7 @@ var depth: i32 = 0;
 //
 // NCurses minutia
 //
+// TODO: mutex!
 
 fn refresh() void {
     ncurses.refresh();
@@ -40,6 +41,10 @@ fn setChar(x: u16, y: u16, c: u8) void {
 
 fn setText(x: u16, y: u16, s: []const u8) void {
     ncurses.setText(x, y, s);
+}
+
+fn readKeypress() NCurses.Keypress {
+    return ncurses.readKeypress();
 }
 
 //
@@ -146,6 +151,29 @@ var vt = Connector.VTable{
 // Main
 //
 
+fn readCommand(connector: *Connector) !void {
+    const kp = readKeypress();
+    const command: server.CommandMsg.Command = switch (kp) {
+        .key_left => .go_west,
+        .key_right => .go_east,
+        .key_up => .go_north,
+        .key_down => .go_south,
+        @as(NCurses.Keypress, @enumFromInt('<')) => .ascend,
+        @as(NCurses.Keypress, @enumFromInt('>')) => .descend,
+        @as(NCurses.Keypress, @enumFromInt('?')) => .help,
+        @as(NCurses.Keypress, @enumFromInt('q')) => .quit,
+        @as(NCurses.Keypress, @enumFromInt('s')) => .search,
+        @as(NCurses.Keypress, @enumFromInt(',')) => .take_item,
+        else => .wait,
+    };
+
+    try connector.writeCommandMsg(command);
+}
+
+fn runConnector(connect: *Connector, allocator: Allocator) !void {
+    try connect.run(allocator);
+}
+
 fn run_game(peer: net.Address) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -168,11 +196,17 @@ fn run_game(peer: net.Address) !void {
         },
     };
 
-    //
-    // Disappear into the connector handler
-    //
-    // TODO: thread
-    try connect.run(allocator);
+    const thread = try std.Thread.spawn(
+        .{},
+        runConnector,
+        .{ &connect, allocator },
+    );
+    thread.detach();
+
+    // TODO error checking etc
+    while (true) {
+        try readCommand(&connect);
+    }
 }
 
 pub fn main() !void {
