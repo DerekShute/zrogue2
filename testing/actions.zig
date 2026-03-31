@@ -59,9 +59,8 @@ fn stepXY(
     try expect(player.getPos().getY() == y);
 }
 
-fn actAndMessage(player: *game.Player, map: *Map, msg: []const u8) !void {
-    try step(player, map, .continue_game);
-    try expect(std.mem.eql(u8, player.getMessage(), msg));
+fn expectMessage(m: *MockClient, msg: []const u8) !void {
+    try expect(std.mem.eql(u8, m.getMessage(), msg));
 }
 
 //
@@ -149,42 +148,37 @@ test "pick up gold and etc" {
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
 
-    try expect(player.getMessage().len == 0);
-
-    try actAndMessage(&player, map, "You find nothing!"); // search
+    try step(&player, map, .continue_game);
+    try expectMessage(&m, "You find nothing!"); // search
 
     try step(&player, map, .continue_game);
     try step(&player, map, .continue_game);
 
     try expect(map.getItem(player.getPos()) == .gold);
     try expect(m.getStatPurse() == 0);
-    try actAndMessage(&player, map, "You pick up the gold!"); // take
+
+    try step(&player, map, .continue_game);
+    try expectMessage(&m, "You pick up the gold!"); // take
     try expect(map.getItem(player.getPos()) == .unknown);
     try expect(m.getStatPurse() == 1);
 
-    try actAndMessage(&player, map, "You step on a trap!"); // go east
+    try step(&player, map, .continue_game);
+    try expectMessage(&m, "You step on a trap!"); // go east
     try expect(map.getFloorTile(Pos.config(8, 5)) == .trap);
 
     try expect(map.getFloorTile(Pos.config(9, 5)) == .wall);
 
-    try actAndMessage(&player, map, "You find something!"); // search
+    try step(&player, map, .continue_game);
+    try expectMessage(&m, "You find something!"); // search
     try expect(map.getFloorTile(Pos.config(9, 5)) == .door); // secret door
 
     try step(&player, map, .continue_game);
     try step(&player, map, .descend);
-    try expect(std.mem.eql(
-        u8,
-        player.getMessage(),
-        "You go ever deeper into the dungeon...",
-    ));
+    try expectMessage(&m, "You go ever deeper into the dungeon...");
 
     try step(&player, map, .continue_game);
     try step(&player, map, .ascend);
-    try expect(std.mem.eql(
-        u8,
-        player.getMessage(),
-        "You ascend closer to the exit...",
-    ));
+    try expectMessage(&m, "You ascend closer to the exit...");
 }
 
 // EOF

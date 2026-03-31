@@ -87,13 +87,9 @@ fn renderChar(tile: server.MapUpdate.Tile) u8 {
 
 fn displayMessageLine(message: []const u8) void {
     var buf: [80]u8 = undefined;
-
-    // TODO not great, should store messages here, not in Client
-
-    @memset(buf[0..], ' ');
-    // We know that error.NoSpaceLeft can't happen here
-    _ = std.fmt.bufPrint(&buf, "{s}", .{message}) catch unreachable;
-    setText(0, 0, buf[0..]);
+    @memcpy(buf[0..], message);
+    @memset(buf[message.len..80], ' ');
+    setText(0, 0, &buf);
     refresh();
 }
 
@@ -206,6 +202,7 @@ fn run_game(peer: net.Address) !void {
     // TODO error checking etc
     while (true) {
         try readCommand(&connect);
+        displayMessageLine(" ");
     }
 }
 
