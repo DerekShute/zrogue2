@@ -177,6 +177,9 @@ fn run_game(peer: net.Address) !void {
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
 
+    ncurses = try NCurses.init();
+    defer ncurses.deinit();
+
     const rbuf = try allocator.alloc(u8, 1000);
     errdefer allocator.free(rbuf);
 
@@ -222,10 +225,16 @@ pub fn main() !void {
 
     std.debug.print("Connecting to {f}\n", .{peer});
 
-    ncurses = try NCurses.init();
-    defer ncurses.deinit();
-
-    run_game(peer) catch {};
+    run_game(peer) catch |err| switch (err) {
+        error.ConnectionRefused => {
+            std.debug.print("Error: Refused. No such server?\n", .{});
+            return;
+        },
+        else => {
+            std.debug.print("Error {}\n", .{err});
+            return;
+        },
+    };
 
     std.debug.print("Disconnected from {f}\n", .{peer});
 }
