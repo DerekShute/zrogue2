@@ -189,14 +189,14 @@ fn run_game(peer: net.Address) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
+    const rbuf = try allocator.alloc(u8, 1000);
+    errdefer allocator.free(rbuf);
+
     const stream = try net.tcpConnectToAddress(peer);
     defer stream.close();
 
     ncurses = try NCurses.init();
     defer ncurses.deinit();
-
-    const rbuf = try allocator.alloc(u8, 1000);
-    errdefer allocator.free(rbuf);
 
     var reader = stream.reader(rbuf);
     var writer = stream.writer(&.{});
@@ -215,7 +215,7 @@ fn run_game(peer: net.Address) !void {
         runConnector,
         .{ &connect, allocator },
     );
-    thread.detach();
+    defer thread.join();
 
     while (!ending) {
         try readCommand(&connect);
@@ -224,15 +224,16 @@ fn run_game(peer: net.Address) !void {
     }
 }
 
-pub fn main() !void {
-    // TODO: better
+//
+// MAIN
+//
 
+pub fn main() !void {
     var args = std.process.args();
-    // The first (0 index) Argument is the path to the program.
-    _ = args.skip();
+    _ = args.skip(); // index 0 is the program name itself
     const port_value = args.next() orelse {
         std.debug.print("expect port as command line argument\n", .{});
-        return error.NoPort;
+        return;
     };
 
     const port = try std.fmt.parseInt(u16, port_value, 10);
@@ -240,7 +241,7 @@ pub fn main() !void {
 
     std.debug.print("Connecting to {f}\n", .{peer});
 
-    run_game(peer) catch |err| {
+    run_game(peer) catch |err| if (!ending) {
         switch (err) {
             error.ConnectionRefused => std.debug.print("Error: Refused. No such server?\n", .{}),
             error.WriteFailed => std.debug.print("Error: Server down?\n", .{}),
