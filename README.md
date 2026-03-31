@@ -41,6 +41,30 @@ Which started from the very instructive v2 TCOD tutorial:
 
 ## Releases
 
+### Beyond 0.3
+
+Make this game hang together better.  Truly multiplayer, and a real RESTful
+interface that advertises itself properly and does some kind of WebSocket for
+game transactions after authentication.  And authentication because people
+seem to think that is important.
+
+### 0.3 client and server
+
+Bad client and server
+
+One client, one server.  Basically the single player version played the least
+efficient way possible.  Nothing is propped up in a friendly way and nothing
+about this is resilent or multiplayer.  But as long as the protocol remains
+stable (spoiler: it won't) there is enough on that side to make material
+improvements to the server.
+
+The network protocol stands on top of MessagePack--the options for general
+map updates using JSON appear limited--and TCP.  There is admittedly a lot of
+layers and abstraction going on.
+
+Still not in the mood to improve the actual game itself or refine the
+interface.
+
 ### 0.2 prepped for whatever is next
 
 linux-cli/ encapsulates the single-user linux CLI version, and interactions
@@ -50,11 +74,7 @@ have been contained to the point where I can turn this client-server.
 
 Three dungeon levels with gold, dark rooms, secret doors, and traps
 
-### Forward looking
-
-With a basic engine we can talk about repositioning it for Webassembly or
-some clever webservice prop-up (umoria has this and it is awesome) and for
-client-server and multiplayer.
+### Principles
 
 I don't care about Windows binaries.
 
