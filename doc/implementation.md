@@ -3,16 +3,16 @@
 A work in progress.  There is:
 
 * roguelib : generic map-and-mechanics
-* client : client-server client side (Linux cli)
 * doc : you are here
 * game : the game that would be implemented, that wields the mapgen and
   roguelib
 * linux-cli : what it says on the tin: Linux single-user ncurses-based game  
-* mapgen : map generation services.  This may get broken apart so that the game
-  controls mapgen
-* server : client-server server side (Linux cli)
+* client-server : client-server server side (Linux cli)
   * protocol : the messaging protocol messages and test apparatus
+  * client
+  * server
 * testing : high level testing that is a game equivalent
+* ui : chum bucket for user interface
 
 ## Modules
 
@@ -20,36 +20,21 @@ A work in progress.  There is:
 
 The game, in whatever form it currently exists
 
-### mapgen
-
-Anything related to map generation: room placement, corridors, items, and
-initial player placement.
-
-Admittedly some of this should be pushed at the game level.
-
-#### test_level
-
-A fixed generator that includes no random element.  This is used to guarantee
-that certain things exist, and is the basis for the step-by-step testing rig.
-
-#### rogue_level
-
-A map generated per the original Rogue sources or near enough.
-
 ### roguelib
 
 The most generally-useful things I can think of.  Positions, maps of tiles,
 Entities, and so forth.  These are the substrate.
 
-### server
+### client-server
 
-Client-server interactions.  Includes main.zig for the server binary.
+Client-server interactions.  Includes server-main.zig for the server binary
+and client-main for the other.
 
 ### linux-cli
 
 This is the Linux CLI single-user game, using ncurses.
 
-#### ncurses
+#### ui/ncurses
 
 This implements the traditional 'rogue' experience.  You get an 80x24 display
 with message line at the top and stats at the bottom.
@@ -59,6 +44,11 @@ display updates back to the Provider.
 
 I look forward to figuring out how to process complex events, such as asking
 what inventory item to consume or what location to target for a fireball.
+
+Looking forward I can see the 'game' aspects of UI being subsumed into some
+kind of Personality module, so the linux-cli and the client sit on top of
+similar logic controlling display of stats and message bar location and so
+forth.
 
 ## Test scaffolding
 
@@ -79,7 +69,7 @@ have used it elsewhere to really crush out bugs.
 
 ## Doc generation
 
-Clearly a work in progress for Zig 0.14.  I will try for due diligence.
+Clearly a work in progress for Zig 0.15.  I will try for due diligence.
 
 ## Visualization
 
@@ -89,3 +79,12 @@ magic threaded through some gross Python logic to hammer it into something
 vaguely YAML-shaped.
 
 Invoked by the Makefile, the visual target.
+
+When I feel inspired, I'll do something to hook it into the documentation.
+
+## Network Protocol
+
+Sits on top of Messagepack, because that seemed like a good idea at the time.
+Message receipt is always done into a very limited allocator to prevent
+malfeasance through some data bomb.  If it doesn't fit into 300 bytes then we
+don't want it or whoever sent it.

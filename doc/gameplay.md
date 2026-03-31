@@ -8,9 +8,10 @@ Type ? (Question mark) for help, including supported commands.
 
 Move around, get gold, descend stairs to bottom, come back up again.
 
-## Scoring
+### Traps
 
-Each action has a cost (searching is the most expensive) and that cost
-subtracts from your score.
+There are some.  They don't do anything.
 
-Gold adds to your score.
+### Secret doors
+
+Can be generated.  Search for them.
