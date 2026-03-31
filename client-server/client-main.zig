@@ -19,6 +19,8 @@ const Connector = @import("Connector.zig");
 // Globals
 //
 
+var ending: bool = false;
+
 // NCurses
 var ncurses: NCurses = undefined;
 
@@ -90,7 +92,6 @@ fn displayMessageLine(message: []const u8) void {
     @memcpy(buf[0..], message);
     @memset(buf[message.len..80], ' ');
     setText(0, 0, &buf);
-    refresh();
 }
 
 fn displayStatLine() void {
@@ -112,6 +113,18 @@ fn displayStatLine() void {
 // Connector Interface
 //
 
+//
+// TODO: note that this side shouldn't do curses actions.  It should post
+// an update and let the main thread take care of it
+
+fn depart(text: []const u8) void {
+    displayMessageLine(text);
+    setText(0, 1, "--PRESS ANY KEY--");
+    refresh();
+    _ = readKeypress();
+    ending = true;
+}
+
 fn updateMap(x: i16, y: i16, tile: server.MapUpdate.Tile) void {
     setChar(@intCast(x), @intCast(y + 1), renderChar(tile));
     refresh();
@@ -119,6 +132,7 @@ fn updateMap(x: i16, y: i16, tile: server.MapUpdate.Tile) void {
 
 fn updateMessage(text: []const u8) void {
     displayMessageLine(text);
+    refresh();
 }
 
 fn updateTable(table: []const u8, entry: []const u8, value: []const u8) void {
@@ -138,6 +152,7 @@ fn updateTable(table: []const u8, entry: []const u8, value: []const u8) void {
 }
 
 var vt = Connector.VTable{
+    .depart = depart,
     .updateMap = updateMap,
     .updateMessage = updateMessage,
     .updateTable = updateTable,
@@ -202,10 +217,10 @@ fn run_game(peer: net.Address) !void {
     );
     thread.detach();
 
-    // TODO error checking etc
-    while (true) {
+    while (!ending) {
         try readCommand(&connect);
         displayMessageLine(" ");
+        refresh();
     }
 }
 
@@ -225,15 +240,13 @@ pub fn main() !void {
 
     std.debug.print("Connecting to {f}\n", .{peer});
 
-    run_game(peer) catch |err| switch (err) {
-        error.ConnectionRefused => {
-            std.debug.print("Error: Refused. No such server?\n", .{});
-            return;
-        },
-        else => {
-            std.debug.print("Error {}\n", .{err});
-            return;
-        },
+    run_game(peer) catch |err| {
+        switch (err) {
+            error.ConnectionRefused => std.debug.print("Error: Refused. No such server?\n", .{}),
+            error.WriteFailed => std.debug.print("Error: Server down?\n", .{}),
+            else => std.debug.print("Error {}\n", .{err}),
+        }
+        return;
     };
 
     std.debug.print("Disconnected from {f}\n", .{peer});

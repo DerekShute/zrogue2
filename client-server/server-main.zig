@@ -63,6 +63,8 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
             .player = &player,
             .allocator = allocator,
         });
+
+        try rc.writeDepart("Game Ending");
     }
 
     log.info("[{s}] End session", .{name});
