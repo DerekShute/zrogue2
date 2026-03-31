@@ -288,7 +288,7 @@ fn doCommand(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
 
     self.next_command = msg.c;
 
-    log.info("[{f}] CommandMsg: {}", .{ self, msg.c });
+    // log.info("[{f}] CommandMsg: {}", .{ self, msg.c });
 }
 
 fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
