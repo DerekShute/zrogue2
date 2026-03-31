@@ -20,6 +20,9 @@ const Self = @This();
 //
 
 pub const VTable = struct {
+    depart: *const fn (
+        text: []const u8,
+    ) void,
     updateMap: *const fn (
         x: i16,
         y: i16,
@@ -96,12 +99,6 @@ fn doCommand(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     return error.Failed;
 }
 
-fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    _ = ctx;
-    _ = ptr;
-    return error.Failed; // TODO: elegance
-}
-
 fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     _ = ctx;
     _ = ptr;
@@ -111,6 +108,12 @@ fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
 //
 // Valid messages
 //
+
+fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+    const self: *Self = @ptrCast(@alignCast(ctx));
+    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
+    self.vt.depart(msg.message);
+}
 
 fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
     const self: *Self = @ptrCast(@alignCast(ctx));
@@ -157,7 +160,10 @@ pub fn run(self: *Self, allocator: Allocator) !void {
     try self.writeEntryRequest("anonymous");
 
     while (true) {
-        try self.remote.run(allocator);
+        self.remote.run(allocator) catch |err| switch (err) {
+            error.EndOfStream => return, // Probably shutting down
+            else => return err,
+        };
     }
 }
 

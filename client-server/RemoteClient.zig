@@ -155,6 +155,14 @@ fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
     };
 }
 
+pub fn writeDepart(self: *Self, text: []const u8) !void {
+    const write = Wrap(server.Depart, .depart).write;
+    write(self, .{ .message = text }) catch |err| {
+        log.info("[{f}] Send error depart {}", .{ self, err });
+        return err;
+    };
+}
+
 fn writeMapUpdate(self: *Self, pos: []const i16, tile: server.MapUpdate.Tile) !void {
     const write = Wrap(server.MapUpdate, .map_update).write;
     write(self, .{ .x = pos[0], .y = pos[1], .tile = tile }) catch |err| {
