@@ -32,7 +32,6 @@ pub fn main() !void {
     std.debug.print("---\n", .{});
     printer(Action.fields);
     printer(Client.fields);
-    printer(Client.log_fields);
     printer(Entity.fields);
     printer(Feature.fields);
     printer(Map.fields);

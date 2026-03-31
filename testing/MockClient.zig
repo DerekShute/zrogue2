@@ -26,8 +26,11 @@ c: Client = undefined,
 command_list: []Client.Command = undefined,
 command_index: u16 = 0,
 notified: bool = false,
+
 purse: i32 = 0,
 depth: i32 = 0,
+messagebuf: [80]u8 = undefined, // TODO: size
+message: []u8 = &.{},
 
 //
 // Constructor / Destructor
@@ -39,6 +42,7 @@ pub fn init(config: Config) !Self {
         .maxx = config.maxx,
         .maxy = config.maxy,
         .vtable = &.{
+            .addMessage = mockAddMessage,
             .getCommand = mockGetCommand,
             .notifyDisplay = mockNotifyDisplay,
             .setStatInt = mockSetStatInt,
@@ -68,6 +72,15 @@ pub fn client(self: *Self) *Client {
 //
 // VTable
 //
+
+fn mockAddMessage(ptr: *anyopaque, msg: []const u8) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    // TODO: probably a better way to do this
+    @memset(self.messagebuf[0..], ' ');
+    self.message = &self.messagebuf;
+    @memcpy(self.message[0..msg.len], msg);
+    self.message = self.message[0..msg.len]; // Fix up the slice for length
+}
 
 fn mockGetCommand(ptr: *anyopaque) Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
@@ -114,6 +127,11 @@ pub fn getNotified(self: *Self) bool {
     self.notified = false;
     return was;
 }
+
+pub fn getMessage(self: *Self) []const u8 {
+    return self.message;
+}
+
 //
 // Unit tests
 //

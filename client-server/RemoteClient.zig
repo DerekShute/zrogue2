@@ -77,6 +77,7 @@ pub fn init(config: Config) !*Self {
         .maxx = config.maxx,
         .maxy = config.maxy,
         .vtable = &.{
+            .addMessage = remoteAddMessage,
             .getCommand = remoteGetCommand,
             .notifyDisplay = remoteNotifyDisplay,
             .setStatInt = remoteSetStatInt,
@@ -177,10 +178,6 @@ fn writeTableUpdate(self: *@This(), table: []const u8, entry: []const u8, value:
 
 //
 // Client VTable callbacks
-//
-
-//
-// TODO SERIOUS: need addMessage callback
 //
 
 fn remoteAddMessage(ptr: *anyopaque, text: []const u8) void {

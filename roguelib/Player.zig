@@ -125,10 +125,6 @@ pub fn addMessage(self: *Self, msg: []const u8) void {
     self.client.addMessage(msg);
 }
 
-pub fn getMessage(self: *Self) []const u8 {
-    return self.client.getMessage();
-}
-
 pub fn getAction(self: *Self) Action {
     return switch (self.getCommand()) {
         .help => Action.config(.none),

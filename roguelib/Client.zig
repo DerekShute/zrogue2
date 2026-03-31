@@ -8,7 +8,6 @@
 const std = @import("std");
 const Grid = @import("grid.zig").Grid;
 const MapTile = @import("maptile.zig").MapTile;
-const MessageLog = @import("client/MessageLog.zig");
 const Pos = @import("Pos.zig");
 const Tileset = @import("maptile.zig").Tileset;
 
@@ -68,6 +67,7 @@ pub const DisplayMap = Grid(DisplayMapTile);
 // VTable for implementation to manage
 //
 pub const VTable = struct {
+    addMessage: *const fn (ctx: *anyopaque, msg: []const u8) void,
     // input
     getCommand: *const fn (ctx: *anyopaque) Command, // TODO optional return
 
@@ -100,7 +100,6 @@ vtable: *const VTable,
 display_map: DisplayMap = undefined,
 x: Pos.Dim = 0, // size, so index [0..x-1]
 y: Pos.Dim = 0, // size, so index [0..y-1]
-log: MessageLog = undefined,
 
 // min/max of display map delta
 min_delta: Pos = undefined,
@@ -117,7 +116,6 @@ pub fn init(config: Config) !Self {
         .min_delta = Pos.config(0, 0),
         .max_delta = Pos.config(0, 0),
         .vtable = config.vtable,
-        .log = MessageLog.init(),
     };
 
     const dm = try DisplayMap.config(config.allocator, @intCast(p.x), @intCast(p.y));
@@ -131,7 +129,6 @@ pub fn init(config: Config) !Self {
 
 pub inline fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.display_map.deinit(allocator);
-    // Log has no deinit
 }
 
 //
@@ -157,18 +154,7 @@ pub fn displayChange(self: *Self) ?Pos.Range {
 // Message
 
 pub inline fn addMessage(self: *Self, msg: []const u8) void {
-    self.log.add(msg);
-    self.notifyDisplay();
-}
-
-pub inline fn getMessage(self: *Self) []u8 {
-    // From implementation
-    return self.log.get();
-}
-
-pub inline fn clearMessage(self: *Self) void {
-    // From implementation
-    self.log.clear();
+    self.vtable.addMessage(self.ptr, msg);
 }
 
 pub fn notifyDisplay(self: *Self) void {
@@ -249,6 +235,5 @@ pub fn setStatInt(self: *Self, name: []const u8, value: i32) void {
 
 const genFields = @import("utils/visual.zig").genFields;
 pub var fields = genFields(Self);
-pub var log_fields = genFields(MessageLog);
 
 // EOF

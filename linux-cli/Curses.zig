@@ -94,6 +94,9 @@ curses: NCurses = undefined,
 // Stats
 purse: i32 = 0,
 depth: i32 = 0,
+// Message
+messagebuf: [80]u8 = undefined, // TODO: size
+message: []u8 = &.{},
 
 //
 // Utilities
@@ -128,6 +131,7 @@ pub fn init(config: Config) !Self {
         .maxx = config.maxx,
         .maxy = config.maxy,
         .vtable = &.{
+            .addMessage = cursesAddMessage,
             .getCommand = cursesGetCommand,
             .notifyDisplay = cursesNotifyDisplay,
             .setStatInt = cursesSetStatInt,
@@ -219,15 +223,26 @@ fn displayStatLine(self: *Self) void {
     self.setText(0, @intCast(self.c.y - 1), buf[0..]);
 }
 
+fn addMessage(self: *Self, msg: []const u8) void {
+    @memset(self.messagebuf[0..80], ' ');
+    self.message = &self.messagebuf;
+    @memcpy(self.message[0..msg.len], msg);
+    self.message = self.message[0..msg.len]; // Fix up the slice for length
+}
+
+fn displayMessage(self: *Self) void {
+    var buf: [80]u8 = undefined;
+    @memset(buf[0..], ' ');
+    @memcpy(buf[0..], self.message);
+    self.setText(0, 0, buf[0..]);
+}
+
 fn displayScreen(self: *Self) void {
     //
     // Top line: messages
     //
-    var buf: [80]u8 = undefined;
-    @memset(buf[0..], ' ');
-    // We know that error.NoSpaceLeft can't happen here
-    _ = std.fmt.bufPrint(&buf, "{s}", .{self.c.getMessage()}) catch unreachable;
-    self.setText(0, 0, buf[0..]);
+
+    self.displayMessage();
 
     //
     // Bottom line: stat block
@@ -238,6 +253,7 @@ fn displayScreen(self: *Self) void {
     //
     // Middle: the map
     //
+
     renderMap(self);
 
     // Regenerate display
@@ -251,6 +267,14 @@ fn displayScreen(self: *Self) void {
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
 
+fn cursesAddMessage(ptr: *anyopaque, msg: []const u8) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+
+    self.addMessage(msg);
+    self.displayMessage();
+    self.refresh();
+}
+
 fn cursesGetCommand(ptr: *anyopaque) Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
@@ -262,7 +286,9 @@ fn cursesGetCommand(ptr: *anyopaque) Client.Command {
         // TODO: hit help a second time to rid menu
     }
 
-    self.c.clearMessage();
+    self.addMessage(" ");
+    self.displayMessage();
+    self.refresh();
 
     return cmd;
 }
