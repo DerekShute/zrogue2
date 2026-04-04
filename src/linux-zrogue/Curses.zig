@@ -10,10 +10,9 @@
 //!
 
 const std = @import("std");
-const NCurses = @import("ncurses");
 
 const Client = @import("roguelib").Client;
-const MapTile = @import("roguelib").MapTile;
+const Rogue = @import("rogueui").Rogue; // Presentation
 
 const Self = @This();
 
@@ -39,9 +38,9 @@ fn renderMap(self: *Self) void {
         var _dc = dc;
         while (_dc.next()) |loc| {
             if (loc.getY() < self.c.y - 2) { // Reserve bottom display line
-                self.setTile(
+                self.ui.setMapTile(
                     @intCast(loc.getX()),
-                    @intCast(loc.getY() + 1),
+                    @intCast(loc.getY()),
                     self.c.getTile(loc),
                 );
             }
@@ -54,32 +53,30 @@ fn renderMap(self: *Self) void {
 //
 
 c: Client = undefined,
-curses: NCurses = undefined,
-// Stats
-purse: i32 = 0,
-depth: i32 = 0,
-// Message
-messagebuf: [80]u8 = undefined, // TODO: size
-message: []u8 = &.{},
+ui: Rogue = undefined,
 
 //
 // Utilities
 //
 
-fn readKeypress(self: *Self) NCurses.Keypress {
-    return self.curses.readKeypress();
-}
-
 fn refresh(self: *Self) void {
-    self.curses.refresh();
+    self.ui.displayRefresh();
 }
 
-fn setTile(self: *Self, x: u16, y: u16, tile: Client.DisplayTile) void {
-    self.curses.setTile(x, y, tile);
+fn setMapTile(self: *Self, x: u16, y: u16, tile: Client.DisplayTile) void {
+    self.ui.setMapTile(x, y, tile);
+}
+
+fn setMessage(self: *Self, text: []const u8) void {
+    self.ui.setMessage(text);
+}
+
+fn setStat(self: *Self, name: []const u8, value: i32) void {
+    self.ui.setStat(name, value);
 }
 
 fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
-    self.curses.setText(x, y, s);
+    self.ui.setText(x, y, s);
 }
 
 //
@@ -87,13 +84,13 @@ fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
 //
 
 pub fn init(config: Config) !Self {
-    var curses = try NCurses.init();
-    errdefer curses.deinit();
+    var ui = try Rogue.init();
+    errdefer ui.deinit();
 
     const c: Client.Config = .{
         .allocator = config.allocator,
-        .maxx = config.maxx,
-        .maxy = config.maxy,
+        .maxx = config.maxx, // TODO
+        .maxy = config.maxy, // TODO
         .vtable = &.{
             .addMessage = cursesAddMessage,
             .getCommand = cursesGetCommand,
@@ -104,13 +101,13 @@ pub fn init(config: Config) !Self {
 
     return .{
         .c = try Client.init(c),
-        .curses = curses,
+        .ui = ui,
     };
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.curses.deinit();
     self.c.deinit(allocator);
+    self.ui.deinit();
 }
 
 //
@@ -127,7 +124,7 @@ pub fn client(self: *Self) *Client {
 //
 
 fn readCommand(self: *Self) Client.Command {
-    return self.curses.readCommand();
+    return self.ui.readCommand();
 }
 
 //
@@ -135,56 +132,20 @@ fn readCommand(self: *Self) Client.Command {
 //
 
 fn displayHelp(self: *Self) void {
-    // FIXME : This is horrible and adding to it is painful
-    //         Multiline string constant with dividers, go line by line?
-
-    self.setText(0, 0, "*                                                                              *");
-    self.setText(0, 1, "         Welcome to the Dungeon of Doom          ");
-    self.setText(0, 2, "                                                 ");
-    self.setText(0, 3, " Use the arrow keys to move through the dungeon  ");
-    self.setText(0, 4, " and collect gold.  You can only return to the   ");
-    self.setText(0, 5, " surface after you have descended to the bottom. ");
-    self.setText(0, 6, "                                                 ");
-    self.setText(0, 7, " Commands include:                               ");
-    self.setText(0, 8, "    ? - help (this)                              ");
-    self.setText(0, 9, "    > - descend stairs (\">\")                     ");
-    self.setText(0, 10, "    < - ascend stairs (\"<\")                      ");
-    self.setText(0, 11, "    , - pick up gold  (\"$\")                      ");
-    self.setText(0, 12, "    s - search for hidden doors                  ");
-    self.setText(0, 13, "    q - chicken out and quit                     ");
-    self.setText(0, 14, "                                                 ");
-    self.setText(0, 15, " [type a command or any other key to continue]   ");
-    self.setText(0, 16, "                                                 ");
-    self.setText(0, 23, "*                                                                              *");
+    self.ui.displayHelp();
     self.refresh();
 }
 
 fn displayStatLine(self: *Self) void {
-    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
-    var buf: [80]u8 = undefined;
-
-    const fmt = "Level: {}  Gold: {:<5}  Hp: some";
-    const u_purse: u32 = @intCast(self.purse);
-    const output = .{ self.depth, u_purse };
-
-    @memset(buf[0..], ' ');
-    // We know that error.NoSpaceLeft can't happen here
-    _ = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
-    self.setText(0, @intCast(self.c.y - 1), buf[0..]);
+    self.ui.displayStatLine();
 }
 
 fn addMessage(self: *Self, msg: []const u8) void {
-    @memset(self.messagebuf[0..80], ' ');
-    self.message = &self.messagebuf;
-    @memcpy(self.message[0..msg.len], msg);
-    self.message = self.message[0..msg.len]; // Fix up the slice for length
+    self.ui.setMessage(msg);
 }
 
 fn displayMessage(self: *Self) void {
-    var buf: [80]u8 = undefined;
-    @memset(buf[0..], ' ');
-    @memcpy(buf[0..], self.message);
-    self.setText(0, 0, buf[0..]);
+    self.ui.displayMessage();
 }
 
 fn displayScreen(self: *Self) void {
@@ -219,7 +180,6 @@ fn displayScreen(self: *Self) void {
 
 fn cursesAddMessage(ptr: *anyopaque, msg: []const u8) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-
     self.addMessage(msg);
     self.displayMessage();
     self.refresh();
@@ -250,13 +210,7 @@ fn cursesNotifyDisplay(ptr: *anyopaque) void {
 
 fn cursesSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-
-    if (std.mem.eql(u8, "purse", name)) {
-        self.purse = value;
-    } else if (std.mem.eql(u8, "depth", name)) {
-        self.depth = value;
-    }
-
+    self.setStat(name, value);
     self.displayStatLine();
     self.refresh();
 }

@@ -2,6 +2,8 @@
 //! UI-related abstractions and utilities that all sort of go together
 //!
 
+pub const Rogue = @import("Rogue.zig"); // Rogue/NCurses presentation
+
 //
 // Command abstraction
 //

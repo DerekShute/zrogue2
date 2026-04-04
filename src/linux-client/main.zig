@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-const NCurses = @import("ncurses");
+const Rogue = @import("rogueui").Rogue; // Presentation
 
 const Client = @import("roguelib").Client;
 const MapTile = @import("roguelib").MapTile;
@@ -19,59 +19,43 @@ const Writer = std.io.Writer;
 //
 
 var ending: bool = false;
-
-// NCurses
-var ncurses: NCurses = undefined;
-
-// Stats
-var purse: i32 = 0;
-var depth: i32 = 0;
+var ui: Rogue = undefined;
 
 //
 // NCurses minutia
 //
 // TODO: mutex!
 
-fn refresh() void {
-    ncurses.refresh();
+fn awaitKeypress() void {
+    _ = ui.readKeypress();
 }
 
-fn setTile(x: u16, y: u16, tile: Connector.DisplayTile) void {
-    ncurses.setTile(x, y, tile);
-}
-
-fn setText(x: u16, y: u16, s: []const u8) void {
-    ncurses.setText(x, y, s);
-}
-
-fn readKeypress() NCurses.Keypress {
-    return ncurses.readKeypress();
-}
-
-//
-// Display service routines
-//
-
-fn displayMessageLine(message: []const u8) void {
-    var buf: [80]u8 = undefined;
-    @memcpy(buf[0..], message);
-    @memset(buf[message.len..80], ' ');
-    setText(0, 0, &buf);
+fn displayMessage() void {
+    ui.displayMessage();
 }
 
 fn displayStatLine() void {
-    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
-    var buf: [80]u8 = undefined;
+    ui.displayStatLine();
+}
 
-    const fmt = "Level: {}  Gold: {:<5}  Hp: some";
-    const u_purse: u32 = @intCast(purse);
-    const output = .{ depth, u_purse };
+fn refresh() void {
+    ui.displayRefresh();
+}
 
-    @memset(buf[0..], ' ');
-    // We know that error.NoSpaceLeft can't happen here
-    _ = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
-    setText(0, 25, buf[0..]); // TODO line number
-    refresh();
+fn setMapTile(x: u16, y: u16, tile: Connector.DisplayTile) void {
+    ui.setMapTile(x, y, tile);
+}
+
+fn setMessage(text: []const u8) void {
+    ui.setMessage(text);
+}
+
+fn setStat(name: []const u8, value: i32) void {
+    ui.setStat(name, value);
+}
+
+fn setText(x: u16, y: u16, s: []const u8) void {
+    ui.setText(x, y, s);
 }
 
 //
@@ -84,40 +68,34 @@ fn displayStatLine() void {
 
 fn depart(ctx: *anyopaque, text: []const u8) !void {
     _ = ctx;
-    displayMessageLine(text);
+    setText(0, 0, text);
     setText(0, 1, "--PRESS ANY KEY--");
     refresh();
-    _ = readKeypress();
+    awaitKeypress();
     ending = true;
+    // TODO: returns depart error?
 }
 
 fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
     _ = ctx;
-    setTile(@intCast(pos[0]), @intCast(pos[1] + 1), tile);
+    setMapTile(@intCast(pos[0]), @intCast(pos[1]), tile);
     refresh(); // TODO: only care when waiting for command
 }
 
 fn updateMessage(ctx: *anyopaque, text: []const u8) !void {
     _ = ctx;
-    displayMessageLine(text);
+    setMessage(text);
+    displayMessage();
     refresh();
 }
 
 fn updateTable(ctx: *anyopaque, table: []const u8, entry: []const u8, value: []const u8) !void {
-    // TODO: ugh errors
     _ = ctx;
-    const val: i16 = std.fmt.parseInt(i16, value, 10) catch return;
-
-    // TODO: assuming table is "stats", and this should be generalized
-    _ = table;
-
-    if (std.mem.eql(u8, "purse", entry)) {
-        purse = val;
-    } else if (std.mem.eql(u8, "depth", entry)) {
-        depth = val;
-    }
-
+    _ = table; // FUTURE eventually someone cares
+    const val = std.fmt.parseInt(i16, value, 10) catch return error.Invalid;
+    setStat(entry, val);
     displayStatLine();
+    refresh();
 }
 
 fn unsupported(ctx: *anyopaque) !void {
@@ -130,7 +108,8 @@ fn unsupported(ctx: *anyopaque) !void {
 //
 
 fn readCommand(connector: *Connector) !void {
-    const cmd = ncurses.readCommand();
+    const cmd = ui.readCommand();
+    // TODO: help command
     try connector.writeCommandMsg(@intFromEnum(cmd));
 }
 
@@ -166,8 +145,8 @@ fn run_game(peer: net.IpAddress, allocator: Allocator, io: std.Io) !void {
     const stream = try peer.connect(io, .{ .mode = .stream });
     defer stream.close(io);
 
-    ncurses = try NCurses.init();
-    defer ncurses.deinit();
+    ui = try Rogue.init();
+    defer ui.deinit();
 
     var reader = stream.reader(io, rbuf);
     var writer = stream.writer(io, &.{});
@@ -190,9 +169,13 @@ fn run_game(peer: net.IpAddress, allocator: Allocator, io: std.Io) !void {
     );
     defer thread.join();
 
+    displayStatLine();
+    refresh();
+
     while (!ending) {
         try readCommand(&connector);
-        displayMessageLine(" ");
+        setMessage(" ");
+        displayMessage();
         refresh();
     }
 }
