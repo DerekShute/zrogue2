@@ -26,16 +26,16 @@ pub fn build(b: *std.Build) void {
     // Modules
     //
 
-    const ui_mod = b.addModule("rogueui", .{
-        .root_source_file = b.path("ui/root.zig"),
-        .target = target,
-    });
-
     const curses_mod = b.addModule("ncurses", .{
         .root_source_file = b.path("ui/NCurses/root.zig"),
         .target = target,
+    });
+
+    const ui_mod = b.addModule("rogueui", .{
+        .root_source_file = b.path("ui/root.zig"),
+        .target = target,
         .imports = &.{
-            .{ .name = "rogueui", .module = ui_mod },
+            .{ .name = "ncurses", .module = curses_mod },
         },
     });
 
@@ -75,8 +75,8 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
-                .{ .name = "ncurses", .module = curses_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "rogueui", .module = ui_mod },
             },
             .link_libc = true,
         }),
@@ -133,7 +133,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "connector", .module = connector_mod },
-                .{ .name = "ncurses", .module = curses_mod },
+                .{ .name = "rogueui", .module = ui_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
             },
             .link_libc = true,

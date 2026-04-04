@@ -14,6 +14,10 @@ A work in progress.  There is:
   * linux-zrogue : single-player game version
   * testing : apparatus
 * ui : chum bucket for user interface
+  * NCurses : low-level ncurses utilities (a separate module)
+  * Rogue : Rogue presentation layer for ncurses
+    * keypress interpretation
+    * element positioning and reporting
 
 ## Modules
 
@@ -26,23 +30,10 @@ The game, in whatever form it currently exists
 The most generally-useful things I can think of.  Positions, maps of tiles,
 Entities, and so forth.  These are the substrate.
 
-Also the messaging protocol minus the networking
+### ui (rogueui, for lack of better)
 
-#### ui/ncurses
-
-This implements the traditional 'rogue' experience.  You get an 80x24 display
-with message line at the top and stats at the bottom.
-
-Keypresses convert to Actions driving the game engine, and those Actions drive
-display updates back to the Provider.
-
-I look forward to figuring out how to process complex events, such as asking
-what inventory item to consume or what location to target for a fireball.
-
-Looking forward I can see the 'game' aspects of UI being subsumed into some
-kind of Personality module, so the linux-cli and the client sit on top of
-similar logic controlling display of stats and message bar location and so
-forth.
+Chum bucket of ui elements, from the ncurses low-level utilities to the presentation layer for rogue that
+sits on that (and is used by both the standalone and the network client)
 
 ## Test scaffolding
 
