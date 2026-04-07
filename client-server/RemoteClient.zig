@@ -5,10 +5,9 @@
 //!
 
 const std = @import("std");
-const server = @import("root.zig");
 
 const Client = @import("roguelib").Client;
-const Remote = @import("roguelib").Remote;
+const Connector = @import("roguelib").Connector;
 
 const Self = @This();
 
@@ -44,24 +43,10 @@ pub const State = enum {
 
 allocator: Allocator = undefined,
 c: Client = undefined,
-r: Remote = undefined,
+connector: Connector = undefined,
 name: []const u8 = undefined,
 next_command: ?Client.Command = null,
 state: State = .init,
-
-//
-// Dispatch table for server run
-//
-const fns = [_]Remote.ReadFn{
-    doAction,
-    doCommand,
-    doDepart,
-    doEntryRequest,
-    doMapUpdate,
-    doMessage,
-    doTableUpdate,
-};
-const rig = server.genDispatch(fns);
 
 //
 // Lifecycle
@@ -88,12 +73,13 @@ pub fn init(config: Config) !*Self {
     rc.c = try Client.init(pc);
     errdefer rc.c.deinit(pc.allocator);
     rc.name = config.name;
-    rc.r = Remote{
+    rc.connector = Connector{
+        .vt = &vt,
         .reader = config.reader,
         .writer = config.writer,
-        .sm = &rig,
     };
-    rc.r.ctx = rc;
+    rc.connector.ctx = rc;
+
     return rc;
 }
 
@@ -107,10 +93,6 @@ pub fn client(self: *Self) *Client {
     return &self.c;
 }
 
-pub fn remote(self: *Self) *Remote {
-    return &self.r;
-}
-
 //
 // Formatting
 //
@@ -122,7 +104,6 @@ pub fn format(self: Self, w: *Writer) Writer.Error!void {
 //
 // Methods
 //
-// TODO: states are kind of game specific... Only for this module?
 
 pub fn getState(self: *Self) State {
     return self.state;
@@ -134,54 +115,14 @@ pub fn setState(self: *Self, state: State) void {
 
 // Run method processes messages; called with an arena
 pub fn run(self: *Self, allocator: Allocator) void {
-    self.r.run(allocator) catch |err| {
+    self.connector.run(allocator) catch |err| {
         log.info("[{f}] error {}", .{ self, err });
         self.setState(.closing);
     };
 }
 
-//
-// Message write wrappers
-//
-
-fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
-    // It's just wrappers all the way down.  This just simplifies the
-    // invocation in the write declaration
-    return struct {
-        pub fn write(self: *Self, msg: T) !void {
-            const r_write = Remote.Write(T, @intFromEnum(MT)).write;
-            try r_write(&self.r, msg);
-        }
-    };
-}
-
 pub fn writeDepart(self: *Self, text: []const u8) !void {
-    const write = Wrap(server.Depart, .depart).write;
-    write(self, .{ .message = text }) catch |err| {
-        log.info("[{f}] Send error depart {}", .{ self, err });
-        return err;
-    };
-}
-
-fn writeMapUpdate(self: *Self, pos: []const i16, tile: server.MapUpdate.Tile) !void {
-    const write = Wrap(server.MapUpdate, .map_update).write;
-    write(self, .{ .x = pos[0], .y = pos[1], .tile = tile }) catch |err| {
-        log.info("[{f}] Send error map-update {}", .{ self, err });
-        return err;
-    };
-}
-
-fn writeMessage(self: *@This(), text: []const u8) !void {
-    const write = Wrap(server.Message, .message).write;
-    write(self, .{ .message = text }) catch |err| {
-        log.info("[{f}] Send error message {}", .{ self, err });
-        return err;
-    };
-}
-
-fn writeTableUpdate(self: *@This(), table: []const u8, entry: []const u8, value: []const u8) !void {
-    const write = Wrap(server.TableUpdate, .table_update).write;
-    try write(self, .{ .table = table, .entry = entry, .value = value });
+    try self.connector.writeDepart(text);
 }
 
 //
@@ -195,7 +136,7 @@ fn remoteAddMessage(ptr: *anyopaque, text: []const u8) void {
         return;
     }
 
-    self.writeMessage(text) catch |err| {
+    self.connector.writeMessage(text) catch |err| {
         log.info("[{f}] remoteAddMessage {}", .{ self, err });
         self.setState(.closing);
     };
@@ -210,9 +151,9 @@ fn remoteGetCommand(ptr: *anyopaque) Client.Command {
 
     self.run(self.allocator);
 
-    if (self.next_command) |command| {
+    if (self.next_command) |cmd| {
         self.next_command = null;
-        return command;
+        return cmd;
     }
     return .wait; // TODO need optionalreturn or something
 }
@@ -230,14 +171,14 @@ fn remoteNotifyDisplay(ptr: *anyopaque) void {
         var _dc = dc;
         while (_dc.next()) |loc| {
             const dmt = self.c.getTile(loc);
-            const tile = server.MapUpdate.Tile{
+            const tile = Connector.Tile{
                 .entity = dmt.entity,
                 .item = dmt.item,
                 .floor = dmt.floor,
                 .visible = dmt.visible,
             };
             const spot = &.{ loc.getX(), loc.getY() };
-            self.writeMapUpdate(spot, tile) catch |err| {
+            self.connector.writeMapUpdate(spot, tile) catch |err| {
                 log.info("[{f}] remoteNotifyDisplay {}", .{ self, err });
                 self.setState(.closing);
                 return; // TODO no error return is a problem
@@ -258,7 +199,7 @@ fn remoteSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
         // We know that error.NoSpaceLeft can't happen here
         unreachable;
     };
-    self.writeTableUpdate("stats", name, slice) catch |err| {
+    self.connector.writeTableUpdate("stats", name, slice) catch |err| {
         log.info("[{f}] remoteSetStatInt {}", .{ self, err });
         self.setState(.closing);
     };
@@ -268,72 +209,50 @@ fn remoteSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
 // Remote callbacks from dispatch
 //
 
-fn doAction(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+fn command(ctx: *anyopaque, cmd: Connector.Command) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
-    const msg: *server.ActionMsg = @ptrCast(@alignCast(ptr));
 
-    // FUTURE: this takes over
-
-    log.info("[{f}] ActionMsg: {} {},{}", .{ self, msg.kind, msg.x, msg.y });
-}
-
-fn doCommand(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Self = @ptrCast(@alignCast(ctx));
-    const msg: *server.CommandMsg = @ptrCast(@alignCast(ptr));
+    // log.info("[{f}] CommandMsg: {}", .{ self, msg.c });
 
     if (self.getState() != .connected) {
         log.info("[{f}] CommandMsg in wrong state", .{self});
-        return error.Failed;
+        return error.Invalid;
     }
 
-    self.next_command = msg.c;
-
-    // log.info("[{f}] CommandMsg: {}", .{ self, msg.c });
+    self.next_command = cmd;
 }
 
-fn doDepart(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+fn depart(ctx: *anyopaque, text: []const u8) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
-    const msg: *server.Depart = @ptrCast(@alignCast(ptr));
 
-    log.info("[{f}] Disconnecting: message '{s}'", .{ self, msg.message });
+    log.info("[{f}] Disconnecting: message '{s}'", .{ self, text });
     self.setState(.closing);
 }
 
-fn doEntryRequest(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+fn entryRequest(ctx: *anyopaque, name: []const u8) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
     errdefer self.setState(.closing);
-    const msg: *server.EntryRequest = @ptrCast(@alignCast(ptr));
 
     if (self.getState() != .init) {
         log.info("[{f}] EntryRequest in wrong state", .{self});
-        return error.Failed;
+        return error.Invalid;
     }
 
-    log.info("[{f}] Connecting: player '{s}'", .{ self, msg.name });
+    log.info("[{f}] Connecting: player '{s}'", .{ self, name });
     self.setState(.starting);
 }
 
-fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
+fn unsupported(ctx: *anyopaque) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
-    _ = ptr; // Don't care, possibly pathological
-
-    log.info("[{f}] Unexpected MapUpdate", .{self});
-    return error.Failed;
+    log.info("[{f}] Invalid message", .{self});
+    return error.Invalid;
 }
 
-fn doMessage(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Self = @ptrCast(@alignCast(ctx));
-    _ = ptr; // Don't care, possibly pathological
-
-    log.info("[{f}] Unexpected Message", .{self});
-    return error.Failed;
-}
-
-fn doTableUpdate(ctx: *anyopaque, ptr: *anyopaque) Remote.Error!void {
-    const self: *Self = @ptrCast(@alignCast(ctx));
-    _ = ptr;
-    log.info("[{f}] Unexpected TableUpdate", .{self});
-    return error.Failed;
-}
+var vt = Connector.VTable{
+    .command = command,
+    .depart = depart,
+    .entry = entryRequest,
+    .unsupported = unsupported,
+};
 
 // EOF

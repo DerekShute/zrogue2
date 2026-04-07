@@ -3,17 +3,13 @@
 //!
 
 const std = @import("std");
-const server = @import("root.zig");
+const Connector = @import("roguelib").Connector;
 const NCurses = @import("ncurses");
 
 const net = std.net;
 const Allocator = std.mem.Allocator;
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
-
-const Remote = server.Remote;
-
-const Connector = @import("Connector.zig");
 
 //
 // Globals
@@ -53,7 +49,7 @@ fn readKeypress() NCurses.Keypress {
 // Display service routines
 //
 
-fn mapToChar(ch: server.MapUpdate.MapTile) u8 {
+fn mapToChar(ch: Connector.MapTile) u8 {
     const c: u8 = switch (ch) {
         .unknown => ' ',
         .floor => '.',
@@ -68,7 +64,7 @@ fn mapToChar(ch: server.MapUpdate.MapTile) u8 {
     return c;
 }
 
-fn renderChar(tile: server.MapUpdate.Tile) u8 {
+fn renderChar(tile: Connector.Tile) u8 {
     if (tile.visible) {
         if (tile.entity != .unknown) {
             return mapToChar(tile.entity);
@@ -117,7 +113,8 @@ fn displayStatLine() void {
 // TODO: note that this side shouldn't do curses actions.  It should post
 // an update and let the main thread take care of it
 
-fn depart(text: []const u8) void {
+fn depart(ctx: *anyopaque, text: []const u8) !void {
+    _ = ctx;
     displayMessageLine(text);
     setText(0, 1, "--PRESS ANY KEY--");
     refresh();
@@ -125,18 +122,21 @@ fn depart(text: []const u8) void {
     ending = true;
 }
 
-fn updateMap(x: i16, y: i16, tile: server.MapUpdate.Tile) void {
+fn updateMap(ctx: *anyopaque, x: i16, y: i16, tile: Connector.Tile) !void {
+    _ = ctx;
     setChar(@intCast(x), @intCast(y + 1), renderChar(tile));
     refresh();
 }
 
-fn updateMessage(text: []const u8) void {
+fn updateMessage(ctx: *anyopaque, text: []const u8) !void {
+    _ = ctx;
     displayMessageLine(text);
     refresh();
 }
 
-fn updateTable(table: []const u8, entry: []const u8, value: []const u8) void {
+fn updateTable(ctx: *anyopaque, table: []const u8, entry: []const u8, value: []const u8) !void {
     // TODO: ugh errors
+    _ = ctx;
     const val: i16 = std.fmt.parseInt(i16, value, 10) catch return;
 
     // TODO: assuming table is "stats", and this should be generalized
@@ -151,20 +151,18 @@ fn updateTable(table: []const u8, entry: []const u8, value: []const u8) void {
     displayStatLine();
 }
 
-var vt = Connector.VTable{
-    .depart = depart,
-    .updateMap = updateMap,
-    .updateMessage = updateMessage,
-    .updateTable = updateTable,
-};
+fn unsupported(ctx: *anyopaque) !void {
+    _ = ctx;
+    return error.Invalid;
+}
 
 //
-// Main
+// Input Loop
 //
 
 fn readCommand(connector: *Connector) !void {
     const kp = readKeypress();
-    const command: server.CommandMsg.Command = switch (kp) {
+    const cmd: Connector.Command = switch (kp) {
         .key_left => .go_west,
         .key_right => .go_east,
         .key_up => .go_north,
@@ -178,12 +176,33 @@ fn readCommand(connector: *Connector) !void {
         else => .wait,
     };
 
-    try connector.writeCommandMsg(command);
+    try connector.writeCommandMsg(cmd);
 }
 
-fn runConnector(connect: *Connector, allocator: Allocator) !void {
-    try connect.run(allocator);
+//
+// Connection thread, for incoming messages
+//
+
+fn runConnection(connector: *Connector, allocator: Allocator) !void {
+    while (true) {
+        connector.run(allocator) catch |err| switch (err) {
+            error.EndOfStream => return, // Probably shutting down
+            else => return err,
+        };
+    }
 }
+
+//
+// Game loop
+//
+
+var vt = Connector.VTable{
+    .depart = depart,
+    .updateMap = updateMap,
+    .updateMessage = updateMessage,
+    .updateTable = updateTable,
+    .unsupported = unsupported,
+};
 
 fn run_game(peer: net.Address) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -201,24 +220,26 @@ fn run_game(peer: net.Address) !void {
     var reader = stream.reader(rbuf);
     var writer = stream.writer(&.{});
 
-    var connect = Connector{
+    var connector = Connector{
         .vt = &vt,
-        .peer = peer,
-        .remote = Remote{
-            .reader = reader.interface(),
-            .writer = &writer.interface,
-        },
+        // .ctx ignored do not reference
+        .reader = reader.interface(),
+        .writer = &writer.interface,
     };
+
+    // TODO: player name
+
+    try connector.writeEntryRequest("anonymous");
 
     const thread = try std.Thread.spawn(
         .{},
-        runConnector,
-        .{ &connect, allocator },
+        runConnection,
+        .{ &connector, allocator },
     );
     defer thread.join();
 
     while (!ending) {
-        try readCommand(&connect);
+        try readCommand(&connector);
         displayMessageLine(" ");
         refresh();
     }

@@ -3,114 +3,66 @@
 //!
 
 const std = @import("std");
-const server = @import("root.zig");
 const log = std.log;
 const net = std.net;
 
-const Remote = server.Remote;
+const Connector = @import("roguelib").Connector;
 
-//
-// Eat errors because these can be called from callback function pointers
-//
-// This should be compiled with full debug protections
-//
-
-fn Wrap(comptime T: type, comptime MT: server.MessageType) type {
-    return struct {
-        pub fn write(remote: *Remote, msg: T) void {
-            const r_write = Remote.Write(T, @intFromEnum(MT)).write;
-            r_write(remote, msg) catch unreachable;
-        }
-    };
+fn doNothing(connect: *Connector, name: []const u8) void {
+    _ = connect;
+    _ = name;
 }
 
-fn writeAction(remote: *Remote, kind: server.ActionMsg.Type, pos: []const i16) void {
-    const write = Wrap(server.ActionMsg, .action).write;
-    write(remote, .{ .x = pos[0], .y = pos[1], .kind = kind });
+fn dualEntry(connect: *Connector, name: []const u8) void {
+    connect.writeEntryRequest(name) catch return;
+    connect.writeEntryRequest(name) catch return;
+    connect.writeEntryRequest(name) catch return;
+    connect.writeEntryRequest(name) catch return;
+    connect.writeEntryRequest(name) catch return;
 }
 
-fn writeDepart(remote: *Remote, text: []const u8) void {
-    const write = Wrap(server.Depart, .depart).write;
-    write(remote, .{ .message = text });
+fn entryExit(connect: *Connector, name: []const u8) void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    connect.writeEntryRequest(name) catch return;
+    connect.writeCommandMsg(.wait) catch return;
+    connect.run(allocator) catch return;
+    connect.writeDepart(name) catch return;
 }
 
-fn writeEntryRequest(remote: *Remote, text: []const u8) void {
-    const write = Wrap(server.EntryRequest, .entry_request).write;
-    write(remote, .{ .name = text });
+fn justDepart(connect: *Connector, name: []const u8) void {
+    connect.writeDepart(name) catch return;
 }
 
-fn writeMessage(remote: *Remote, text: []const u8) void {
-    const write = Wrap(server.Message, .message).write;
-    write(remote, .{ .message = text });
+fn justEntry(connect: *Connector, name: []const u8) void {
+    connect.writeEntryRequest(name) catch return;
 }
 
-fn writeMapUpdate(remote: *Remote) void {
-    const write = Wrap(server.MapUpdate, .map_update).write;
-    const tile = server.MapUpdate.Tile{
+fn useMessage(connect: *Connector, name: []const u8) void {
+    connect.writeMessage(name) catch return;
+}
+
+fn useTableUpdate(connect: *Connector, name: []const u8) void {
+    _ = name;
+    connect.writeTableUpdate("does", "not", "matter") catch return;
+    connect.writeTableUpdate("does", "not", "matter") catch return;
+}
+
+fn justAction(connect: *Connector, name: []const u8) void {
+    _ = name;
+    connect.writeAction(.none, &.{ 0, 0 }) catch return;
+}
+
+fn useMapUpdate(connect: *Connector, name: []const u8) void {
+    _ = name;
+    const tile = Connector.Tile{
         .entity = .unknown,
         .item = .gold,
         .floor = .wall,
         .visible = true,
     };
 
-    write(remote, .{ .x = 0, .y = 1, .tile = tile });
-}
-
-fn writeTableUpdate(remote: *Remote, table: []const u8, entry: []const u8, value: []const u8) void {
-    const write = Wrap(server.TableUpdate, .table_update).write;
-    write(remote, .{ .table = table, .entry = entry, .value = value });
-}
-
-//
-// Test series
-//
-
-fn doNothing(remote: *Remote, name: []const u8) void {
-    _ = remote;
-    _ = name;
-}
-
-fn dualEntry(remote: *Remote, name: []const u8) void {
-    writeEntryRequest(remote, name);
-    writeEntryRequest(remote, name);
-    writeEntryRequest(remote, name);
-    writeEntryRequest(remote, name);
-    writeEntryRequest(remote, name);
-}
-
-fn entryExit(remote: *Remote, name: []const u8) void {
-    writeEntryRequest(remote, name);
-    writeAction(remote, .none, &.{ 0, 0 });
-    writeDepart(remote, name);
-}
-
-fn justDepart(remote: *Remote, name: []const u8) void {
-    writeDepart(remote, name);
-}
-
-fn justEntry(remote: *Remote, name: []const u8) void {
-    writeEntryRequest(remote, name);
-}
-
-fn useMessage(remote: *Remote, name: []const u8) void {
-    writeMessage(remote, name);
-}
-
-fn useTableUpdate(remote: *Remote, name: []const u8) void {
-    _ = name;
-    writeTableUpdate(remote, "does", "not", "matter");
-    writeTableUpdate(remote, "does", "not", "matter");
-}
-
-fn justAction(remote: *Remote, name: []const u8) void {
-    _ = name;
-    writeAction(remote, .none, &.{ 0, 0 });
-}
-
-fn useMapUpdate(remote: *Remote, name: []const u8) void {
-    _ = name;
-    writeMapUpdate(remote);
-    writeMapUpdate(remote);
+    connect.writeMapUpdate(&.{ 0, 1 }, tile) catch return;
 }
 
 //
@@ -119,7 +71,7 @@ fn useMapUpdate(remote: *Remote, name: []const u8) void {
 
 const TestRig = struct {
     name: []const u8,
-    testfn: *const fn (remote: *Remote, name: []const u8) void,
+    testfn: *const fn (connect: *Connector, name: []const u8) void,
 };
 
 // The names of the test functions to execute
@@ -153,6 +105,61 @@ fn make(comptime fns: anytype) [fns.len]TestRig {
 }
 
 const rig = make(functions); // Your rig
+
+//
+// Phony things
+//
+
+fn command(ctx: *anyopaque, cmd: Connector.Command) !void {
+    _ = ctx;
+    _ = cmd;
+}
+
+fn depart(ctx: *anyopaque, text: []const u8) !void {
+    _ = ctx;
+    _ = text;
+}
+
+fn entryRequest(ctx: *anyopaque, text: []const u8) !void {
+    _ = ctx;
+    _ = text;
+}
+
+fn updateMap(ctx: *anyopaque, x: i16, y: i16, tile: Connector.Tile) !void {
+    _ = ctx;
+    _ = x;
+    _ = y;
+    _ = tile;
+    std.debug.print("map update\n", .{});
+}
+
+fn updateMessage(ctx: *anyopaque, text: []const u8) !void {
+    _ = ctx;
+    std.debug.print("message: '{s}'\n", .{text});
+}
+
+fn updateTable(ctx: *anyopaque, table: []const u8, entry: []const u8, value: []const u8) !void {
+    _ = ctx;
+    _ = table;
+    _ = entry;
+    _ = value;
+    std.debug.print("table update\n", .{});
+}
+
+fn unsupported(ctx: *anyopaque) !void {
+    _ = ctx;
+    return;
+}
+
+var vt = Connector.VTable{
+    .command = command,
+    .depart = depart,
+    .entry = entryRequest,
+    .updateMap = updateMap,
+    .updateMessage = updateMessage,
+    .updateTable = updateTable,
+    .unsupported = unsupported,
+};
 
 //
 // Main routine
@@ -201,13 +208,15 @@ pub fn main() !void {
         var reader = stream.reader(rbuf);
         var writer = stream.writer(&.{});
 
-        var remote = Remote{
+        var connector = Connector{
+            .vt = &vt,
+            // .ctx ignored do not reference
             .reader = reader.interface(),
             .writer = &writer.interface,
         };
 
         log.info("* * * START {s} * * *", .{item.name});
-        item.testfn(&remote, item.name);
+        item.testfn(&connector, item.name);
         log.info("* * * END {s} * * *", .{item.name});
     }
 
