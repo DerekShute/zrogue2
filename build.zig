@@ -54,14 +54,6 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const server_mod = b.addModule("server", .{
-        .root_source_file = b.path("client-server/root.zig"),
-        .target = target,
-        .imports = &.{
-            .{ .name = "roguelib", .module = roguelib_mod },
-        },
-    });
-
     //
     // Rogue single-user CLI
     //
@@ -165,12 +157,6 @@ pub fn build(b: *std.Build) void {
     });
     const run_roguelib_tests = b.addRunArtifact(roguelib_tests);
 
-    const server_tests = b.addTest(.{
-        .root_module = server_mod,
-    });
-    const run_server_tests = b.addRunArtifact(server_tests);
-    server_tests.root_module.addImport("msgpack", msgpack.module("msgpack"));
-
     const test_exe = b.addExecutable(.{
         .name = "zrogue-tests",
         .root_module = b.createModule(.{
@@ -194,7 +180,6 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_testing_exe.step);
     test_step.dependOn(&run_roguelib_tests.step);
-    test_step.dependOn(&run_server_tests.step);
 
     //
     // Visualization
