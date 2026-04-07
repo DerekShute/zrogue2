@@ -4,7 +4,6 @@
 
 const std = @import("std");
 const game = @import("game");
-const server = @import("root.zig");
 const RemoteClient = @import("RemoteClient.zig");
 
 const Allocator = std.mem.Allocator;
@@ -13,8 +12,6 @@ const Writer = std.io.Writer;
 
 const log = std.log.scoped(.server);
 const net = std.net;
-
-const Remote = server.Remote;
 
 //
 // Client connection
