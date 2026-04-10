@@ -275,7 +275,7 @@ fn cursesAddMessage(ptr: *anyopaque, msg: []const u8) void {
     self.refresh();
 }
 
-fn cursesGetCommand(ptr: *anyopaque) Client.Command {
+fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     var cmd = self.readCommand();

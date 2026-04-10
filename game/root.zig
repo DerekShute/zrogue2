@@ -60,7 +60,9 @@ fn play(config: *level.Config, map: *Map, queue: *Entity.Queue) State {
     // FUTURE: Other Entities means having a .depart result
 
     while (queue.next()) |entity| {
-        result = util.doAction(entity, map);
+        result = util.doAction(entity, map) catch {
+            return .end;
+        };
         if (result != .continue_game) {
             break;
         }

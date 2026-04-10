@@ -63,7 +63,7 @@ fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
     self.addMessage(msg);
 }
 
-fn playerGetAction(ptr: *Entity) Action {
+fn playerGetAction(ptr: *Entity) !Action {
     const self: *Self = @ptrCast(@alignCast(ptr));
     return self.getAction();
 }
@@ -92,8 +92,8 @@ fn playerTakeItem(ptr: *Entity, i: MapTile) void {
 // Utility
 //
 
-fn getCommand(self: *Self) Client.Command {
-    return self.client.getCommand();
+fn getCommand(self: *Self) !Client.Command {
+    return try self.client.getCommand();
 }
 
 fn renderRegion(self: *Self, map: *Map, r: Region, visible: bool) void {
@@ -125,8 +125,9 @@ pub fn addMessage(self: *Self, msg: []const u8) void {
     self.client.addMessage(msg);
 }
 
-pub fn getAction(self: *Self) Action {
-    return switch (self.getCommand()) {
+pub fn getAction(self: *Self) !Action {
+    const cmd = self.getCommand() catch return error.Failed;
+    return switch (cmd) {
         .help => Action.config(.none),
         .quit => Action.config(.quit),
         .go_north => Action.configDir(.move, .north),

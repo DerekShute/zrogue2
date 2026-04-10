@@ -142,7 +142,7 @@ fn remoteAddMessage(ptr: *anyopaque, text: []const u8) void {
     };
 }
 
-fn remoteGetCommand(ptr: *anyopaque) Client.Command {
+fn remoteGetCommand(ptr: *anyopaque) !Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     if (self.state != .connected) { // Prevent flood of failures
