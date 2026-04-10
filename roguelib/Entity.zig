@@ -19,8 +19,10 @@ const Self = @This();
 pub const Queue = queue.Queue(Self, "node");
 
 pub const VTable = struct {
+    pub const Error = error{Failed};
+
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
-    getAction: ?*const fn (self: *Self) Action = null,
+    getAction: ?*const fn (self: *Self) Error!Action = null,
     notifyDisplay: ?*const fn (self: *Self) void = null,
     revealMap: ?*const fn (self: *Self, map: *Map, pos: Pos) void = null,
     setKnown: ?*const fn (self: *Self, map: *Map, loc: Pos, visible: bool) void = null,
@@ -78,9 +80,9 @@ pub fn addMessage(self: *Self, msg: []const u8) void {
     }
 }
 
-pub fn getAction(self: *Self) Action {
+pub fn getAction(self: *Self) !Action {
     if (self.vtable.getAction) |cb| {
-        return cb(self);
+        return try cb(self);
     }
     return Action.config(.none);
 }

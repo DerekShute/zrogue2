@@ -25,8 +25,8 @@ const Handler = *const fn (self: *Entity, action: *Action, map: *Map) Action.Res
 // Action service
 //
 
-pub fn doAction(entity: *Entity, map: *Map) Action.Result {
-    var action = entity.getAction();
+pub fn doAction(entity: *Entity, map: *Map) !Action.Result {
+    var action = try entity.getAction();
     const actFn: Handler = switch (action.getType()) {
         .ascend => doAscend,
         .descend => doDescend,

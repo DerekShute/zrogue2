@@ -22,6 +22,7 @@ pub const Error = error{
     ProviderError,
     DisplayTooSmall, // Curses
     OutOfMemory,
+    EndOfStream,
 };
 
 //
@@ -69,7 +70,7 @@ pub const DisplayMap = Grid(DisplayMapTile);
 pub const VTable = struct {
     addMessage: *const fn (ctx: *anyopaque, msg: []const u8) void,
     // input
-    getCommand: *const fn (ctx: *anyopaque) Command, // TODO optional return
+    getCommand: *const fn (ctx: *anyopaque) Error!Command,
 
     // "Thing has changed" updates to send to implementation
     notifyDisplay: *const fn (ctx: *anyopaque) void,
@@ -213,8 +214,8 @@ pub fn resetDisplay(self: *Self) void {
 
 // Command
 
-pub inline fn getCommand(self: *Self) Command {
-    return self.vtable.getCommand(self.ptr);
+pub inline fn getCommand(self: *Self) Error!Command {
+    return try self.vtable.getCommand(self.ptr);
 }
 
 // Stats

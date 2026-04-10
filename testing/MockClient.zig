@@ -82,7 +82,7 @@ fn mockAddMessage(ptr: *anyopaque, msg: []const u8) void {
     self.message = self.message[0..msg.len]; // Fix up the slice for length
 }
 
-fn mockGetCommand(ptr: *anyopaque) Client.Command {
+fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
     const i = self.command_index;
     if (i >= self.command_list.len) {
@@ -149,7 +149,7 @@ test "try out mock" {
     defer m.deinit(std.testing.allocator);
 
     var c = m.client();
-    try expect(c.getCommand() == .go_west);
+    try expect(try c.getCommand() == .go_west);
 
     try expect(m.getStatPurse() == 0);
     try expect(m.getStatDepth() == 0);
