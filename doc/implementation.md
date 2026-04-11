@@ -3,15 +3,16 @@
 A work in progress.  There is:
 
 * roguelib : generic map-and-mechanics
+  * protocol : the messaging protocol messages and test apparatus
 * doc : you are here
 * game : the game that would be implemented, that wields the mapgen and
   roguelib
-* linux-cli : what it says on the tin: Linux single-user ncurses-based game  
-* client-server : client-server server side (Linux cli)
-  * protocol : the messaging protocol messages and test apparatus
-  * client
-  * server
-* testing : high level testing that is a game equivalent
+* src : source directory of various programs
+  * fuzz : fuzz/error testing for server
+  * linux-client : client side of server
+  * linux-server : server side
+  * linux-zrogue : single-player game version
+  * testing : apparatus
 * ui : chum bucket for user interface
 
 ## Modules
@@ -25,14 +26,7 @@ The game, in whatever form it currently exists
 The most generally-useful things I can think of.  Positions, maps of tiles,
 Entities, and so forth.  These are the substrate.
 
-### client-server
-
-Client-server interactions.  Includes server-main.zig for the server binary
-and client-main for the other.
-
-### linux-cli
-
-This is the Linux CLI single-user game, using ncurses.
+Also the messaging protocol minus the networking
 
 #### ui/ncurses
 

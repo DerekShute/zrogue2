@@ -61,7 +61,7 @@ pub fn build(b: *std.Build) void {
     const rogue_exe = b.addExecutable(.{
         .name = "rogue",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("linux-cli/main.zig"),
+            .root_source_file = b.path("src/linux-zrogue/main.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -84,7 +84,7 @@ pub fn build(b: *std.Build) void {
     const server_exe = b.addExecutable(.{
         .name = "server",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("client-server/server-main.zig"),
+            .root_source_file = b.path("src/linux-server/main.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -99,7 +99,7 @@ pub fn build(b: *std.Build) void {
     const fuzz_exe = b.addExecutable(.{
         .name = "fuzz",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("client-server/fuzz-main.zig"),
+            .root_source_file = b.path("src/fuzz/main.zig"),
             .target = target,
             .optimize = test_optimize,
             .imports = &.{
@@ -117,7 +117,7 @@ pub fn build(b: *std.Build) void {
     const client_exe = b.addExecutable(.{
         .name = "client",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("client-server/client-main.zig"),
+            .root_source_file = b.path("src/linux-client/main.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -160,7 +160,7 @@ pub fn build(b: *std.Build) void {
     const test_exe = b.addExecutable(.{
         .name = "zrogue-tests",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("testing/tests_main.zig"),
+            .root_source_file = b.path("src/testing/main.zig"),
             .target = target,
             .optimize = test_optimize,
             .imports = &.{
