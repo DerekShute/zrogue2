@@ -36,7 +36,7 @@ pub fn build(b: *std.Build) void {
     //
 
     const curses_mod = b.addModule("ncurses", .{
-        .root_source_file = b.path("ui/NCurses.zig"),
+        .root_source_file = b.path("ui/NCurses/root.zig"),
         .target = target,
     });
 
@@ -198,10 +198,7 @@ pub fn build(b: *std.Build) void {
     });
 
     b.installArtifact(viz);
-
     const viz_cmd = b.addRunArtifact(viz);
-    viz_cmd.step.dependOn(b.getInstallStep());
-
     const viz_step = b.step("visual", "Create Visualization");
     viz_step.dependOn(&viz_cmd.step);
 }
