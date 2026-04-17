@@ -69,12 +69,12 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "roguelib", .module = roguelib_mod },
                 .{ .name = "ncurses", .module = curses_mod },
             },
+            .link_libc = true,
         }),
     });
 
     rogue_exe.root_module.addOptions("build", options); // exposes version
-    rogue_exe.linkLibC();
-    rogue_exe.linkSystemLibrary("ncursesw");
+    rogue_exe.root_module.linkSystemLibrary("ncursesw", .{});
     b.installArtifact(rogue_exe);
 
     //
@@ -124,11 +124,11 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "ncurses", .module = curses_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
             },
+            .link_libc = true,
         }),
     });
 
-    client_exe.linkSystemLibrary("ncursesw");
-    client_exe.linkLibC();
+    client_exe.root_module.linkSystemLibrary("ncursesw", .{});
     b.installArtifact(client_exe);
 
     //
