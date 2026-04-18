@@ -65,6 +65,11 @@ layers and abstraction going on.
 Still not in the mood to improve the actual game itself or refine the
 interface.
 
+### 0.3 client-server
+
+Split the pieces apart that the client and server play one single threaded
+single user game.  This is not exactly a victory.
+
 ### 0.2 prepped for whatever is next
 
 linux-cli/ encapsulates the single-user linux CLI version, and interactions
