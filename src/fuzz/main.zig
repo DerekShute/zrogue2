@@ -7,7 +7,9 @@ const Allocator = std.mem.Allocator;
 const log = std.log;
 const net = std.Io.net;
 
-const Connector = @import("roguelib").Connector;
+const Command = @import("roguelib").Command;
+const MapTile = @import("roguelib").MapTile;
+const Connector = @import("connector");
 
 fn doNothing(allocator: Allocator, connect: *Connector, name: []const u8) void {
     _ = allocator;
@@ -26,7 +28,7 @@ fn dualEntry(allocator: Allocator, connect: *Connector, name: []const u8) void {
 
 fn entryExit(allocator: Allocator, connect: *Connector, name: []const u8) void {
     connect.writeEntryRequest(name) catch return;
-    connect.writeCommandMsg(.wait) catch return;
+    connect.writeCommandMsg(@intFromEnum(Command.wait)) catch return;
     connect.run(allocator) catch return;
     connect.writeDepart(name) catch return;
 }
@@ -53,23 +55,19 @@ fn useTableUpdate(allocator: Allocator, connect: *Connector, name: []const u8) v
     connect.writeTableUpdate("does", "not", "matter") catch return;
 }
 
-fn justAction(allocator: Allocator, connect: *Connector, name: []const u8) void {
-    _ = allocator;
-    _ = name;
-    connect.writeAction(.none, &.{ 0, 0 }) catch return;
-}
-
 fn useMapUpdate(allocator: Allocator, connect: *Connector, name: []const u8) void {
     _ = allocator;
     _ = name;
     const tile = Connector.Tile{
-        .entity = .unknown,
-        .item = .gold,
-        .floor = .wall,
+        .entity = @intFromEnum(MapTile.unknown),
+        .item = @intFromEnum(MapTile.gold),
+        .floor = @intFromEnum(MapTile.wall),
         .visible = true,
     };
 
-    connect.writeMapUpdate(&.{ 0, 1 }, tile) catch return;
+    var pos: [2]i16 = .{ 0, 1 };
+
+    connect.writeMapUpdate(&pos, tile) catch return;
 }
 
 //
@@ -95,7 +93,6 @@ const functions = .{
     "entryExit",
     "useMessage",
     "useTableUpdate",
-    "justAction",
     "useMapUpdate",
 };
 
@@ -117,7 +114,7 @@ const rig = make(functions); // Your rig
 // Phony things
 //
 
-fn command(ctx: *anyopaque, cmd: Connector.Command) !void {
+fn command(ctx: *anyopaque, cmd: u16) !void {
     _ = ctx;
     _ = cmd;
 }
@@ -132,10 +129,9 @@ fn entryRequest(ctx: *anyopaque, text: []const u8) !void {
     _ = text;
 }
 
-fn updateMap(ctx: *anyopaque, x: i16, y: i16, tile: Connector.Tile) !void {
+fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.Tile) !void {
     _ = ctx;
-    _ = x;
-    _ = y;
+    _ = pos;
     _ = tile;
     std.debug.print("map update\n", .{});
 }

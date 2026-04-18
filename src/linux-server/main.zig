@@ -79,7 +79,7 @@ pub fn main(init: std.process.Init) !void {
     log.info("[{}] Listening", .{service.socket.address});
     while (true) {
         var connection = try service.accept(init.io);
-        defer connection.stream.close();
+        defer connection.close(init.io);
 
         try handleClient(init.io, &connection, allocator);
     }
