@@ -7,30 +7,28 @@ const game = @import("game");
 const RemoteClient = @import("RemoteClient.zig");
 
 const Allocator = std.mem.Allocator;
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
 
 const log = std.log.scoped(.server);
-const net = std.net;
+const net = std.Io.net;
 
 //
 // Client connection
 //
 
-fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
-    const name = try std.fmt.allocPrint(allocator, "{f}", .{conn.address});
+fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
+    const name = try std.fmt.allocPrint(allocator, "{f}", .{conn.socket.address});
     defer allocator.free(name);
 
     log.info("[{s}] Accepted connection", .{name});
 
     const rbuf = try allocator.alloc(u8, 1024);
     defer allocator.free(rbuf);
-    var reader = conn.stream.reader(rbuf);
-    var writer = conn.stream.writer(&.{});
+    var reader = conn.reader(io, rbuf);
+    var writer = conn.writer(io, &.{});
 
     const config = RemoteClient.Config{
         .allocator = allocator,
-        .reader = reader.interface(),
+        .reader = &reader.interface,
         .writer = &writer.interface,
         .name = name,
     };
@@ -71,22 +69,19 @@ fn handleClient(conn: *net.Server.Connection, allocator: Allocator) !void {
 // Main
 //
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
 
-    const loopback = try net.Ip4Address.parse("127.0.0.1", 0);
-    const localhost = net.Address{ .in = loopback };
-    var service = try localhost.listen(.{
-        .reuse_address = true,
-    });
-    defer service.deinit();
+    const addr = try net.IpAddress.parse("127.0.0.1", 0);
+    var service = try addr.listen(init.io, .{ .reuse_address = true });
+    defer service.deinit(init.io);
 
-    log.info("[{}] Listening", .{service.listen_address.getPort()});
+    log.info("[{}] Listening", .{service.socket.address});
     while (true) {
-        var connection = try service.accept();
+        var connection = try service.accept(init.io);
         defer connection.stream.close();
 
-        try handleClient(&connection, gpa.allocator());
+        try handleClient(init.io, &connection, allocator);
     }
 }
 

@@ -12,8 +12,8 @@ const Connector = @import("roguelib").Connector;
 const Self = @This();
 
 const log = std.log.scoped(.netclient);
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
+const Reader = std.Io.Reader;
+const Writer = std.Io.Writer;
 const Allocator = std.mem.Allocator;
 
 //

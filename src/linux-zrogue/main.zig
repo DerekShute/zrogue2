@@ -14,7 +14,7 @@ const YSIZE = 24;
 // Command arguments
 //
 
-fn arg_in_list(programarg: []u8, l: []const []const u8) bool {
+fn arg_in_list(programarg: []const u8, l: []const []const u8) bool {
     for (l) |a| {
         if (std.mem.eql(u8, programarg, a)) {
             return true;
@@ -27,9 +27,9 @@ fn arg_in_list(programarg: []u8, l: []const []const u8) bool {
 
 const help_arg_flags = [_][]const u8{ "-h", "-help", "--help" };
 
-fn print_help() !void {
-    var stdout_writer = std.fs.File.stdout().writer(&.{}); // no buffer
-    const stdout = &stdout_writer.interface; // Writer
+fn print_help(init: std.process.Init) !void {
+    var stdout_writer = std.Io.File.stdout().writer(init.io, &.{});
+    const stdout = &stdout_writer.interface;
 
     const help =
         \\
@@ -52,8 +52,8 @@ fn print_help() !void {
 
 const version_arg_flags = [_][]const u8{ "-v", "-version", "--version" };
 
-fn print_version() !void {
-    var stdout_writer = std.fs.File.stdout().writer(&.{}); // no buffer
+fn print_version(init: std.process.Init) !void {
+    var stdout_writer = std.Io.File.stdout().writer(init.io, &.{});
     const stdout = &stdout_writer.interface; // Writer
 
     try stdout.print("Zrogue version {s}\n", .{options.version});
@@ -64,9 +64,8 @@ fn print_version() !void {
 // Main entrypoint of Linux single-player CLI using Curses
 //
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
 
     //
     // Arguments
@@ -74,20 +73,19 @@ pub fn main() !void {
     // Note that this does not work from 'build run'
     //
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
     if (args.len > 1) { // program name is args[0]
         for (args) |arg| {
-            if (arg_in_list(arg, &help_arg_flags)) {
-                try print_help();
+            if (arg_in_list(arg[0..], &help_arg_flags)) {
+                try print_help(init);
                 std.process.exit(0);
             }
-            if (arg_in_list(arg, &version_arg_flags)) {
-                try print_version();
+            if (arg_in_list(arg[0..], &version_arg_flags)) {
+                try print_version(init);
                 std.process.exit(0);
             }
         }
-        try print_help();
+        try print_help(init);
         std.process.exit(1);
     }
 
