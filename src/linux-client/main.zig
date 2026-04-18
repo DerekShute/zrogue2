@@ -6,7 +6,7 @@ const std = @import("std");
 const Connector = @import("roguelib").Connector;
 const NCurses = @import("ncurses");
 
-const net = std.net;
+const net = std.Io.net;
 const Allocator = std.mem.Allocator;
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
@@ -204,26 +204,23 @@ var vt = Connector.VTable{
     .unsupported = unsupported,
 };
 
-fn run_game(peer: net.Address) !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
+fn run_game(peer: net.IpAddress, allocator: Allocator, io: std.Io) !void {
     const rbuf = try allocator.alloc(u8, 1000);
     errdefer allocator.free(rbuf);
 
-    const stream = try net.tcpConnectToAddress(peer);
-    defer stream.close();
+    const stream = try peer.connect(io, .{ .mode = .stream });
+    defer stream.close(io);
 
     ncurses = try NCurses.init();
     defer ncurses.deinit();
 
-    var reader = stream.reader(rbuf);
-    var writer = stream.writer(&.{});
+    var reader = stream.reader(io, rbuf);
+    var writer = stream.writer(io, &.{});
 
     var connector = Connector{
         .vt = &vt,
         // .ctx ignored do not reference
-        .reader = reader.interface(),
+        .reader = &reader.interface,
         .writer = &writer.interface,
     };
 
@@ -249,20 +246,18 @@ fn run_game(peer: net.Address) !void {
 // MAIN
 //
 
-pub fn main() !void {
-    var args = std.process.args();
-    _ = args.skip(); // index 0 is the program name itself
-    const port_value = args.next() orelse {
+pub fn main(init: std.process.Init) !void {
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
+    if (args.len < 2) {
         std.debug.print("expect port as command line argument\n", .{});
         return;
-    };
-
-    const port = try std.fmt.parseInt(u16, port_value, 10);
-    const peer = try net.Address.parseIp4("127.0.0.1", port);
+    }
+    const port = try std.fmt.parseInt(u16, args[1], 10);
+    const peer = try net.IpAddress.parseIp4("127.0.0.1", port);
 
     std.debug.print("Connecting to {f}\n", .{peer});
 
-    run_game(peer) catch |err| if (!ending) {
+    run_game(peer, init.gpa, init.io) catch |err| if (!ending) {
         switch (err) {
             error.ConnectionRefused => std.debug.print("Error: Refused. No such server?\n", .{}),
             error.WriteFailed => std.debug.print("Error: Server down?\n", .{}),

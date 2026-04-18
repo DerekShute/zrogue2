@@ -3,17 +3,20 @@
 //!
 
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 const log = std.log;
-const net = std.net;
+const net = std.Io.net;
 
 const Connector = @import("roguelib").Connector;
 
-fn doNothing(connect: *Connector, name: []const u8) void {
+fn doNothing(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     _ = connect;
     _ = name;
 }
 
-fn dualEntry(connect: *Connector, name: []const u8) void {
+fn dualEntry(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     connect.writeEntryRequest(name) catch return;
     connect.writeEntryRequest(name) catch return;
     connect.writeEntryRequest(name) catch return;
@@ -21,39 +24,43 @@ fn dualEntry(connect: *Connector, name: []const u8) void {
     connect.writeEntryRequest(name) catch return;
 }
 
-fn entryExit(connect: *Connector, name: []const u8) void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+fn entryExit(allocator: Allocator, connect: *Connector, name: []const u8) void {
     connect.writeEntryRequest(name) catch return;
     connect.writeCommandMsg(.wait) catch return;
     connect.run(allocator) catch return;
     connect.writeDepart(name) catch return;
 }
 
-fn justDepart(connect: *Connector, name: []const u8) void {
+fn justDepart(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     connect.writeDepart(name) catch return;
 }
 
-fn justEntry(connect: *Connector, name: []const u8) void {
+fn justEntry(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     connect.writeEntryRequest(name) catch return;
 }
 
-fn useMessage(connect: *Connector, name: []const u8) void {
+fn useMessage(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     connect.writeMessage(name) catch return;
 }
 
-fn useTableUpdate(connect: *Connector, name: []const u8) void {
+fn useTableUpdate(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     _ = name;
     connect.writeTableUpdate("does", "not", "matter") catch return;
     connect.writeTableUpdate("does", "not", "matter") catch return;
 }
 
-fn justAction(connect: *Connector, name: []const u8) void {
+fn justAction(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     _ = name;
     connect.writeAction(.none, &.{ 0, 0 }) catch return;
 }
 
-fn useMapUpdate(connect: *Connector, name: []const u8) void {
+fn useMapUpdate(allocator: Allocator, connect: *Connector, name: []const u8) void {
+    _ = allocator;
     _ = name;
     const tile = Connector.Tile{
         .entity = .unknown,
@@ -71,7 +78,7 @@ fn useMapUpdate(connect: *Connector, name: []const u8) void {
 
 const TestRig = struct {
     name: []const u8,
-    testfn: *const fn (connect: *Connector, name: []const u8) void,
+    testfn: *const fn (allocator: Allocator, connect: *Connector, name: []const u8) void,
 };
 
 // The names of the test functions to execute
@@ -165,18 +172,15 @@ var vt = Connector.VTable{
 // Main routine
 //
 
-pub fn main() !void {
-    // TODO: test name to run, etc
+pub fn main(init: std.process.Init) !void {
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
+    if (args.len < 2) {
+        std.debug.print("Expect port as command line argument\n", .{});
+        return;
+    }
 
-    var args = std.process.args();
-    _ = args.skip(); // index 0 Argument is the path to the program.
-    const port_value = args.next() orelse {
-        log.info("Expect port as command line argument", .{});
-        return error.NoPort;
-    };
-    const port = try std.fmt.parseInt(u16, port_value, 10);
-
-    const peer = net.Address.parseIp4("127.0.0.1", port) catch |err| {
+    const port = try std.fmt.parseInt(u16, args[1], 10);
+    const peer = net.IpAddress.parseIp4("127.0.0.1", port) catch |err| {
         log.info("Connect.init parseIp4: {}", .{err});
         return err;
     };
@@ -185,38 +189,34 @@ pub fn main() !void {
     // Test series
     //
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
     for (rig) |item| {
-        var arena = std.heap.ArenaAllocator.init(allocator);
+        var arena = std.heap.ArenaAllocator.init(init.gpa);
         defer arena.deinit();
+        const allocator = arena.allocator();
 
-        const stream = net.tcpConnectToAddress(peer) catch |err| {
+        const stream = peer.connect(init.io, .{ .mode = .stream }) catch |err| {
             log.info("tcpConnectToAddress: {}", .{err});
             return err;
         };
+        defer stream.close(init.io);
+
         const rbuf = allocator.alloc(u8, 1000) catch |err| {
             log.info("alloc read buffer: {}", .{err});
             return err;
         };
-        errdefer allocator.free(rbuf);
 
-        const name = try std.fmt.allocPrint(allocator, "{f}", .{peer});
-        defer allocator.free(name);
-
-        var reader = stream.reader(rbuf);
-        var writer = stream.writer(&.{});
+        var reader = stream.reader(init.io, rbuf);
+        var writer = stream.writer(init.io, &.{});
 
         var connector = Connector{
             .vt = &vt,
             // .ctx ignored do not reference
-            .reader = reader.interface(),
+            .reader = &reader.interface,
             .writer = &writer.interface,
         };
 
         log.info("* * * START {s} * * *", .{item.name});
-        item.testfn(&connector, item.name);
+        item.testfn(allocator, &connector, item.name);
         log.info("* * * END {s} * * *", .{item.name});
     }
 
