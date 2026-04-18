@@ -5,20 +5,21 @@
 //!
 
 const std = @import("std");
+const Allocator = std.mem.Allocator;
+const Reader = std.Io.Reader;
+const Writer = std.Io.Writer;
 
 const Self = @This();
 
 pub const max_len = 20;
 
-//
-// Members: do not supply defaults!
-//
+// Members
 
 table: []const u8,
 entry: []const u8,
 value: []const u8,
 
-pub fn init(allocator: std.mem.Allocator, table: []const u8, entry: []const u8, value: []const u8) !*Self {
+pub fn init(allocator: Allocator, table: []const u8, entry: []const u8, value: []const u8) !*Self {
     if ((table.len > max_len) or (entry.len > max_len) or (value.len > max_len)) {
         @panic("TableUpdate.init: field too long"); // Prevent this, please
     }
@@ -33,18 +34,54 @@ pub fn init(allocator: std.mem.Allocator, table: []const u8, entry: []const u8, 
     return s;
 }
 
-pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+pub fn deinit(self: *Self, allocator: Allocator) void {
     allocator.free(self.value);
     allocator.free(self.entry);
     allocator.free(self.table);
     allocator.destroy(self);
 }
 
-pub fn valid(self: *Self) bool {
-    if ((self.table.len > max_len) or (self.entry.len > max_len) or (self.value.len > max_len)) {
-        return false;
+pub fn read(reader: *Reader, allocator: Allocator) !*Self {
+    const t_size = try reader.takeByte();
+    if (t_size > max_len) {
+        return error.Invalid;
     }
-    return true;
+    const e_size = try reader.takeByte();
+    if (e_size > max_len) {
+        return error.Invalid;
+    }
+    const v_size = try reader.takeByte();
+    if (v_size > max_len) {
+        return error.Invalid;
+    }
+
+    const s: *Self = try allocator.create(Self);
+    errdefer allocator.destroy(s);
+    const t = try allocator.alloc(u8, t_size);
+    errdefer allocator.free(t);
+    const e = try allocator.alloc(u8, e_size);
+    errdefer allocator.free(e);
+    const v = try allocator.alloc(u8, v_size);
+    errdefer allocator.free(v);
+
+    try reader.readSliceAll(t);
+    try reader.readSliceAll(e);
+    try reader.readSliceAll(v);
+
+    s.table = t;
+    s.entry = e;
+    s.value = v;
+
+    return s;
+}
+
+pub fn write(self: *const Self, writer: *Writer) !void {
+    try writer.writeByte(@truncate(self.table.len)); // implies valid size
+    try writer.writeByte(@truncate(self.entry.len));
+    try writer.writeByte(@truncate(self.value.len));
+    try writer.writeAll(self.table);
+    try writer.writeAll(self.entry);
+    try writer.writeAll(self.value);
 }
 
 //
@@ -61,6 +98,17 @@ const test_msg: *const [max_len:0]u8 = "*" ** max_len;
 test "basic usage" {
     var msg = try init(t_allocator, test_msg, test_msg, test_msg);
     defer msg.deinit(t_allocator);
+
+    var buffer: [128]u8 = undefined;
+    var bwriter = Writer.fixed(&buffer);
+    try msg.write(&bwriter);
+
+    var breader = Reader.fixed(buffer[0..bwriter.buffered().len]);
+
+    var reply = try read(&breader, t_allocator);
+    defer reply.deinit(t_allocator);
+
+    try expect(std.mem.eql(u8, msg.table, reply.table));
 }
 
 test "memory failure 1" {
@@ -92,34 +140,6 @@ test "allocate" {
     var f = FailingAllocator.init(t_allocator, .{ .fail_index = 4 });
     var sendmsg = try init(f.allocator(), test_msg, test_msg, test_msg);
     defer sendmsg.deinit(f.allocator());
-}
-
-test "validation" {
-    // This is lame but I have nobody to blame but myself
-
-    const bad: []const u8 = "*" ** 21;
-    const dup = try t_allocator.dupe(u8, bad);
-    defer t_allocator.free(dup);
-    const good = try t_allocator.dupe(u8, test_msg);
-    defer t_allocator.free(good);
-
-    var msg: Self = .{
-        .table = dup,
-        .entry = good,
-        .value = good,
-    };
-
-    try expect(!valid(&msg));
-
-    msg.table = good;
-    msg.entry = dup;
-
-    try expect(!valid(&msg));
-
-    msg.entry = good;
-    msg.value = dup;
-
-    try expect(!valid(&msg));
 }
 
 // EOF

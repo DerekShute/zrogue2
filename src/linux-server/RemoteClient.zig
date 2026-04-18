@@ -7,7 +7,7 @@
 const std = @import("std");
 
 const Client = @import("roguelib").Client;
-const Connector = @import("roguelib").Connector;
+const Connector = @import("connector");
 
 const Self = @This();
 
@@ -172,13 +172,13 @@ fn remoteNotifyDisplay(ptr: *anyopaque) void {
         while (_dc.next()) |loc| {
             const dmt = self.c.getTile(loc);
             const tile = Connector.Tile{
-                .entity = dmt.entity,
-                .item = dmt.item,
-                .floor = dmt.floor,
+                .entity = @intFromEnum(dmt.entity),
+                .item = @intFromEnum(dmt.item),
+                .floor = @intFromEnum(dmt.floor),
                 .visible = dmt.visible,
             };
-            const spot = &.{ loc.getX(), loc.getY() };
-            self.connector.writeMapUpdate(spot, tile) catch |err| {
+            var spot: [2]i16 = .{ loc.getX(), loc.getY() };
+            self.connector.writeMapUpdate(&spot, tile) catch |err| {
                 log.info("[{f}] remoteNotifyDisplay {}", .{ self, err });
                 self.setState(.closing);
                 return; // TODO no error return is a problem
@@ -209,7 +209,7 @@ fn remoteSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
 // Remote callbacks from dispatch
 //
 
-fn command(ctx: *anyopaque, cmd: Connector.Command) !void {
+fn command(ctx: *anyopaque, cmd: u16) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
 
     // log.info("[{f}] CommandMsg: {}", .{ self, msg.c });
@@ -219,7 +219,7 @@ fn command(ctx: *anyopaque, cmd: Connector.Command) !void {
         return error.Invalid;
     }
 
-    self.next_command = cmd;
+    self.next_command = @enumFromInt(cmd);
 }
 
 fn depart(ctx: *anyopaque, text: []const u8) !void {

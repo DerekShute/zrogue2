@@ -3,8 +3,11 @@
 //!
 
 const std = @import("std");
-const Connector = @import("roguelib").Connector;
 const NCurses = @import("ncurses");
+
+const Command = @import("roguelib").Command;
+const MapTile = @import("roguelib").MapTile;
+const Connector = @import("connector");
 
 const net = std.Io.net;
 const Allocator = std.mem.Allocator;
@@ -49,7 +52,7 @@ fn readKeypress() NCurses.Keypress {
 // Display service routines
 //
 
-fn mapToChar(ch: Connector.MapTile) u8 {
+fn mapToChar(ch: MapTile) u8 {
     const c: u8 = switch (ch) {
         .unknown => ' ',
         .floor => '.',
@@ -65,22 +68,27 @@ fn mapToChar(ch: Connector.MapTile) u8 {
 }
 
 fn renderChar(tile: Connector.Tile) u8 {
+    const entity: MapTile = @enumFromInt(tile.entity);
+    const floor: MapTile = @enumFromInt(tile.floor);
+    const item: MapTile = @enumFromInt(tile.item);
+
     if (tile.visible) {
-        if (tile.entity != .unknown) {
-            return mapToChar(tile.entity);
+        if (entity != .unknown) {
+            return mapToChar(entity);
         }
-        if (tile.item != .unknown) {
-            return mapToChar(tile.item);
+        if (item != .unknown) {
+            return mapToChar(item);
         }
         // Else floor
     } else { // Not visible
         // Client option: can use dimmed version of last known, etc
-        if (!tile.floor.isFeature()) {
+
+        if (!floor.isFeature()) {
             return mapToChar(.unknown);
         }
     }
 
-    return mapToChar(tile.floor);
+    return mapToChar(floor);
 }
 
 fn displayMessageLine(message: []const u8) void {
@@ -122,9 +130,9 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
     ending = true;
 }
 
-fn updateMap(ctx: *anyopaque, x: i16, y: i16, tile: Connector.Tile) !void {
+fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.Tile) !void {
     _ = ctx;
-    setChar(@intCast(x), @intCast(y + 1), renderChar(tile));
+    setChar(@intCast(pos[0]), @intCast(pos[1] + 1), renderChar(tile));
     refresh();
 }
 
@@ -162,7 +170,7 @@ fn unsupported(ctx: *anyopaque) !void {
 
 fn readCommand(connector: *Connector) !void {
     const kp = readKeypress();
-    const cmd: Connector.Command = switch (kp) {
+    const cmd: Command = switch (kp) {
         .key_left => .go_west,
         .key_right => .go_east,
         .key_up => .go_north,
@@ -176,7 +184,7 @@ fn readCommand(connector: *Connector) !void {
         else => .wait,
     };
 
-    try connector.writeCommandMsg(cmd);
+    try connector.writeCommandMsg(@intFromEnum(cmd));
 }
 
 //

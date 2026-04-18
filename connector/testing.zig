@@ -3,10 +3,10 @@
 //!
 
 const std = @import("std");
-const Connector = @import("Connector.zig");
+const Connector = @import("root.zig");
 
-const Writer = std.io.Writer;
-const Reader = std.io.Reader;
+const Writer = std.Io.Writer;
+const Reader = std.Io.Reader;
 
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
@@ -124,6 +124,13 @@ test "internal failure" {
 
     try expectError(error.Failed, connect.run(t_allocator));
     try expect(frame.got_message);
+}
+
+comptime {
+    _ = @import("CommandMessage.zig");
+    _ = @import("MapUpdate.zig");
+    _ = @import("TableUpdate.zig");
+    _ = @import("TextMessage.zig");
 }
 
 // EOF

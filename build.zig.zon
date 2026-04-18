@@ -3,13 +3,9 @@
     .version = "0.2.0",
     .fingerprint = 0xac6ab72ef49c0013,
     .minimum_zig_version = "0.16.0",
-    // Each dependency must either provide a `url` and `hash`, or a `path`.
-    // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
     .dependencies = .{
-        .msgpack = .{
-            .url = "git+https://github.com/lalinsky/msgpack.zig?ref=v0.6.0#ca0f1533bb260490c6b69399e089bf4fabaa672a",
-            .hash = "msgpack-0.6.0-ZOu9PJHnAQBHstHnnktRxFW3MUlRkSFdaUuLrecSuYOe",
-        },
+        // Each dependency must either provide a `url` and `hash`, or a `path`.
+        // `zig build --fetch` recursively fetches all dependencies
     },
 
     .paths = .{
