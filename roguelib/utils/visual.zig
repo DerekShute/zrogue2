@@ -12,8 +12,7 @@ pub fn genFields(comptime T: type) []const []const u8 {
     switch (typeInfo) {
         .@"struct" => |structInfo| {
             const field_count = structInfo.fields.len;
-            const decls_count = structInfo.decls.len;
-            var names: [field_count + decls_count + 1][]const u8 = undefined;
+            var names: [field_count + 1][]const u8 = undefined;
             names[0] = comptimePrint("{s}:", .{@typeName(T)});
             for (structInfo.fields, 1..) |field, i| {
                 names[i] = comptimePrint("  {s}: \"{}\"", .{ field.name, field.type });
