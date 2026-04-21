@@ -54,9 +54,11 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
             .maxy = 24,
         });
 
+        const seed = std.Io.Timestamp.now(io, .real).toMicroseconds();
         try game.run(.{
             .player = &player,
             .allocator = allocator,
+            .seed = seed,
         });
 
         try rc.writeDepart("Game Ending");
@@ -76,7 +78,7 @@ pub fn main(init: std.process.Init) !void {
     var service = try addr.listen(init.io, .{ .reuse_address = true });
     defer service.deinit(init.io);
 
-    log.info("[{}] Listening", .{service.socket.address});
+    log.info("[{}] Listening", .{service.socket.address.ip4.port});
     while (true) {
         var connection = try service.accept(init.io);
         defer connection.close(init.io);

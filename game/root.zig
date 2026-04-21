@@ -31,7 +31,7 @@ const MAX_DEPTH = 3;
 pub const Config = struct {
     player: *Player,
     allocator: std.mem.Allocator,
-    seed: u64 = undefined,
+    seed: i64 = undefined,
 };
 
 //
@@ -98,8 +98,7 @@ pub fn run(config: Config) !void {
     const entity = player.getEntity();
     const allocator = config.allocator;
 
-    //const seed: u64 = @intCast(std.Io.Timestamp.now(io).toMilliseconds());
-    var prng = std.Random.DefaultPrng.init(config.seed);
+    var prng = std.Random.DefaultPrng.init(@intCast(config.seed));
     var r = prng.random();
 
     var level_config: level.Config = .{

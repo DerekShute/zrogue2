@@ -112,9 +112,11 @@ pub fn main(init: std.process.Init) !void {
         .maxy = YSIZE,
     });
 
+    const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
     try game.run(.{
         .player = &player,
         .allocator = allocator,
+        .seed = seed,
     });
 }
 
