@@ -5,7 +5,7 @@
 const std = @import("std");
 const NCurses = @import("ncurses");
 
-const Command = @import("roguelib").Command;
+const Client = @import("roguelib").Client;
 const MapTile = @import("roguelib").MapTile;
 const Connector = @import("connector");
 
@@ -170,7 +170,7 @@ fn unsupported(ctx: *anyopaque) !void {
 
 fn readCommand(connector: *Connector) !void {
     const kp = readKeypress();
-    const cmd: Command = switch (kp) {
+    const cmd: Client.Command = switch (kp) {
         .key_left => .go_west,
         .key_right => .go_east,
         .key_up => .go_north,

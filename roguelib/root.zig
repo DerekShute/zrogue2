@@ -4,7 +4,6 @@
 
 pub const Action = @import("Action.zig");
 pub const Client = @import("Client.zig");
-pub const Command = Client.Command;
 pub const Entity = @import("Entity.zig");
 pub const Feature = @import("Feature.zig");
 pub const Grid = @import("grid.zig").Grid;

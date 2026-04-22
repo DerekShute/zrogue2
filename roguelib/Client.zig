@@ -6,6 +6,7 @@
 //!
 
 const std = @import("std");
+pub const Command = @import("rogueui").Command;
 const Grid = @import("grid.zig").Grid;
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
@@ -23,25 +24,6 @@ pub const Error = error{
     DisplayTooSmall, // Curses
     OutOfMemory,
     EndOfStream,
-};
-
-//
-// Input abstraction
-//
-// TODO: Converge on using Action
-
-pub const Command = enum {
-    wait,
-    quit,
-    go_north, // 'up'/'down' confusing w/r/t stairs
-    go_east,
-    go_south,
-    go_west,
-    ascend,
-    descend,
-    help,
-    take_item,
-    search,
 };
 
 // ===================
