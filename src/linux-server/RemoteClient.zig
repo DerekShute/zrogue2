@@ -79,6 +79,7 @@ pub fn init(config: Config) !*Self {
         .writer = config.writer,
     };
     rc.connector.ctx = rc;
+    rc.state = .init;
 
     return rc;
 }
@@ -114,10 +115,10 @@ pub fn setState(self: *Self, state: State) void {
 }
 
 // Run method processes messages; called with an arena
-pub fn run(self: *Self, allocator: Allocator) void {
+pub fn run(self: *Self, allocator: Allocator) !void {
     self.connector.run(allocator) catch |err| {
-        log.info("[{f}] error {}", .{ self, err });
         self.setState(.closing);
+        return err;
     };
 }
 
@@ -149,7 +150,7 @@ fn remoteGetCommand(ptr: *anyopaque) !Client.Command {
         return .wait; // TODO: no error path here
     }
 
-    self.run(self.allocator);
+    self.run(self.allocator) catch return error.ProviderError;
 
     if (self.next_command) |cmd| {
         self.next_command = null;
@@ -225,13 +226,12 @@ fn command(ctx: *anyopaque, cmd: u16) !void {
 fn depart(ctx: *anyopaque, text: []const u8) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
 
-    log.info("[{f}] Disconnecting: message '{s}'", .{ self, text });
-    self.setState(.closing);
+    log.info("[{f}] Depart: message '{s}'", .{ self, text });
+    return error.Departing;
 }
 
 fn entryRequest(ctx: *anyopaque, name: []const u8) !void {
     const self: *Self = @ptrCast(@alignCast(ctx));
-    errdefer self.setState(.closing);
 
     if (self.getState() != .init) {
         log.info("[{f}] EntryRequest in wrong state", .{self});

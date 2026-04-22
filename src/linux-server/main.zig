@@ -43,7 +43,13 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
     var arena = std.heap.ArenaAllocator.init(fb.allocator());
     defer arena.deinit();
 
-    rc.run(arena.allocator());
+    // Wait for one EntryRequest to come in before letting loose with
+    // the game
+
+    rc.run(arena.allocator()) catch |err| {
+        log.info("[{s}] Awaiting EntryRequest: {}", .{ name, err });
+        return;
+    };
     if (rc.getState() == .starting) {
         rc.setState(.connected);
 
@@ -55,13 +61,15 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
         });
 
         const seed = std.Io.Timestamp.now(io, .real).toMicroseconds();
-        try game.run(.{
+        game.run(.{
             .player = &player,
             .allocator = allocator,
             .seed = seed,
-        });
+        }) catch |err| {
+            log.info("[{s}] game.run : {}", .{ name, err });
+        };
 
-        try rc.writeDepart("Game Ending");
+        rc.writeDepart("Game Ending") catch {}; // Not much to do here
     }
 
     log.info("[{s}] End session", .{name});

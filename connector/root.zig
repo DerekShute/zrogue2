@@ -16,6 +16,7 @@ const Self = @This();
 pub const Error = error{
     Failed,
     Invalid,
+    Departing, // Severing connection
 };
 
 //
