@@ -2,6 +2,10 @@
 //! UI-related abstractions and utilities that all sort of go together
 //!
 
+//
+// Command abstraction
+//
+
 // TODO: converge on using Action
 
 pub const Command = enum {
@@ -17,5 +21,38 @@ pub const Command = enum {
     take_item,
     search,
 };
+
+//
+// Maptile and Tileset
+//
+
+// TODO: break out item vs entity vs floor as separate tiles
+pub const MapTile = enum(u8) {
+    unknown,
+    floor,
+    wall, // Start of features
+    trap, // visible trap
+    door,
+    stairs_down,
+    stairs_up, // Last feature
+    gold,
+    player,
+
+    pub fn isFeature(self: MapTile) bool {
+        const s: usize = @intFromEnum(self);
+        const wall = @intFromEnum(MapTile.wall);
+        const stairs_up = @intFromEnum(MapTile.stairs_up);
+        return switch (s) {
+            wall...stairs_up => true,
+            else => false,
+        };
+    }
+
+    pub fn isPassable(self: MapTile) bool {
+        return (self != .wall);
+    }
+};
+
+// NOTE: There's some testing of MapTile in roguelib
 
 // EOF

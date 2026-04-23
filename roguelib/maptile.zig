@@ -3,7 +3,9 @@
 //!
 
 const std = @import("std");
+pub const MapTile = @import("rogueui").MapTile;
 
+// TODO: these are all game and level gen concepts
 pub const Feature = enum {
     none,
     trap,
@@ -11,31 +13,6 @@ pub const Feature = enum {
     secret_door,
     stairs_down,
     stairs_up,
-};
-
-// TODO: break out item vs entity vs floor as separate tiles
-pub const MapTile = enum {
-    unknown,
-    floor,
-    wall, // Start of features
-    trap, // visible trap
-    door,
-    stairs_down,
-    stairs_up, // Last feature
-    gold,
-    player,
-
-    pub fn isFeature(self: MapTile) bool {
-        const s: usize = @intFromEnum(self);
-        return switch (s) {
-            @intFromEnum(MapTile.wall)...@intFromEnum(MapTile.stairs_up) => true,
-            else => false,
-        };
-    }
-
-    pub fn isPassable(self: MapTile) bool {
-        return (self != .wall);
-    }
 };
 
 //

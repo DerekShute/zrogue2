@@ -206,6 +206,7 @@ pub fn build(b: *std.Build) void {
             .optimize = test_optimize,
             .imports = &.{
                 .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "rogueui", .module = ui_mod },
             },
         }),
     });
