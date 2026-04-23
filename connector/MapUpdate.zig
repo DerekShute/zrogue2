@@ -3,18 +3,13 @@
 //!
 
 const std = @import("std");
+pub const Tile = @import("rogueui").Tile;
+
 const Allocator = std.mem.Allocator;
 const Reader = std.Io.Reader;
 const Writer = std.Io.Writer;
 
 const Self = @This();
-
-pub const Tile = struct {
-    entity: u8,
-    item: u8,
-    floor: u8,
-    visible: bool,
-};
 
 pos: [2]i16,
 tile: Tile,

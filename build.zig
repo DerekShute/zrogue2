@@ -42,6 +42,9 @@ pub fn build(b: *std.Build) void {
     const connector_mod = b.addModule("connector", .{
         .root_source_file = b.path("connector/root.zig"),
         .target = target,
+        .imports = &.{
+            .{ .name = "rogueui", .module = ui_mod },
+        },
     });
 
     const roguelib_mod = b.addModule("roguelib", .{
