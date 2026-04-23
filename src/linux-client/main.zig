@@ -48,48 +48,14 @@ fn readKeypress() NCurses.Keypress {
     return ncurses.readKeypress();
 }
 
+fn renderChar(tile: Connector.Tile) u8 {
+    // TODO position
+    return ncurses.renderChar(tile);
+}
+
 //
 // Display service routines
 //
-
-fn mapToChar(ch: MapTile) u8 {
-    const c: u8 = switch (ch) {
-        .unknown => ' ',
-        .floor => '.',
-        .gold => '$',
-        .wall => '#',
-        .door => '+',
-        .trap => '^',
-        .player => '@',
-        .stairs_down => '>',
-        .stairs_up => '<',
-    };
-    return c;
-}
-
-fn renderChar(tile: Connector.Tile) u8 {
-    const entity: MapTile = @enumFromInt(tile.entity);
-    const floor: MapTile = @enumFromInt(tile.floor);
-    const item: MapTile = @enumFromInt(tile.item);
-
-    if (tile.visible) {
-        if (entity != .unknown) {
-            return mapToChar(entity);
-        }
-        if (item != .unknown) {
-            return mapToChar(item);
-        }
-        // Else floor
-    } else { // Not visible
-        // Client option: can use dimmed version of last known, etc
-
-        if (!floor.isFeature()) {
-            return mapToChar(.unknown);
-        }
-    }
-
-    return mapToChar(floor);
-}
 
 fn displayMessageLine(message: []const u8) void {
     var buf: [80]u8 = undefined;
@@ -132,6 +98,7 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
 
 fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.Tile) !void {
     _ = ctx;
+    // TODO imply renderChar?
     setChar(@intCast(pos[0]), @intCast(pos[1] + 1), renderChar(tile));
     refresh();
 }
