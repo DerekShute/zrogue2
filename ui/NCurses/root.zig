@@ -10,6 +10,7 @@
 //!
 
 const std = @import("std");
+const Command = @import("rogueui").Command;
 const curses = @cImport(@cInclude("curses.h"));
 
 const Self = @This();
@@ -96,6 +97,23 @@ pub fn deinit(self: *Self) void {
 //
 // Methods
 //
+
+pub fn readCommand(self: *Self) Command {
+    _ = self;
+    return switch (paranoia(curses.getch())) {
+        curses.KEY_LEFT => .go_west,
+        curses.KEY_RIGHT => .go_east,
+        curses.KEY_UP => .go_north,
+        curses.KEY_DOWN => .go_south,
+        '<' => .ascend,
+        '>' => .descend,
+        '?' => .help,
+        'q' => .quit,
+        's' => .search,
+        ',' => .take_item,
+        else => .wait,
+    };
+}
 
 pub fn readKeypress(self: *Self) Keypress {
     _ = self;

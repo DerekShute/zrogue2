@@ -163,21 +163,7 @@ pub fn client(self: *Self) *Client {
 //
 
 fn readCommand(self: *Self) Client.Command {
-    const kp = self.readKeypress();
-
-    return switch (kp) {
-        .key_left => .go_west,
-        .key_right => .go_east,
-        .key_up => .go_north,
-        .key_down => .go_south,
-        @as(NCurses.Keypress, @enumFromInt('<')) => .ascend,
-        @as(NCurses.Keypress, @enumFromInt('>')) => .descend,
-        @as(NCurses.Keypress, @enumFromInt('?')) => .help,
-        @as(NCurses.Keypress, @enumFromInt('q')) => .quit,
-        @as(NCurses.Keypress, @enumFromInt('s')) => .search,
-        @as(NCurses.Keypress, @enumFromInt(',')) => .take_item,
-        else => .wait,
-    };
+    return self.curses.readCommand();
 }
 
 //
@@ -279,7 +265,7 @@ fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
     var cmd = self.readCommand();
-    while (cmd == .help) {
+    while (cmd == .help) { // TODO: if cmd==help ?
         self.displayHelp();
         self.c.needRefresh();
         cmd = self.readCommand();
