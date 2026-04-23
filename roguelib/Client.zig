@@ -37,6 +37,7 @@ pub const Error = error{
 //
 // Subset of map.Place
 //
+// TODO: consolidate with ui.Tile, then fix linux-zrogue usage
 pub const DisplayMapTile = struct {
     entity: MapTile = .unknown,
     item: MapTile = .unknown,
