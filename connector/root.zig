@@ -52,7 +52,7 @@ pub const VTable = struct {
     updateMap: ?*const fn (
         ctx: *anyopaque,
         pos: [2]i16,
-        tile: MapUpdate.Tile,
+        tile: Tile,
     ) Error!void = null,
     updateMessage: ?*const fn (ctx: *anyopaque, text: []const u8) Error!void = null,
     updateTable: ?*const fn (

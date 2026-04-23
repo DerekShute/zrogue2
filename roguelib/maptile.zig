@@ -18,6 +18,7 @@ pub const Feature = enum {
 //
 // Tileset - tiles at a location (floor, entity, feature)
 //
+// TODO: consolidate on ui Tile, which is general
 
 pub const Tileset = struct {
     floor: MapTile,

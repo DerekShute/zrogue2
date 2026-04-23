@@ -53,6 +53,18 @@ pub const MapTile = enum(u8) {
     }
 };
 
+// TODO: This replicates roguelib Tileset, but is more general
+
+pub const Tile = struct {
+    // These are inherently MapTile, but break the abstraction so the
+    // Connector code doesn't care
+
+    entity: u8,
+    item: u8,
+    floor: u8,
+    visible: bool,
+};
+
 // NOTE: There's some testing of MapTile in roguelib
 
 // EOF
