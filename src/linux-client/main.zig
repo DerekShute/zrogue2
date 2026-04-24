@@ -36,8 +36,8 @@ fn refresh() void {
     ncurses.refresh();
 }
 
-fn setChar(x: u16, y: u16, c: u8) void {
-    ncurses.setChar(x, y, c);
+fn setTile(x: u16, y: u16, tile: Connector.DisplayTile) void {
+    ncurses.setTile(x, y, tile);
 }
 
 fn setText(x: u16, y: u16, s: []const u8) void {
@@ -46,11 +46,6 @@ fn setText(x: u16, y: u16, s: []const u8) void {
 
 fn readKeypress() NCurses.Keypress {
     return ncurses.readKeypress();
-}
-
-fn renderChar(tile: Connector.DisplayTile) u8 {
-    // TODO position
-    return ncurses.renderChar(tile);
 }
 
 //
@@ -98,9 +93,8 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
 
 fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
     _ = ctx;
-    // TODO imply renderChar?
-    setChar(@intCast(pos[0]), @intCast(pos[1] + 1), renderChar(tile));
-    refresh();
+    setTile(@intCast(pos[0]), @intCast(pos[1] + 1), tile);
+    refresh(); // TODO: only care when waiting for command
 }
 
 fn updateMessage(ctx: *anyopaque, text: []const u8) !void {
