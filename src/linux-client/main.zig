@@ -48,7 +48,7 @@ fn readKeypress() NCurses.Keypress {
     return ncurses.readKeypress();
 }
 
-fn renderChar(tile: Connector.Tile) u8 {
+fn renderChar(tile: Connector.DisplayTile) u8 {
     // TODO position
     return ncurses.renderChar(tile);
 }
@@ -96,7 +96,7 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
     ending = true;
 }
 
-fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.Tile) !void {
+fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
     _ = ctx;
     // TODO imply renderChar?
     setChar(@intCast(pos[0]), @intCast(pos[1] + 1), renderChar(tile));

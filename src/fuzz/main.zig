@@ -61,16 +61,8 @@ fn useTableUpdate(allocator: Allocator, connect: *Connector, name: []const u8) v
 fn useMapUpdate(allocator: Allocator, connect: *Connector, name: []const u8) void {
     _ = allocator;
     _ = name;
-    const tile = Connector.Tile{
-        .entity = @intFromEnum(MapTile.unknown),
-        .item = @intFromEnum(MapTile.gold),
-        .floor = @intFromEnum(MapTile.wall),
-        .visible = true,
-    };
-
     var pos: [2]i16 = .{ 0, 1 };
-
-    connect.writeMapUpdate(&pos, tile) catch return;
+    connect.writeMapUpdate(&pos, Connector.DisplayTile.init) catch return;
 }
 
 //
@@ -121,7 +113,7 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
     log.info("Depart: {s}", .{text});
 }
 
-fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.Tile) !void {
+fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
     _ = ctx;
     _ = tile;
     _ = pos;

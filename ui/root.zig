@@ -53,16 +53,27 @@ pub const MapTile = enum(u8) {
     }
 };
 
-// TODO: This replicates roguelib Tileset, but is more general
+//
+// DisplayTile: the set of per-square information presented to the player
+// eyeball.  The presentation can decide how to layer the information and
+// whether to retain out-of-view areas as part of the display
+//
 
-pub const Tile = struct {
-    // These are inherently MapTile, but break the abstraction so the
-    // Connector code doesn't care
-
+pub const DisplayTile = struct {
     entity: u8,
     item: u8,
     floor: u8,
     visible: bool,
+
+    // Locked constant - 'you do not know what is right here'
+    pub const unknown_val = 0;
+
+    pub const init: DisplayTile = .{
+        .entity = unknown_val,
+        .item = unknown_val,
+        .floor = unknown_val,
+        .visible = false,
+    };
 };
 
 // NOTE: There's some testing of MapTile in roguelib
