@@ -47,17 +47,17 @@ fn makeMap(player: *game.Player) !*Map {
 
 fn getEntity(c: *Client, x: i16, y: i16) MapTile {
     const dt = c.getTile(Pos.config(x, y));
-    return dt.entity;
+    return @enumFromInt(dt.entity);
 }
 
 fn getFloor(c: *Client, x: i16, y: i16) MapTile {
     const dt = c.getTile(Pos.config(x, y));
-    return dt.floor;
+    return @enumFromInt(dt.floor);
 }
 
 fn getItem(c: *Client, x: i16, y: i16) MapTile {
     const dt = c.getTile(Pos.config(x, y));
-    return dt.item;
+    return @enumFromInt(dt.item);
 }
 
 fn isVisible(c: *Client, x: i16, y: i16) bool {

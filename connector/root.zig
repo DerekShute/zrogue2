@@ -39,7 +39,7 @@ const MapUpdate = @import("MapUpdate.zig");
 const TextMessage = @import("TextMessage.zig");
 const TableUpdate = @import("TableUpdate.zig");
 
-pub const Tile = MapUpdate.Tile;
+pub const DisplayTile = MapUpdate.DisplayTile; // rebroadcast from rogueui
 
 //
 //  Callbacks to the entrypoints into server or client
@@ -52,7 +52,7 @@ pub const VTable = struct {
     updateMap: ?*const fn (
         ctx: *anyopaque,
         pos: [2]i16,
-        tile: Tile,
+        tile: DisplayTile,
     ) Error!void = null,
     updateMessage: ?*const fn (ctx: *anyopaque, text: []const u8) Error!void = null,
     updateTable: ?*const fn (
@@ -236,7 +236,7 @@ pub fn writeEntryRequest(self: *Self, text: []const u8) !void {
     try write(self, .{ .text = text });
 }
 
-pub fn writeMapUpdate(self: *Self, pos: []i16, tile: Tile) !void {
+pub fn writeMapUpdate(self: *Self, pos: []i16, tile: DisplayTile) !void {
     const write = Write(MapUpdate, .map_update).write;
     try write(self, .{ .pos = .{ pos[0], pos[1] }, .tile = tile });
 }

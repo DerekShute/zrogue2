@@ -7,6 +7,7 @@
 
 const std = @import("std");
 pub const Command = @import("rogueui").Command;
+pub const DisplayTile = @import("rogueui").DisplayTile;
 const Grid = @import("grid.zig").Grid;
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
@@ -35,17 +36,8 @@ pub const Error = error{
 //
 // Map grid as informed to us by the engine
 //
-// Subset of map.Place
-//
-// TODO: consolidate with ui.Tile, then fix linux-zrogue usage
-pub const DisplayMapTile = struct {
-    entity: MapTile = .unknown,
-    item: MapTile = .unknown,
-    floor: MapTile = .unknown,
-    visible: bool = false,
-};
-
-pub const DisplayMap = Grid(DisplayMapTile);
+// TODO: probably better to capture 'needs update' and work backwards
+pub const DisplayMap = Grid(DisplayTile);
 
 //
 // VTable for implementation to manage
@@ -146,9 +138,9 @@ pub fn notifyDisplay(self: *Self) void {
     self.vtable.notifyDisplay(self.ptr);
 }
 
-// DisplayMapTile
+// DisplayTile
 
-pub fn getTile(self: *Self, p: Pos) DisplayMapTile {
+pub fn getTile(self: *Self, p: Pos) DisplayTile {
     const tile = self.display_map.find(
         @intCast(p.getX()),
         @intCast(p.getY()),
@@ -165,9 +157,9 @@ pub fn setTile(self: *Self, p: Pos, set: Tileset, visible: bool) void {
     ) catch {
         @panic("Bad pos sent to Provider.setTile"); // THINK: error?
     };
-    val.entity = set.entity;
-    val.floor = set.floor;
-    val.item = set.item;
+    val.entity = @intFromEnum(set.entity); // TODO: until all consolidated
+    val.floor = @intFromEnum(set.floor);
+    val.item = @intFromEnum(set.item);
     val.visible = visible;
 
     // Grow the needing-update window if necessary
@@ -190,7 +182,7 @@ pub fn needRefresh(self: *Self) void {
 pub fn resetDisplay(self: *Self) void {
     var i = self.display_map.iterator();
     while (i.next()) |tile| {
-        tile.* = .{};
+        tile.* = .init;
     }
     self.needRefresh();
 }
@@ -219,5 +211,6 @@ pub fn setStatInt(self: *Self, name: []const u8, value: i32) void {
 
 const genFields = @import("utils/visual.zig").genFields;
 pub var fields = genFields(Self);
+pub var displaytile_fields = genFields(DisplayTile);
 
 // EOF

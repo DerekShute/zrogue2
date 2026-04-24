@@ -48,23 +48,27 @@ fn mapToChar(ch: MapTile) u8 {
     return c;
 }
 
-fn renderChar(tile: Client.DisplayMapTile) u8 {
+fn renderChar(tile: Client.DisplayTile) u8 {
+    const entity: MapTile = @enumFromInt(tile.entity);
+    const item: MapTile = @enumFromInt(tile.item);
+    const floor: MapTile = @enumFromInt(tile.floor);
+
     if (tile.visible) {
-        if (tile.entity != .unknown) {
-            return mapToChar(tile.entity);
+        if (entity != .unknown) {
+            return mapToChar(entity);
         }
-        if (tile.item != .unknown) {
-            return mapToChar(tile.item);
+        if (item != .unknown) {
+            return mapToChar(item);
         }
         // Else floor
     } else { // Not visible
         // Client option: can use dimmed version of last known, etc
-        if (!tile.floor.isFeature()) {
+        if (!floor.isFeature()) {
             return mapToChar(.unknown);
         }
     }
 
-    return mapToChar(tile.floor);
+    return mapToChar(floor);
 }
 
 fn renderMap(self: *Self) void {

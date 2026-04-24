@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-pub const Tile = @import("rogueui").Tile;
+pub const DisplayTile = @import("rogueui").DisplayTile;
 
 const Allocator = std.mem.Allocator;
 const Reader = std.Io.Reader;
@@ -12,14 +12,14 @@ const Writer = std.Io.Writer;
 const Self = @This();
 
 pos: [2]i16,
-tile: Tile,
+tile: DisplayTile,
 // TODO: slice of tiles (row update), etc.
 
 //
 // Lifecycle
 //
 
-pub fn init(allocator: Allocator, pos: []const i16, tile: Tile) !*Self {
+pub fn init(allocator: Allocator, pos: []const i16, tile: DisplayTile) !*Self {
     const s: *Self = try allocator.create(Self);
     errdefer allocator.destroy(s);
     s.pos[0] = pos[0];
@@ -76,7 +76,7 @@ const t_allocator = std.testing.allocator;
 const FailingAllocator = std.testing.FailingAllocator;
 
 test "basic usage" {
-    const tile: Tile = .{
+    const tile: DisplayTile = .{
         .entity = 0,
         .item = 1,
         .floor = 2,

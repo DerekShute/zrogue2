@@ -16,10 +16,11 @@ pub const Feature = enum {
 };
 
 //
-// Tileset - tiles at a location (floor, entity, feature)
+// Tileset - tiles at a location (floor, entity, feature).  This represents
+//    the actual, rather than what is presented to a player.
 //
-// TODO: consolidate on ui Tile, which is general
-
+// TODO: lighting, feature
+//
 pub const Tileset = struct {
     floor: MapTile,
     entity: MapTile,

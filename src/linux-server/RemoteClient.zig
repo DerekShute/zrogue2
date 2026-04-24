@@ -171,14 +171,9 @@ fn remoteNotifyDisplay(ptr: *anyopaque) void {
     if (self.c.displayChange()) |dc| { // if there's a change
         var _dc = dc;
         while (_dc.next()) |loc| {
-            const dmt = self.c.getTile(loc);
-            const tile = Connector.Tile{
-                .entity = @intFromEnum(dmt.entity),
-                .item = @intFromEnum(dmt.item),
-                .floor = @intFromEnum(dmt.floor),
-                .visible = dmt.visible,
-            };
+            const tile = self.c.getTile(loc);
             var spot: [2]i16 = .{ loc.getX(), loc.getY() };
+
             self.connector.writeMapUpdate(&spot, tile) catch |err| {
                 log.info("[{f}] remoteNotifyDisplay {}", .{ self, err });
                 self.setState(.closing);

@@ -13,7 +13,7 @@ const std = @import("std");
 const curses = @cImport(@cInclude("curses.h"));
 const Command = @import("rogueui").Command;
 const MapTile = @import("rogueui").MapTile;
-const Tile = @import("rogueui").Tile;
+const DisplayTile = @import("rogueui").DisplayTile;
 
 const Self = @This();
 
@@ -153,7 +153,7 @@ pub fn refresh(self: *Self) void {
     paranoiaVoid(curses.refresh()); // no error cases defined
 }
 
-pub fn renderChar(self: *Self, tile: Tile) u8 {
+pub fn renderChar(self: *Self, tile: DisplayTile) u8 {
     _ = self;
     const entity: MapTile = @enumFromInt(tile.entity);
     const floor: MapTile = @enumFromInt(tile.floor);

@@ -31,6 +31,7 @@ pub fn main() !void {
     std.debug.print("---\n", .{});
     printer(Action.fields);
     printer(Client.fields);
+    printer(Client.displaytile_fields); // from UI
     printer(Entity.fields);
     printer(Feature.fields);
     printer(Map.fields);
