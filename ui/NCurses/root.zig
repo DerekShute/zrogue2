@@ -194,6 +194,12 @@ pub fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
     }
 }
 
+pub fn setTile(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
+    if (y < curses.getmaxy(self.win)) { // Paranoia, else dump it
+        paranoiaVoid(curses.mvaddch(y, x, renderChar(self, tile)));
+    }
+}
+
 //
 // Unit Tests
 //

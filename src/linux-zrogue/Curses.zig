@@ -31,46 +31,6 @@ pub const Config = struct {
 // Service Routines
 //
 
-// Convert map location to what it is displayed as
-fn mapToChar(ch: MapTile) u8 {
-    // FUTURE: break out into types
-    const c: u8 = switch (ch) {
-        .unknown => ' ',
-        .floor => '.',
-        .gold => '$',
-        .wall => '#',
-        .door => '+',
-        .trap => '^',
-        .player => '@',
-        .stairs_down => '>',
-        .stairs_up => '<',
-    };
-    return c;
-}
-
-fn renderChar(tile: Client.DisplayTile) u8 {
-    const entity: MapTile = @enumFromInt(tile.entity);
-    const item: MapTile = @enumFromInt(tile.item);
-    const floor: MapTile = @enumFromInt(tile.floor);
-
-    if (tile.visible) {
-        if (entity != .unknown) {
-            return mapToChar(entity);
-        }
-        if (item != .unknown) {
-            return mapToChar(item);
-        }
-        // Else floor
-    } else { // Not visible
-        // Client option: can use dimmed version of last known, etc
-        if (!floor.isFeature()) {
-            return mapToChar(.unknown);
-        }
-    }
-
-    return mapToChar(floor);
-}
-
 fn renderMap(self: *Self) void {
     // Row 0 is message line, last row (23) is stats, so map 0,0 is at
     // position 0,1
@@ -79,10 +39,10 @@ fn renderMap(self: *Self) void {
         var _dc = dc;
         while (_dc.next()) |loc| {
             if (loc.getY() < self.c.y - 2) { // Reserve bottom display line
-                self.setChar(
+                self.setTile(
                     @intCast(loc.getX()),
                     @intCast(loc.getY() + 1),
-                    renderChar(self.c.getTile(loc)),
+                    self.c.getTile(loc),
                 );
             }
         }
@@ -114,8 +74,8 @@ fn refresh(self: *Self) void {
     self.curses.refresh();
 }
 
-fn setChar(self: *Self, x: u16, y: u16, c: u8) void {
-    self.curses.setChar(x, y, c);
+fn setTile(self: *Self, x: u16, y: u16, tile: Client.DisplayTile) void {
+    self.curses.setTile(x, y, tile);
 }
 
 fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
