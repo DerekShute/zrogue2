@@ -20,8 +20,8 @@ const Tileset = @import("maptile.zig").Tileset;
 pub const Config = struct {
     client: *Client,
     allocator: std.mem.Allocator,
-    maxx: u8,
-    maxy: u8,
+    xsize: i16,
+    ysize: i16,
 };
 
 const player_vtable = Entity.VTable{

@@ -60,8 +60,8 @@ pub const VTable = struct {
 
 pub const Config = struct {
     allocator: std.mem.Allocator,
-    maxx: u8,
-    maxy: u8,
+    xsize: i16,
+    ysize: i16,
     vtable: *const VTable,
 };
 
@@ -87,8 +87,8 @@ max_delta: Pos = undefined,
 
 pub fn init(config: Config) !Self {
     var p: Self = .{
-        .x = config.maxx,
-        .y = config.maxy,
+        .x = config.xsize,
+        .y = config.ysize,
         .min_delta = Pos.config(0, 0),
         .max_delta = Pos.config(0, 0),
         .vtable = config.vtable,

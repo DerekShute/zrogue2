@@ -25,8 +25,8 @@ pub const Config = struct {
     reader: *Reader,
     writer: *Writer,
     name: []const u8, // TODO ugh
-    maxx: u8 = 80,
-    maxy: u8 = 24,
+    xsize: i16 = undefined,
+    ysize: i16 = undefined,
 };
 
 // Connection state
@@ -59,8 +59,8 @@ pub fn init(config: Config) !*Self {
 
     const pc: Client.Config = .{
         .allocator = config.allocator, // TODO does not manage, make explicit
-        .maxx = config.maxx,
-        .maxy = config.maxy,
+        .xsize = config.xsize,
+        .ysize = config.ysize,
         .vtable = &.{
             .addMessage = remoteAddMessage,
             .getCommand = remoteGetCommand,

@@ -13,8 +13,8 @@ const Self = @This();
 
 pub const Config = struct {
     allocator: std.mem.Allocator,
-    maxx: u8,
-    maxy: u8,
+    xsize: u8,
+    ysize: u8,
     commands: []Client.Command,
 };
 
@@ -39,8 +39,8 @@ message: []u8 = &.{},
 pub fn init(config: Config) !Self {
     const pc: Client.Config = .{
         .allocator = config.allocator,
-        .maxx = config.maxx,
-        .maxy = config.maxy,
+        .xsize = config.xsize,
+        .ysize = config.ysize,
         .vtable = &.{
             .addMessage = mockAddMessage,
             .getCommand = mockGetCommand,
@@ -145,7 +145,12 @@ var testlist = [_]Client.Command{
 };
 
 test "try out mock" {
-    var m = try init(.{ .allocator = std.testing.allocator, .maxx = 40, .maxy = 60, .commands = &testlist });
+    var m = try init(.{
+        .allocator = std.testing.allocator,
+        .xsize = 40,
+        .ysize = 60,
+        .commands = &testlist,
+    });
     defer m.deinit(std.testing.allocator);
 
     var c = m.client();
@@ -163,11 +168,16 @@ test "try out mock" {
 
 test "mock alloc does not work 0" {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60, .commands = &testlist }));
+    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .xsize = 40, .ysize = 60, .commands = &testlist }));
 }
 
 test "display map range iterator" {
-    var m = try init(.{ .allocator = std.testing.allocator, .maxx = 100, .maxy = 100, .commands = &testlist });
+    var m = try init(.{
+        .allocator = std.testing.allocator,
+        .xsize = 100,
+        .ysize = 100,
+        .commands = &testlist,
+    });
     defer m.deinit(std.testing.allocator);
 
     var c = m.client();
