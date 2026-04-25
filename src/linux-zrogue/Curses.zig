@@ -22,8 +22,8 @@ const Self = @This();
 
 pub const Config = struct {
     allocator: std.mem.Allocator,
-    maxx: u8,
-    maxy: u8,
+    xsize: i16,
+    ysize: i16,
 };
 
 //
@@ -84,13 +84,13 @@ fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
 //
 
 pub fn init(config: Config) !Self {
-    var ui = try Rogue.init();
+    var ui = try Rogue.init(.{ .xsize = config.xsize, .ysize = config.ysize });
     errdefer ui.deinit();
 
     const c: Client.Config = .{
         .allocator = config.allocator,
-        .maxx = config.maxx, // TODO
-        .maxy = config.maxy, // TODO
+        .xsize = config.xsize,
+        .ysize = config.ysize,
         .vtable = &.{
             .addMessage = cursesAddMessage,
             .getCommand = cursesGetCommand,

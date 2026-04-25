@@ -26,8 +26,8 @@ const YSIZE = 24;
 fn makeClient(testlist: []Client.Command) !MockClient {
     return try MockClient.init(.{
         .allocator = std.testing.allocator,
-        .maxx = XSIZE,
-        .maxy = YSIZE,
+        .xsize = XSIZE,
+        .ysize = YSIZE,
         .commands = testlist,
     });
 }
@@ -36,8 +36,8 @@ fn makePlayer(client: *Client) game.Player {
     return game.Player.init(.{
         .allocator = std.testing.allocator,
         .client = client,
-        .maxx = XSIZE,
-        .maxy = YSIZE,
+        .xsize = XSIZE,
+        .ysize = YSIZE,
     });
 }
 

@@ -30,6 +30,8 @@ pub const Config = struct {
     rand: *std.Random = undefined,
     level: u16 = 1,
     going_down: bool = true,
+    xsize: i16 = undefined,
+    ysize: i16 = undefined,
 };
 
 //
@@ -277,8 +279,8 @@ pub fn create(config: Config, allocator: std.mem.Allocator) !*Map {
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
     var map = try Map.init(
         allocator,
-        map_xsize,
-        map_ysize,
+        config.xsize,
+        config.ysize,
         rooms_dim,
         rooms_dim,
     );

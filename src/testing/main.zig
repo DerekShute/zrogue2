@@ -49,8 +49,8 @@ var testlist = [_]Client.Command{
 test "run the game" {
     const config: MockClient.Config = .{
         .allocator = std.testing.allocator,
-        .maxx = XSIZE,
-        .maxy = YSIZE,
+        .xsize = XSIZE,
+        .ysize = YSIZE,
         .commands = &testlist,
     };
     var m = try MockClient.init(config);
@@ -59,8 +59,8 @@ test "run the game" {
     var player = game.Player.init(.{
         .client = m.client(),
         .allocator = std.testing.allocator,
-        .maxx = XSIZE,
-        .maxy = YSIZE,
+        .xsize = XSIZE,
+        .ysize = YSIZE,
     });
 
     try game.run(.{

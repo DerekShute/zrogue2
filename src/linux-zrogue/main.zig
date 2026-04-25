@@ -7,9 +7,6 @@ const game = @import("game");
 const Curses = @import("Curses.zig");
 const options = @import("build");
 
-const XSIZE = 80;
-const YSIZE = 24;
-
 //
 // Command arguments
 //
@@ -93,9 +90,15 @@ pub fn main(init: std.process.Init) !void {
     // Initialize display and start program
     //
 
-    var c = Curses.init(.{ .allocator = allocator, .maxx = XSIZE, .maxy = YSIZE }) catch |err| switch (err) {
+    const max_xy = game.getMaxXY();
+
+    var c = Curses.init(.{
+        .allocator = allocator,
+        .xsize = max_xy[0],
+        .ysize = max_xy[1],
+    }) catch |err| switch (err) {
         error.DisplayTooSmall => {
-            std.debug.print("Zrogue requires an 80x24 display\n", .{});
+            std.debug.print("Zrogue requires an {}x{} display\n", .{ max_xy[0], max_xy[1] });
             std.process.exit(1);
         },
         else => {
@@ -108,8 +111,8 @@ pub fn main(init: std.process.Init) !void {
     var player = game.Player.init(.{
         .client = c.client(),
         .allocator = allocator,
-        .maxx = XSIZE,
-        .maxy = YSIZE,
+        .xsize = max_xy[0],
+        .ysize = max_xy[1],
     });
 
     const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();

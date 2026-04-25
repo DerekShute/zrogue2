@@ -14,9 +14,6 @@ const curses = @cImport(@cInclude("curses.h"));
 
 const Self = @This();
 
-const min_x = 80;
-const min_y = 24;
-
 //
 // Types
 //
@@ -75,14 +72,6 @@ pub fn init() !Self {
     // curs_set: ERR only if argument value is unsupported
     paranoiaVoid(curses.curs_set(0));
 
-    // getmaxx/getmaxy ERR iff null window parameter
-    const display_maxx = paranoia(curses.getmaxx(w.?));
-    const display_maxy = paranoia(curses.getmaxy(w.?));
-
-    if ((display_maxx < min_x) or (display_maxy < min_y)) {
-        return error.DisplayTooSmall;
-    }
-
     return .{
         .win = w.?,
     };
@@ -96,6 +85,14 @@ pub fn deinit(self: *Self) void {
 //
 // Methods
 //
+
+pub fn getMaxX(self: *Self) i32 {
+    return @intCast(paranoia(curses.getmaxx(self.win)));
+}
+
+pub fn getMaxY(self: *Self) i32 {
+    return @intCast(paranoia(curses.getmaxy(self.win)));
+}
 
 pub fn readKeypress(self: *Self) Keypress {
     _ = self;

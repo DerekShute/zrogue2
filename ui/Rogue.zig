@@ -40,11 +40,22 @@ message: []u8 = &.{},
 // Constructor / Destructor
 //
 
-pub fn init() !Self {
-    var curses = try NCurses.init();
+pub const Config = struct {
+    xsize: i16 = undefined,
+    ysize: i16 = undefined,
+};
+
+pub fn init(config: Config) !Self {
+    var curses: NCurses = try NCurses.init();
     errdefer curses.deinit();
 
-    // TODO validate size
+    // FUTURE: for now, must be at least.  This could be dynamic
+
+    if (curses.getMaxX() < config.xsize) {
+        return error.DisplayTooSmall;
+    } else if (curses.getMaxY() < config.ysize) {
+        return error.DisplayTooSmall;
+    }
 
     return .{
         .ncurses = curses,

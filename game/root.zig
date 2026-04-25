@@ -26,6 +26,9 @@ pub const addTrap = features.addTrap;
 // Configuration
 //
 
+const XSIZE = 80; // Traditional dimensions
+const YSIZE = 24;
+
 const MAX_DEPTH = 3;
 
 pub const Config = struct {
@@ -93,6 +96,10 @@ fn play(config: *level.Config, map: *Map, queue: *Entity.Queue) State {
 // Run the game
 //
 
+pub fn getMaxXY() [2]i16 {
+    return [2]i16{ XSIZE, YSIZE };
+}
+
 pub fn run(config: Config) !void {
     const player = config.player;
     const entity = player.getEntity();
@@ -103,6 +110,8 @@ pub fn run(config: Config) !void {
 
     var level_config: level.Config = .{
         .rand = &r,
+        .xsize = XSIZE,
+        .ysize = YSIZE,
     };
 
     player.addMessage("Welcome to the Dungeon of Doom!");

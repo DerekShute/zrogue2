@@ -145,7 +145,8 @@ fn run_game(peer: net.IpAddress, allocator: Allocator, io: std.Io) !void {
     const stream = try peer.connect(io, .{ .mode = .stream });
     defer stream.close(io);
 
-    ui = try Rogue.init();
+    // FUTURE: this is based on the game and a handshake should provide
+    ui = try Rogue.init(.{ .xsize = 80, .ysize = 24 });
     defer ui.deinit();
 
     var reader = stream.reader(io, rbuf);
