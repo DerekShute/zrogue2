@@ -6,8 +6,6 @@
 //! * Y incrementing down the display,
 //! * X incrementing right
 //!
-//! TODO: cursor management, mouse events
-//!
 
 const std = @import("std");
 

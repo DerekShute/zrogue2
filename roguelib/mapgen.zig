@@ -60,8 +60,6 @@ pub fn addFeature(m: *Map, p: Pos, f: ?Feature) void {
 //
 // Items
 //
-// TODO: this eventually becomes Item
-//
 
 pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {
     m.addItem(p, t);
@@ -106,14 +104,14 @@ pub fn getRoom(m: *Map, roomno: usize) *Room {
 //
 
 pub fn addSouthCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) void {
-    // FIXME: the start and end should be validated
+    // TODO: the start and end should be validated
     drawVertLine(m, start, mid, .floor);
     drawHorizLine(m, Pos.config(start.getX(), mid), end.getX(), .floor);
     drawVertLine(m, Pos.config(end.getX(), mid), end.getY(), .floor);
 }
 
 pub fn addEastCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) void {
-    // FIXME: the start and end should be validated
+    // TODO: the start and end should be validated
     drawHorizLine(m, start, mid, .floor);
     drawVertLine(m, Pos.config(mid, start.getY()), end.getY(), .floor);
     drawHorizLine(m, Pos.config(mid, end.getY()), end.getX(), .floor);

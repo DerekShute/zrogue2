@@ -33,7 +33,7 @@ pub const VTable = struct {
 // Members
 //
 
-// TODO Future: timer, action queue
+// FUTURE: timer, action queue
 p: Pos = undefined,
 tile: MapTile = undefined,
 vtable: *const VTable = undefined,
@@ -106,7 +106,7 @@ pub fn setKnown(self: *Self, map: *Map, loc: Pos, visible: bool) void {
 }
 
 pub fn takeItem(self: *Self, i: MapTile) void {
-    // TODO this is a terrible idea, need an Item reference
+    // FUTURE this is a terrible idea, need an Item reference
     if (self.vtable.takeItem) |cb| {
         cb(self, i);
     }
