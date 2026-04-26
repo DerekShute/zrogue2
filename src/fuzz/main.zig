@@ -8,8 +8,36 @@ const log = std.log;
 const IpAddress = std.Io.net.IpAddress;
 
 const Command = @import("roguelib").Command;
+const Grid = @import("roguelib").Grid;
 const MapTile = @import("roguelib").MapTile;
 const Connector = @import("connector");
+
+//
+// Types
+//
+
+const Metric = struct {
+    touched: bool,
+
+    pub const init = Metric{
+        .touched = false,
+    };
+};
+
+const MetricGrid = Grid(Metric);
+
+//
+// Globals
+//
+
+var grid: MetricGrid = undefined;
+var msg_count: usize = 0;
+
+// Range of what was disclosed
+var min_x: i16 = 3000;
+var max_x: i16 = -1;
+var min_y: i16 = 3000;
+var max_y: i16 = -1;
 
 //
 // Test elements
@@ -111,23 +139,39 @@ const rig = make(functions); // Your rig
 fn depart(ctx: *anyopaque, text: []const u8) !void {
     _ = ctx;
     log.info("Depart: {s}", .{text});
+    msg_count += 1;
 }
 
 fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
     _ = ctx;
     _ = tile;
-    _ = pos;
-    //    log.info("updateMap: {}:{}", .{ pos[0], pos[1] });
+
+    var m = grid.find(@intCast(pos[0]), @intCast(pos[1])) catch return error.Failed;
+    m.touched = true;
+    msg_count += 1;
+    if (pos[0] < min_x) {
+        min_x = pos[0];
+    } else if (pos[0] > max_x) {
+        max_x = pos[0];
+    }
+    if (pos[1] < min_y) {
+        min_y = pos[1];
+    } else if (pos[1] > max_y) {
+        max_y = pos[1];
+    }
+    // log.info("updateMap: {}:{}", .{ pos[0], pos[1] });
 }
 
 fn updateMessage(ctx: *anyopaque, text: []const u8) !void {
     _ = ctx;
     log.info("Message: {s}", .{text});
+    msg_count += 1;
 }
 
 fn updateTable(ctx: *anyopaque, table: []const u8, entry: []const u8, value: []const u8) !void {
     _ = ctx;
     log.info("updateTable: {s} : {s} : {s}", .{ table, entry, value });
+    msg_count += 1;
 }
 
 fn unsupported(ctx: *anyopaque) !void {
@@ -211,12 +255,28 @@ pub fn main(init: std.process.Init) !void {
         return err;
     };
 
+    // Prep the grid
+
+    grid = try MetricGrid.config(arena, 80, 24); // Size is assumed
+    defer grid.deinit(arena);
+
     //
     // Test series
     //
 
     for (rig) |item| {
         log.info("* * * START {s} * * *", .{item.name});
+
+        var g = grid.iterator();
+        while (g.next()) |m| {
+            m.* = .init;
+        }
+        msg_count = 0;
+        min_x = 3000;
+        max_x = -1;
+        min_y = 3000;
+        max_y = -1;
+
         run(init.io, arena, item, peer) catch |err| switch (err) {
             error.ConnectionRefused => {
                 log.info("Connection refused.  Server listening?", .{});
@@ -224,6 +284,8 @@ pub fn main(init: std.process.Init) !void {
             },
             else => return err,
         };
+        log.info("-- Messages: {}", .{msg_count});
+        log.info("-- Map range {},{} - {},{}", .{ min_x, min_y, max_x, max_y });
         log.info("* * * END {s} * * *", .{item.name});
     }
 
