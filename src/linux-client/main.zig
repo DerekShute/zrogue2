@@ -71,9 +71,8 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
     setText(0, 0, text);
     setText(0, 1, "--PRESS ANY KEY--");
     refresh();
-    awaitKeypress();
     ending = true;
-    // TODO: returns depart error?
+    return error.Departing;
 }
 
 fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
@@ -121,6 +120,7 @@ fn runConnection(connector: *Connector, allocator: Allocator) !void {
     while (true) {
         connector.run(allocator) catch |err| switch (err) {
             error.EndOfStream => return, // Probably shutting down
+            error.Departing => return,
             else => return err,
         };
     }
