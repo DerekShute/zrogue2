@@ -5,7 +5,7 @@
 const std = @import("std");
 pub const MapTile = @import("rogueui").MapTile;
 
-// TODO: these are all game and level gen concepts
+// FUTURE: these are all game and level gen concepts
 pub const Feature = enum {
     none,
     trap,
@@ -19,7 +19,7 @@ pub const Feature = enum {
 // Tileset - tiles at a location (floor, entity, feature).  This represents
 //    the actual, rather than what is presented to a player.
 //
-// TODO: lighting, feature
+// FUTURE: lighting, feature
 //
 pub const Tileset = struct {
     floor: MapTile,

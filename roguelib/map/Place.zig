@@ -15,15 +15,14 @@ const Self = @This();
 
 floor: MapTile = .unknown,
 entity: ?*Entity = undefined,
-// TODO this is unbelievably crude until there's droppable/interesting items
-item: MapTile = .unknown,
+item: MapTile = .unknown, // FUTURE: Item type
 feature: ?Feature = null,
 
 //
 // Constructor, probably not idiomatic
 //
 
-// TODO probably not
+// TODO init const with builder pattern
 pub fn config(self: *Self) void {
     self.floor = .wall;
     self.entity = null;

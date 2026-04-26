@@ -77,7 +77,7 @@ pub fn init(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, rooms
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    // TODO: must demolish places and entities
+    // FUTURE: must demolish places and entities
     self.places.deinit(allocator);
     allocator.free(self.rooms);
     allocator.destroy(self);
@@ -198,7 +198,7 @@ fn getRoomNum(self: *Self, p: Pos) ?usize {
     return loc;
 }
 
-// TODO Future: getRoomNum is a mapgen thing
+// FUTURE: getRoomNum is a mapgen thing
 fn getRoom(self: *Self, p: Pos) ?*Room {
     if (self.getRoomNum(p)) |loc| { // TODO does this make sense?
         return &self.rooms[loc];
