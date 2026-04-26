@@ -145,7 +145,7 @@ pub fn setMapTile(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
     //
     // NOTE: this does alter the display!  Refresh it at your leisure!
 
-    if ((x < XSIZE) and (y < YSIZE - 1)) {
+    if ((x < XSIZE) and (y < YSIZE - 2)) {
         self.ncurses.setChar(x, y + 1, renderChar(tile));
     }
 }
