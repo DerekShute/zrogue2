@@ -82,7 +82,7 @@ fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
 //
 
 pub fn init(config: Config) !Self {
-    var ui = try Rogue.init(.{ .xsize = config.xsize, .ysize = config.ysize });
+    var ui = try Rogue.init();
     errdefer ui.deinit();
 
     const c: Client.Config = .{
