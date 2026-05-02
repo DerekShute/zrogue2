@@ -27,7 +27,6 @@ pub const Config = struct {
 const player_vtable = Entity.VTable{
     .addMessage = playerAddMessage,
     .getAction = playerGetAction,
-    .notifyDisplay = playerNotifyDisplay,
     .revealMap = playerRevealMap,
     .setKnown = playerSetKnown,
     .takeItem = playerTakeItem,
@@ -66,11 +65,6 @@ fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
 fn playerGetAction(ptr: *Entity) !Action {
     const self: *Self = @ptrCast(@alignCast(ptr));
     return self.getAction();
-}
-
-fn playerNotifyDisplay(ptr: *Entity) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    return self.notifyDisplay();
 }
 
 fn playerRevealMap(ptr: *Entity, map: *Map, pos: Pos) void {
