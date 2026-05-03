@@ -33,6 +33,7 @@ pub fn main() !void {
     printer(Client.fields);
     printer(Client.displaytile_fields); // from UI
     printer(Entity.fields);
+    printer(Entity.fov_fields);
     printer(Feature.fields);
     printer(Map.fields);
     printer(Map.place_fields);

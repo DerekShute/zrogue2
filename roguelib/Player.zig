@@ -47,8 +47,13 @@ purse: u16 = 0,
 //
 
 pub fn init(config: Config) Self {
+    const c = Entity.Config{
+        .tile = .player,
+        .vtable = &player_vtable,
+    };
+
     return .{
-        .entity = Entity.config(.player, &player_vtable),
+        .entity = Entity.init(c),
         .client = config.client,
     };
 }
