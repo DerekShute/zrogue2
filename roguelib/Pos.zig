@@ -29,6 +29,7 @@ xy: [2]Dim = .{ -1, -1 },
 // Methods
 //
 
+// REFACTOR: this becomes init() and you can call .init() if Pos is assumed
 pub inline fn config(x: Dim, y: Dim) Self {
     return .{ .xy = .{ x, y } };
 }

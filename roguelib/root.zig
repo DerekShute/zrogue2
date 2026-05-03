@@ -23,6 +23,7 @@ pub const mapgen = @import("mapgen.zig");
 
 test {
     @import("std").testing.refAllDecls(@This());
+    _ = @import("fov/FOVMap.zig");
 }
 
 // EOF

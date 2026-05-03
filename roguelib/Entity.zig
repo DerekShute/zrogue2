@@ -5,6 +5,7 @@
 const std = @import("std");
 
 const Action = @import("Action.zig");
+const FOVMap = @import("fov/FOVMap.zig");
 const Map = @import("Map.zig");
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
@@ -28,6 +29,11 @@ pub const VTable = struct {
     takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
 };
 
+pub const Config = struct {
+    tile: MapTile,
+    vtable: *const VTable,
+};
+
 //
 // Members
 //
@@ -38,17 +44,22 @@ tile: MapTile = undefined,
 vtable: *const VTable = undefined,
 moves: i32 = 0,
 node: queue.Node = .{},
+fov: ?*FOVMap = null,
 
 //
-// Constructor
+// Lifecycle
 //
 
-pub fn config(tile: MapTile, vtable: *const VTable) Self {
+pub fn init(config: Config) Self {
     return .{
         .p = Pos.config(-1, -1),
-        .tile = tile,
-        .vtable = vtable,
+        .tile = config.tile,
+        .vtable = config.vtable,
     };
+}
+
+pub fn setFOV(self: *Self, fov: *FOVMap) void {
+    self.fov = fov;
 }
 
 //
@@ -86,12 +97,14 @@ pub fn getAction(self: *Self) !Action {
     return Action.config(.none);
 }
 
+// TODO: rid
 pub fn revealMap(self: *Self, map: *Map, pos: Pos) void {
     if (self.vtable.revealMap) |cb| {
         cb(self, map, pos);
     }
 }
 
+// TODO: rid
 pub fn setKnown(self: *Self, map: *Map, loc: Pos, visible: bool) void {
     if (self.vtable.setKnown) |cb| {
         cb(self, map, loc, visible);
@@ -105,6 +118,20 @@ pub fn takeItem(self: *Self, i: MapTile) void {
     }
 }
 
+// Field of Vision
+
+pub fn setPosChanged(self: *Self, loc: Pos) void {
+    if (self.fov) |fov| {
+        fov.setChanged(loc);
+    }
+}
+
+pub fn setPosVisible(self: *Self, loc: Pos, visible: bool) void {
+    if (self.fov) |fov| {
+        fov.setVisible(loc, visible);
+    }
+}
+
 //
 // Unit Tests
 //
@@ -115,7 +142,18 @@ test "entity queue" {
     var eq = Queue.config();
     var vt: VTable = .{};
 
-    var e = Self.config(.player, &vt);
+    // TODO: this is kind of a problem.  The FOVMap is glued to this context
+
+    var fov = try FOVMap.init(std.testing.allocator, 100, 100);
+    defer fov.deinit(std.testing.allocator);
+
+    const config = Config{
+        .tile = .player,
+        .vtable = &vt,
+    };
+    var e = Self.init(config);
+
+    e.setFOV(&fov);
 
     eq.enqueue(&e);
     try expect(eq.next() == &e);
@@ -127,5 +165,6 @@ test "entity queue" {
 
 const genFields = @import("utils/visual.zig").genFields;
 pub var fields = genFields(Self);
+pub var fov_fields = genFields(FOVMap); // Harmless lie
 
 // EOF
