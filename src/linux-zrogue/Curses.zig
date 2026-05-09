@@ -93,6 +93,7 @@ pub fn init(config: Config) !Self {
             .addMessage = cursesAddMessage,
             .getCommand = cursesGetCommand,
             .notifyDisplay = cursesNotifyDisplay,
+            .setMapTile = cursesSetMapTile,
             .setStatInt = cursesSetStatInt,
         },
     };
@@ -204,6 +205,12 @@ fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
 fn cursesNotifyDisplay(ptr: *anyopaque) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     self.displayScreen();
+}
+
+fn cursesSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.ui.setMapTile(x, y, tile);
+    self.refresh();
 }
 
 fn cursesSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {

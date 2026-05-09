@@ -45,6 +45,7 @@ pub fn init(config: Config) !Self {
             .addMessage = mockAddMessage,
             .getCommand = mockGetCommand,
             .notifyDisplay = mockNotifyDisplay,
+            .setMapTile = mockSetMapTile,
             .setStatInt = mockSetStatInt,
         },
     };
@@ -95,6 +96,14 @@ fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
 fn mockNotifyDisplay(ptr: *anyopaque) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     self.notified = true;
+}
+
+fn mockSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
+    // NOCOMMIT
+    _ = ptr;
+    _ = x;
+    _ = y;
+    _ = tile;
 }
 
 fn mockSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {

@@ -50,6 +50,9 @@ pub const VTable = struct {
     // "Thing has changed" updates to send to implementation
     notifyDisplay: *const fn (ctx: *anyopaque) void,
 
+    // Update a map location with new information
+    setMapTile: *const fn (ctx: *anyopaque, u: u16, u: u16, tile: DisplayTile) void,
+
     // Stats known by game and provider implementation
     setStatInt: *const fn (ctx: *anyopaque, name: []const u8, value: i32) void,
 };
@@ -136,6 +139,22 @@ pub inline fn addMessage(self: *Self, msg: []const u8) void {
 pub fn notifyDisplay(self: *Self) void {
     // Redraw / refresh
     self.vtable.notifyDisplay(self.ptr);
+}
+
+pub fn setMapTile(self: *Self, pos: Pos, tile: Tileset, visible: bool) void {
+    const dt = DisplayTile{
+        .entity = tile.entity,
+        .floor = tile.floor,
+        .item = tile.item,
+        .visible = visible,
+    };
+
+    self.vtable.setMapTile(
+        self.ptr,
+        @intCast(pos.getX()),
+        @intCast(pos.getY()),
+        dt,
+    );
 }
 
 // DisplayTile
