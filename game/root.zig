@@ -7,10 +7,11 @@ const std = @import("std");
 const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
 const features = @import("features.zig");
-const Pos = @import("roguelib").Pos;
+const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
 pub const Player = @import("roguelib").Player;
+const Pos = @import("roguelib").Pos;
 const Tileset = @import("roguelib").Tileset;
 
 const level = @import("level.zig");
@@ -116,9 +117,13 @@ pub fn run(config: Config) !void {
 
     player.addMessage("Welcome to the Dungeon of Doom!");
 
-    var queue = Entity.Queue.config();
+    var fov = try FOVMap.init(allocator, XSIZE, YSIZE);
+    defer fov.deinit(allocator);
+    entity.setFOV(&fov);
 
+    var queue = Entity.Queue.config();
     var state: State = .run;
+
     while (state != .end) {
         var map = try level.create(level_config, allocator);
         defer map.deinit(allocator);
@@ -126,6 +131,7 @@ pub fn run(config: Config) !void {
         level.addPlayer(map, player, &r);
         queue.enqueue(entity);
         state = play(&level_config, map, &queue);
+        fov.reset();
     } // Game run loop
 
     // TODO : game endings go here

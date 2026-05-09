@@ -65,6 +65,7 @@ pub fn init(config: Config) !*Self {
             .addMessage = remoteAddMessage,
             .getCommand = remoteGetCommand,
             .notifyDisplay = remoteNotifyDisplay,
+            .setMapTile = remoteSetMapTile,
             .setStatInt = remoteSetStatInt,
         },
     };
@@ -181,6 +182,21 @@ fn remoteNotifyDisplay(ptr: *anyopaque) void {
             };
         }
     }
+}
+
+fn remoteSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    var spot: [2]i16 = .{ @intCast(x), @intCast(y) }; // TODO Increasingly stupid
+
+    if (self.state != .connected) { // Prevent flood of failures
+        return;
+    }
+
+    self.connector.writeMapUpdate(&spot, tile) catch |err| {
+        log.info("[{f}] remoteSetMapTile {}", .{ self, err });
+        self.setState(.closing);
+        return; // TODO no error return is a problem
+    };
 }
 
 fn remoteSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
