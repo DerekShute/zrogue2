@@ -15,35 +15,13 @@ const Rogue = @import("rogueui").Rogue; // Presentation
 const Self = @This();
 
 //
-// Types
-//
-
-pub const Config = struct {
-    allocator: std.mem.Allocator,
-    xsize: i16,
-    ysize: i16,
-};
-
-//
 // Service Routines
 //
 
 fn renderMap(self: *Self) void {
+    _ = self;
     // Row 0 is message line, last row (23) is stats, so map 0,0 is at
     // position 0,1
-
-    if (self.c.displayChange()) |dc| { // if there's a change
-        var _dc = dc;
-        while (_dc.next()) |loc| {
-            if (loc.getY() < self.c.y - 2) { // Reserve bottom display line
-                self.ui.setMapTile(
-                    @intCast(loc.getX()),
-                    @intCast(loc.getY()),
-                    self.c.getTile(loc),
-                );
-            }
-        }
-    }
 }
 
 //
@@ -81,14 +59,11 @@ fn setText(self: *Self, x: u16, y: u16, s: []const u8) void {
 // Constructor / Destructor
 //
 
-pub fn init(config: Config) !Self {
+pub fn init() !Self {
     var ui = try Rogue.init();
     errdefer ui.deinit();
 
     const c: Client.Config = .{
-        .allocator = config.allocator,
-        .xsize = config.xsize,
-        .ysize = config.ysize,
         .vtable = &.{
             .addMessage = cursesAddMessage,
             .getCommand = cursesGetCommand,
@@ -104,8 +79,7 @@ pub fn init(config: Config) !Self {
     };
 }
 
-pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.c.deinit(allocator);
+pub fn deinit(self: *Self) void {
     self.ui.deinit();
 }
 
@@ -190,7 +164,7 @@ fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
     var cmd = self.readCommand();
     while (cmd == .help) { // TODO: if cmd==help ?
         self.displayHelp();
-        self.c.needRefresh();
+        // TODO: Refresh display
         cmd = self.readCommand();
         // TODO: hit help a second time to rid menu
     }

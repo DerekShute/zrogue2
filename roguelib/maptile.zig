@@ -25,6 +25,12 @@ pub const Tileset = struct {
     floor: MapTile,
     entity: MapTile,
     item: MapTile,
+
+    pub const init: Tileset = .{
+        .floor = .unknown,
+        .entity = .unknown,
+        .item = .unknown,
+    };
 };
 
 //
