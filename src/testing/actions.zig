@@ -14,28 +14,19 @@ const expect = std.testing.expect;
 const level = @import("level.zig");
 const MockClient = @import("MockClient.zig");
 
-const XSIZE = 80;
-const YSIZE = 24;
-
 //
 // Utilities
 //
 
 fn makeClient(testlist: []Client.Command) !MockClient {
     return try MockClient.init(.{
-        .allocator = std.testing.allocator,
-        .xsize = XSIZE,
-        .ysize = YSIZE,
         .commands = testlist,
     });
 }
 
 fn makePlayer(client: *Client) game.Player {
     return game.Player.init(.{
-        .allocator = std.testing.allocator,
         .client = client,
-        .xsize = XSIZE,
-        .ysize = YSIZE,
     });
 }
 
@@ -76,7 +67,7 @@ test "in-place boring stuff then quit" {
     };
 
     var m = try makeClient(&testlist);
-    defer m.deinit(std.testing.allocator);
+    defer m.deinit();
     var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
@@ -96,7 +87,7 @@ test "move in a circle: all directions work" {
     };
 
     var m = try makeClient(&testlist);
-    defer m.deinit(std.testing.allocator);
+    defer m.deinit();
     var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
@@ -115,7 +106,7 @@ test "hit a wall" {
     };
 
     var m = try makeClient(&testlist);
-    defer m.deinit(std.testing.allocator);
+    defer m.deinit();
     var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);
@@ -143,7 +134,7 @@ test "pick up gold and etc" {
     };
 
     var m = try makeClient(&testlist);
-    defer m.deinit(std.testing.allocator);
+    defer m.deinit();
     var player = makePlayer(m.client());
     var map = try makeMap(&player);
     defer map.deinit(std.testing.allocator);

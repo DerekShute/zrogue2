@@ -20,15 +20,6 @@ const Allocator = std.mem.Allocator;
 // Types
 //
 
-pub const Config = struct {
-    allocator: std.mem.Allocator,
-    reader: *Reader,
-    writer: *Writer,
-    name: []const u8, // TODO ugh
-    xsize: i16 = undefined,
-    ysize: i16 = undefined,
-};
-
 // Connection state
 pub const State = enum {
     init,
@@ -52,15 +43,17 @@ state: State = .init,
 // Lifecycle
 //
 
-pub fn init(config: Config) !*Self {
-    const allocator = config.allocator;
+pub const Config = struct {
+    reader: *Reader,
+    writer: *Writer,
+    name: []const u8, // TODO ugh
+};
+
+pub fn init(allocator: Allocator, config: Config) !*Self {
     const rc: *Self = try allocator.create(Self);
     errdefer allocator.destroy(rc);
 
     const pc: Client.Config = .{
-        .allocator = config.allocator, // TODO does not manage, make explicit
-        .xsize = config.xsize,
-        .ysize = config.ysize,
         .vtable = &.{
             .addMessage = remoteAddMessage,
             .getCommand = remoteGetCommand,
@@ -70,9 +63,9 @@ pub fn init(config: Config) !*Self {
         },
     };
 
-    rc.allocator = pc.allocator;
+    rc.allocator = allocator;
     rc.c = try Client.init(pc);
-    errdefer rc.c.deinit(pc.allocator);
+    errdefer rc.c.deinit(allocator);
     rc.name = config.name;
     rc.connector = Connector{
         .vt = &vt,
@@ -86,7 +79,7 @@ pub fn init(config: Config) !*Self {
 }
 
 pub fn deinit(self: *Self, allocator: Allocator) void {
-    self.c.deinit(allocator);
+    self.c.deinit();
     allocator.destroy(self);
 }
 
@@ -167,20 +160,6 @@ fn remoteNotifyDisplay(ptr: *anyopaque) void {
 
     if (self.state != .connected) { // Prevent flood of failures
         return;
-    }
-
-    if (self.c.displayChange()) |dc| { // if there's a change
-        var _dc = dc;
-        while (_dc.next()) |loc| {
-            const tile = self.c.getTile(loc);
-            var spot: [2]i16 = .{ loc.getX(), loc.getY() };
-
-            self.connector.writeMapUpdate(&spot, tile) catch |err| {
-                log.info("[{f}] remoteNotifyDisplay {}", .{ self, err });
-                self.setState(.closing);
-                return; // TODO no error return is a problem
-            };
-        }
     }
 }
 

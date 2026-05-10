@@ -12,9 +12,6 @@ const Self = @This();
 //
 
 pub const Config = struct {
-    allocator: std.mem.Allocator,
-    xsize: u8,
-    ysize: u8,
     commands: []Client.Command,
 };
 
@@ -38,9 +35,6 @@ message: []u8 = &.{},
 
 pub fn init(config: Config) !Self {
     const pc: Client.Config = .{
-        .allocator = config.allocator,
-        .xsize = config.xsize,
-        .ysize = config.ysize,
         .vtable = &.{
             .addMessage = mockAddMessage,
             .getCommand = mockGetCommand,
@@ -56,8 +50,8 @@ pub fn init(config: Config) !Self {
     };
 }
 
-pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.c.deinit(allocator);
+pub fn deinit(self: *Self) void {
+    self.c.deinit();
     return;
 }
 
@@ -155,12 +149,9 @@ var testlist = [_]Client.Command{
 
 test "try out mock" {
     var m = try init(.{
-        .allocator = std.testing.allocator,
-        .xsize = 40,
-        .ysize = 60,
         .commands = &testlist,
     });
-    defer m.deinit(std.testing.allocator);
+    defer m.deinit();
 
     var c = m.client();
     try expect(try c.getCommand() == .go_west);
@@ -173,31 +164,6 @@ test "try out mock" {
     try expect(m.getStatPurse() == 10);
     c.setStatInt("depth", 4);
     try expect(m.getStatDepth() == 4);
-}
-
-test "mock alloc does not work 0" {
-    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    try expectError(error.OutOfMemory, init(.{ .allocator = failing.allocator(), .xsize = 40, .ysize = 60, .commands = &testlist }));
-}
-
-test "display map range iterator" {
-    var m = try init(.{
-        .allocator = std.testing.allocator,
-        .xsize = 100,
-        .ysize = 100,
-        .commands = &testlist,
-    });
-    defer m.deinit(std.testing.allocator);
-
-    var c = m.client();
-    if (c.displayChange()) |dc| {
-        var _dc = dc; // Convert from const
-        while (_dc.next()) |loc| {
-            try expect((loc.getX() >= 0) and (loc.getY() < 100));
-            try expect((loc.getY() >= 0) and (loc.getY() < 100));
-        }
-    }
-    // TODO should hit each one
 }
 
 // EOF

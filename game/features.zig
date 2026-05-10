@@ -13,11 +13,13 @@ const Map = @import("roguelib").Map;
 //
 
 fn findSecretDoor(entity: *Entity, m: *Map, p: Pos) bool {
-    // TODO: chance to succeed
+    // FUTURE: chance to succeed
+    // FUTURE: this entity knows, but others may not
+    // FUTURE: message
     m.setFloorTile(p, .door);
     m.setFeature(p, null);
-    entity.setKnown(m, p, true);
-    // TODO message
+    entity.setPosChanged(p);
+
     return true; // Found
 }
 
@@ -26,20 +28,22 @@ fn findSecretDoor(entity: *Entity, m: *Map, p: Pos) bool {
 //
 
 fn findTrap(entity: *Entity, m: *Map, p: Pos) bool {
-    // TODO: chance to succeed
+    // FUTURE: chance to succeed
+    // FUTURE: this entity knows, but others may not
     if (m.getFloorTile(p) == .floor) {
         m.setFloorTile(p, .trap);
-        entity.setKnown(m, p, true);
+        entity.setPosChanged(p);
         return true; // Found
     }
     return false;
 }
 
 fn enterTrap(entity: *Entity, m: *Map, p: Pos) bool {
-    // TODO: chance to avoid
+    // FUTURE: chance to avoid
+    // FUTURE: consequences
     m.setFloorTile(p, .trap);
+    entity.setPosChanged(p);
     entity.addMessage("You step on a trap!");
-    // TODO: increment moves or something
     return true;
 }
 

@@ -26,17 +26,12 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
     var reader = conn.reader(io, rbuf);
     var writer = conn.writer(io, &.{});
 
-    const max_xy = game.getMaxXY();
-
     const config = RemoteClient.Config{
-        .allocator = allocator,
         .reader = &reader.interface,
         .writer = &writer.interface,
         .name = name,
-        .xsize = max_xy[0],
-        .ysize = max_xy[1],
     };
-    var rc = try RemoteClient.init(config);
+    var rc = try RemoteClient.init(allocator, config);
     defer rc.deinit(allocator);
 
     // Create a limited allocator here for catching incoming messages
@@ -59,9 +54,6 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
 
         var player = game.Player.init(.{
             .client = rc.client(),
-            .allocator = allocator,
-            .xsize = max_xy[0],
-            .ysize = max_xy[1],
         });
 
         const seed = std.Io.Timestamp.now(io, .real).toMicroseconds();

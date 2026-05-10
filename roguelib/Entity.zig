@@ -25,7 +25,6 @@ pub const VTable = struct {
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
     getAction: ?*const fn (self: *Self) Error!Action = null,
     revealMap: ?*const fn (self: *Self, map: *Map, pos: Pos) void = null,
-    setKnown: ?*const fn (self: *Self, map: *Map, loc: Pos, visible: bool) void = null,
     takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
 };
 
@@ -104,13 +103,6 @@ pub fn revealMap(self: *Self, map: *Map, pos: Pos) void {
     }
 }
 
-// TODO: rid
-pub fn setKnown(self: *Self, map: *Map, loc: Pos, visible: bool) void {
-    if (self.vtable.setKnown) |cb| {
-        cb(self, map, loc, visible);
-    }
-}
-
 pub fn takeItem(self: *Self, i: MapTile) void {
     // FUTURE this is a terrible idea, need an Item reference
     if (self.vtable.takeItem) |cb| {
@@ -122,7 +114,7 @@ pub fn takeItem(self: *Self, i: MapTile) void {
 
 pub fn setPosChanged(self: *Self, loc: Pos) void {
     if (self.fov) |fov| {
-        fov.setChanged(loc);
+        fov.setChanged(loc, true);
     }
 }
 
