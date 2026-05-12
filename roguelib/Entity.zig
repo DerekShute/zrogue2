@@ -10,6 +10,7 @@ const Map = @import("Map.zig");
 const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
 const queue = @import("queue.zig");
+const Tileset = @import("maptile.zig").Tileset;
 
 const Self = @This();
 
@@ -24,7 +25,7 @@ pub const VTable = struct {
 
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
     getAction: ?*const fn (self: *Self) Error!Action = null,
-    revealMap: ?*const fn (self: *Self, map: *Map, pos: Pos) void = null,
+    setMapTile: ?*const fn (self: *Self, pos: Pos, tile: Tileset, visible: bool) void = null,
     takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
 };
 
@@ -96,13 +97,6 @@ pub fn getAction(self: *Self) !Action {
     return Action.config(.none);
 }
 
-// TODO: rid
-pub fn revealMap(self: *Self, map: *Map, pos: Pos) void {
-    if (self.vtable.revealMap) |cb| {
-        cb(self, map, pos);
-    }
-}
-
 pub fn takeItem(self: *Self, i: MapTile) void {
     // FUTURE this is a terrible idea, need an Item reference
     if (self.vtable.takeItem) |cb| {
@@ -121,6 +115,32 @@ pub fn setPosChanged(self: *Self, loc: Pos) void {
 pub fn setPosVisible(self: *Self, loc: Pos, visible: bool) void {
     if (self.fov) |fov| {
         fov.setVisible(loc, visible);
+    }
+}
+
+//
+// It's up to the client and end UI to decide what to do with map areas that
+// are no longer visible.  It could remove them from the display, or dim them,
+// or only retain known-persistent features.
+//
+// This could be done piecemeal but that reduces opportunity for consolidation
+//
+// TODO: still not really cool with this
+//
+pub fn notifyDisplay(self: *Self, map: *Map) void {
+    // FUTURE: consolidate identical tiles, have a count
+
+    if (self.vtable.setMapTile) |smt| {
+        if (self.fov) |fov| {
+            var i = fov.iterator();
+            while (i.next_changed()) |change| {
+                var tile = Tileset.init; // unknown, not visible
+                if (change.visible) {
+                    tile = map.getTileset(change.pos);
+                }
+                smt(self, change.pos, tile, change.visible);
+            }
+        }
     }
 }
 

@@ -13,6 +13,8 @@ const Region = @import("roguelib").Region;
 const Tileset = @import("roguelib").Tileset;
 const features = @import("features.zig");
 
+const revealMap = @import("fov.zig").revealMap;
+
 //
 // Types
 //
@@ -83,10 +85,11 @@ fn doMove(entity: *Entity, action: *Action, map: *Map) Action.Result {
         map.removeEntity(old_pos);
         entity.setPos(new_pos);
         map.addEntity(entity, new_pos);
-        entity.revealMap(map, old_pos);
+        revealMap(entity, map, old_pos);
         if (map.getFeature(new_pos)) |f| {
             _ = f.enter(entity, map, new_pos);
         }
+        entity.notifyDisplay(map);
     } else {
         entity.addMessage("Ouch!"); // Future: 'bump' callback
     }

@@ -39,9 +39,6 @@ pub const VTable = struct {
     // input
     getCommand: *const fn (ctx: *anyopaque) Error!Command,
 
-    // "Thing has changed" updates to send to implementation
-    notifyDisplay: *const fn (ctx: *anyopaque) void,
-
     // Update a map location with new information
     setMapTile: *const fn (ctx: *anyopaque, u: u16, u: u16, tile: DisplayTile) void,
 
@@ -67,11 +64,10 @@ pub const Config = struct {
 };
 
 pub fn init(config: Config) !Self {
-    var p: Self = .{
+    const p: Self = .{
         .vtable = config.vtable,
     };
 
-    p.resetDisplay();
     // TODO: caller manages p.ptr and that is suboptimal
 
     return p;
@@ -91,11 +87,6 @@ pub inline fn addMessage(self: *Self, msg: []const u8) void {
     self.vtable.addMessage(self.ptr, msg);
 }
 
-pub fn notifyDisplay(self: *Self) void {
-    // Redraw / refresh
-    self.vtable.notifyDisplay(self.ptr);
-}
-
 pub fn setMapTile(self: *Self, pos: Pos, tile: Tileset, visible: bool) void {
     const dt = DisplayTile{
         .entity = @intFromEnum(tile.entity),
@@ -110,10 +101,6 @@ pub fn setMapTile(self: *Self, pos: Pos, tile: Tileset, visible: bool) void {
         @intCast(pos.getY()),
         dt,
     );
-}
-
-pub fn resetDisplay(self: *Self) void {
-    _ = self; // NOCOMMIT
 }
 
 // Command
