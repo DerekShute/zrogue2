@@ -24,7 +24,7 @@ pub const Config = struct {
 const player_vtable = Entity.VTable{
     .addMessage = playerAddMessage,
     .getAction = playerGetAction,
-    .revealMap = playerRevealMap,
+    .setMapTile = playerSetMapTile,
     .takeItem = playerTakeItem,
 };
 
@@ -68,9 +68,9 @@ fn playerGetAction(ptr: *Entity) !Action {
     return self.getAction();
 }
 
-fn playerRevealMap(ptr: *Entity, map: *Map, pos: Pos) void {
+fn playerSetMapTile(ptr: *Entity, pos: Pos, tile: Tileset, visible: bool) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    self.revealMap(map, pos);
+    self.client.setMapTile(pos, tile, visible);
 }
 
 fn playerTakeItem(ptr: *Entity, i: MapTile) void {
@@ -84,14 +84,6 @@ fn playerTakeItem(ptr: *Entity, i: MapTile) void {
 
 fn getCommand(self: *Self) !Client.Command {
     return try self.client.getCommand();
-}
-
-fn renderRegion(self: *Self, r: Region, visible: bool) void {
-    var _r = r; // ditch const
-    var ri = _r.iterator();
-    while (ri.next()) |p| {
-        self.entity.setPosVisible(p, visible);
-    }
 }
 
 fn setStatInt(self: *Self, name: []const u8, value: i32) void {
@@ -130,59 +122,6 @@ pub fn getAction(self: *Self) !Action {
 
 pub fn getEntity(self: *Self) *Entity {
     return &self.entity;
-}
-
-//
-// It's up to the client and end UI to decide what to do with map areas that
-// are no longer visible.  It could remove them from the display, or dim them,
-// or only retain known-persistent features
-//
-pub fn notifyDisplay(self: *Self, map: *Map) void {
-    // FUTURE: consolidate identical tiles, have a count
-    if (self.entity.fov) |fov| { // NOCOMMIT: demeter
-        var i = fov.iterator();
-        while (i.next_changed()) |change| {
-            var tile = Tileset.init; // unknown, not visible
-            if (change.visible) {
-                tile = map.getTileset(change.pos);
-            }
-            self.client.setMapTile(change.pos, tile, change.visible);
-        }
-    }
-    // TODO: setMapflush or something
-}
-
-// NOCOMMIT: How is this used?
-pub fn resetMap(self: *Self) void {
-    self.client.resetDisplay();
-}
-
-// NOCOMMIT: game movement and place-on-map logic.  This can be relocated to
-// the game code entirely!
-pub fn revealMap(self: *Self, map: *Map, old_pos: Pos) void {
-    // FUTURE: this is game / Rogue specific
-
-    // Border-of-room and in-corridor hack
-    self.renderRegion(.configRadius(old_pos, 1), false);
-
-    // TODO: only if former != now
-    if (map.getRoomRegion(old_pos)) |former| {
-        // Leaving a lit room : update that it is not visible
-        if (map.isLit(old_pos)) {
-            self.renderRegion(former, false);
-        }
-    }
-    if (map.getRoomRegion(self.getPos())) |now| {
-        // Entering or already in a lit room : update
-        if (map.isLit(self.getPos())) {
-            self.renderRegion(now, true);
-        }
-    }
-
-    // Doorways and hallways need explicit
-    self.renderRegion(.configRadius(self.getPos(), 1), true);
-
-    self.notifyDisplay(map);
 }
 
 // Position

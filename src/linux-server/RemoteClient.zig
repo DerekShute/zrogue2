@@ -57,7 +57,6 @@ pub fn init(allocator: Allocator, config: Config) !*Self {
         .vtable = &.{
             .addMessage = remoteAddMessage,
             .getCommand = remoteGetCommand,
-            .notifyDisplay = remoteNotifyDisplay,
             .setMapTile = remoteSetMapTile,
             .setStatInt = remoteSetStatInt,
         },
@@ -151,16 +150,6 @@ fn remoteGetCommand(ptr: *anyopaque) !Client.Command {
         return cmd;
     }
     return .wait; // TODO need optionalreturn or something
-}
-
-fn remoteNotifyDisplay(ptr: *anyopaque) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-
-    // FUTURE: consolidate to a set of slices
-
-    if (self.state != .connected) { // Prevent flood of failures
-        return;
-    }
 }
 
 fn remoteSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {

@@ -22,8 +22,8 @@ pub const Config = struct {
 c: Client = undefined,
 command_list: []Client.Command = undefined,
 command_index: u16 = 0,
-notified: bool = false,
 
+// TODO: this is game specific
 purse: i32 = 0,
 depth: i32 = 0,
 messagebuf: [80]u8 = undefined, // TODO: size
@@ -38,7 +38,6 @@ pub fn init(config: Config) !Self {
         .vtable = &.{
             .addMessage = mockAddMessage,
             .getCommand = mockGetCommand,
-            .notifyDisplay = mockNotifyDisplay,
             .setMapTile = mockSetMapTile,
             .setStatInt = mockSetStatInt,
         },
@@ -87,13 +86,8 @@ fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
     return self.command_list[i];
 }
 
-fn mockNotifyDisplay(ptr: *anyopaque) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.notified = true;
-}
-
 fn mockSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
-    // NOCOMMIT
+    // TODO: need badly!
     _ = ptr;
     _ = x;
     _ = y;
@@ -124,13 +118,6 @@ pub fn getStatDepth(self: *Self) i32 {
     return self.depth;
 }
 
-pub fn getNotified(self: *Self) bool {
-    // Turns itself off for your convenience
-    const was = self.notified;
-    self.notified = false;
-    return was;
-}
-
 pub fn getMessage(self: *Self) []const u8 {
     return self.message;
 }
@@ -158,7 +145,6 @@ test "try out mock" {
 
     try expect(m.getStatPurse() == 0);
     try expect(m.getStatDepth() == 0);
-    try expect(!m.getNotified());
 
     c.setStatInt("purse", 10);
     try expect(m.getStatPurse() == 10);

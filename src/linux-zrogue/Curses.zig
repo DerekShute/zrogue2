@@ -20,6 +20,9 @@ const Self = @This();
 
 fn renderMap(self: *Self) void {
     _ = self;
+
+    // TODO: when you need to redisplay from scratch
+
     // Row 0 is message line, last row (23) is stats, so map 0,0 is at
     // position 0,1
 }
@@ -67,7 +70,6 @@ pub fn init() !Self {
         .vtable = &.{
             .addMessage = cursesAddMessage,
             .getCommand = cursesGetCommand,
-            .notifyDisplay = cursesNotifyDisplay,
             .setMapTile = cursesSetMapTile,
             .setStatInt = cursesSetStatInt,
         },
@@ -121,6 +123,7 @@ fn displayMessage(self: *Self) void {
     self.ui.displayMessage();
 }
 
+// TODO: when you need to redisplay from scratch
 fn displayScreen(self: *Self) void {
     //
     // Top line: messages
@@ -174,11 +177,6 @@ fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
     self.refresh();
 
     return cmd;
-}
-
-fn cursesNotifyDisplay(ptr: *anyopaque) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.displayScreen();
 }
 
 fn cursesSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
