@@ -4,7 +4,7 @@
 
 const std = @import("std");
 const game = @import("game");
-const MockClient = @import("MockClient.zig");
+const MockClient = @import("roguelib").MockClient;
 const Client = @import("roguelib").Client;
 
 //
@@ -66,7 +66,6 @@ test "run the game" {
 
 comptime {
     _ = @import("actions.zig");
-    _ = @import("MockClient.zig");
     //
     // TODO: needs thorough rework
     //

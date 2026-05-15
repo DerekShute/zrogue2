@@ -7,12 +7,12 @@ const game = @import("game");
 const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;
+const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
 
 const expect = std.testing.expect;
 
 const level = @import("level.zig");
-const MockClient = @import("MockClient.zig");
 
 //
 // Utilities

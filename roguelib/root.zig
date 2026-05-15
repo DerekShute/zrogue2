@@ -18,6 +18,10 @@ pub const Tileset = @import("maptile.zig").Tileset;
 
 pub const mapgen = @import("mapgen.zig");
 
+// Testing mockups
+
+pub const MockClient = @import("testing/MockClient.zig");
+
 //
 // Unit Test Breakout
 //
@@ -25,6 +29,7 @@ pub const mapgen = @import("mapgen.zig");
 test {
     @import("std").testing.refAllDecls(@This());
     _ = @import("fov/FOVMap.zig");
+    _ = @import("testing/MockClient.zig");
 }
 
 // EOF
