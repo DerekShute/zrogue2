@@ -9,11 +9,12 @@ const game = @import("game");
 const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;
+const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
 const MapTile = @import("roguelib").MapTile;
 
 const expect = std.testing.expect;
-const MockClient = @import("MockClient.zig");
+
 const level = @import("level.zig");
 
 const XSIZE = 80;

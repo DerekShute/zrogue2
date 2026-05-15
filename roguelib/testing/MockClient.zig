@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-const Client = @import("roguelib").Client;
+const Client = @import("../Client.zig");
 
 const Self = @This();
 
