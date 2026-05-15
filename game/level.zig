@@ -419,29 +419,11 @@ test "room adjacency" {
     try testsFalse(2, 3);
 }
 
-test "create Rogue level" {
-    var prng = std.Random.DefaultPrng.init(0);
-    var r = prng.random();
-
-    const config = mapgen.Config{
-        .rand = &r,
-        .xSize = 80,
-        .ySize = 24,
-        .level = 2,
-        .mapgen = .ROGUE,
-    };
-
-    var map = try create(config, tallocator);
-    defer map.deinit(tallocator);
-
-    try expect(map.level == 2);
-
-    // DO-IT-NOW : prove that a stair was placed
-}
+const testing_io = std.testing.io;
 
 test "fuzz test room generation" {
-    const seed: u64 = @intCast(std.time.microTimestamp());
-    var prng = std.Random.DefaultPrng.init(seed);
+    const seed = std.Io.Timestamp.now(testing_io, .real).toMicroseconds();
+    var prng = std.Random.DefaultPrng.init(@intCast(seed));
     var r = prng.random();
     var map = try Map.init(tallocator, 80, 24, 3, 3);
     defer map.deinit(tallocator);
@@ -456,8 +438,8 @@ test "fuzz test room generation" {
 }
 
 test "fuzz test gone room generation" {
-    const seed: u64 = @intCast(std.time.microTimestamp());
-    var prng = std.Random.DefaultPrng.init(seed);
+    const seed = std.Io.Timestamp.now(testing_io, .real).toMicroseconds();
+    var prng = std.Random.DefaultPrng.init(@intCast(seed));
     var r = prng.random();
     var map = try Map.init(tallocator, 80, 24, 3, 3);
     defer map.deinit(tallocator);

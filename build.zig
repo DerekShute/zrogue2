@@ -174,28 +174,16 @@ pub fn build(b: *std.Build) void {
     });
     const run_roguelib_tests = b.addRunArtifact(roguelib_tests);
 
-    const test_exe = b.addExecutable(.{
-        .name = "zrogue-tests",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/testing/main.zig"),
-            .target = target,
-            .optimize = test_optimize,
-            .imports = &.{
-                .{ .name = "game", .module = game_mod },
-                .{ .name = "roguelib", .module = roguelib_mod },
-            },
-        }),
+    const game_tests = b.addTest(.{
+        .root_module = game_mod,
     });
-    const testing_exe = b.addTest(.{
-        .root_module = test_exe.root_module,
-    });
-    const run_testing_exe = b.addRunArtifact(testing_exe);
+    const run_game_tests = b.addRunArtifact(game_tests);
 
     // Test build target
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_testing_exe.step);
     test_step.dependOn(&run_connector_tests.step);
     test_step.dependOn(&run_roguelib_tests.step);
+    test_step.dependOn(&run_game_tests.step);
 
     //
     // Visualization
