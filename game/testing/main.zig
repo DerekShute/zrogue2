@@ -1,9 +1,9 @@
 //!
-//! testing rig - this allows a thorough mock approach
+//! Test the end-to-end
 //!
 
 const std = @import("std");
-const game = @import("game");
+const game = @import("../root.zig");
 const MockClient = @import("roguelib").MockClient;
 const Client = @import("roguelib").Client;
 
@@ -38,11 +38,6 @@ var testlist = [_]Client.Command{
     .quit,
 };
 
-//
-// TODO: this is baloney.  We no longer have access to the test mapgen.  We
-// have to abstract mapgen into an interface and then it can be passed around
-//
-
 test "run the game" {
     const config: MockClient.Config = .{
         .commands = &testlist,
@@ -58,18 +53,6 @@ test "run the game" {
         .player = &player,
         .allocator = std.testing.allocator,
     });
-}
-
-//
-// Breakout
-//
-
-comptime {
-    _ = @import("actions.zig");
-    //
-    // TODO: needs thorough rework
-    //
-    // _ = @import("render.zig");
 }
 
 // EOF

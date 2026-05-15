@@ -33,7 +33,7 @@ const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
-const game = @import("game");
+const game = @import("../root.zig");
 const mapgen = @import("roguelib").mapgen;
 
 //
