@@ -67,6 +67,30 @@ Invoked by the Makefile, the visual target.
 
 When I feel inspired, I'll do something to hook it into the documentation.
 
+### Call Graph visualization
+
+The goal is to create a visualization that shows function call relationships
+between components.  Zig and LLVM do support this.
+
+The hooks provided by Internet Lookup appear to generate the expected LLVM
+IR files:
+
+```diff
++    const rogue_ir_file = rogue_exe.getEmittedLlvmIr();
++    const rogue_ir = b.addInstallFile(rogue_ir_file, "zrogue.ll");
++    b.getInstallStep().dependOn(&rogue_ir.step);
+```
+
+But there's an external tool problem that halts progress:
+
+```
+opt -passes=dot-callgraph zrogue.ll -disable-output
+opt: zrogue.ll:802:74: error: expected ')' at end of argument list
+define internal fastcc i16 @main.print_help(ptr nonnull readonly align 8 captures(none) %0) unnamed_addr #0 align 1 !dbg !5897 {
+```
+
+This might be a tool version problem between what Ubuntu is providing my system and what Zig uses internally.
+
 ## Network Protocol
 
 Sits on top of Messagepack, because that seemed like a good idea at the time.
