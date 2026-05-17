@@ -47,6 +47,11 @@ pub fn init(allocator: std.mem.Allocator, x: usize, y: usize) !Self {
     const dg = try DisplayGrid.config(allocator, x, y);
     errdefer dg.deinit(allocator);
 
+    var i = dg.iterator();
+    while (i.next()) |t| {
+        t.* = .init;
+    }
+
     return .{
         .c = try Client.init(pc),
         .dg = dg,
@@ -95,11 +100,10 @@ fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
 }
 
 fn mockSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
-    // TODO: need badly!
-    _ = ptr;
-    _ = x;
-    _ = y;
-    _ = tile;
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    // std.debug.print("set tile {}/{} to {}\n", .{ x, y, tile });
+    const dt = self.dg.find(@intCast(x), @intCast(y)) catch @panic("mockSetMapTile error");
+    dt.* = tile;
 }
 
 fn mockSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
@@ -126,6 +130,11 @@ pub fn setCommandList(self: *Self, list: []Client.Command) void {
 
 pub fn setCommand(self: *Self, cmd: Client.Command) void {
     self.next_command = cmd;
+}
+
+pub fn getTile(self: *Self, x: i16, y: i16) !Client.DisplayTile {
+    const dt = try self.dg.find(@intCast(x), @intCast(y));
+    return dt.*;
 }
 
 pub fn getStatPurse(self: *Self) i32 {

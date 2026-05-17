@@ -6,126 +6,54 @@
 
 const std = @import("std");
 const game = @import("game");
-const Action = @import("roguelib").Action;
-const Client = @import("roguelib").Client;
-const Map = @import("roguelib").Map;
-const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
 const MapTile = @import("roguelib").MapTile;
 
+const State = @import("State.zig");
+
 const expect = std.testing.expect;
-
-const level = @import("level.zig");
-
-const XSIZE = 80;
-const YSIZE = 24;
-
-//
-// Utilities
-//
-
-fn makeClient(testlist: []Client.Command) !MockClient {
-    return try MockClient.init(.{
-        .allocator = std.testing.allocator,
-        .xsize = XSIZE,
-        .ysize = YSIZE,
-        .commands = testlist,
-    });
-}
-
-fn makePlayer(client: *Client) game.Player {
-    return game.Player.init(.{
-        .allocator = std.testing.allocator,
-        .client = client,
-        .xsize = XSIZE,
-        .ysize = YSIZE,
-    });
-}
-
-fn makeMap(player: *game.Player) !*Map {
-    return try level.create(std.testing.allocator, player.getEntity());
-}
-
-fn getEntity(c: *Client, x: i16, y: i16) MapTile {
-    const dt = c.getTile(Pos.config(x, y));
-    return @enumFromInt(dt.entity);
-}
-
-fn getFloor(c: *Client, x: i16, y: i16) MapTile {
-    const dt = c.getTile(Pos.config(x, y));
-    return @enumFromInt(dt.floor);
-}
-
-fn getItem(c: *Client, x: i16, y: i16) MapTile {
-    const dt = c.getTile(Pos.config(x, y));
-    return @enumFromInt(dt.item);
-}
-
-fn isVisible(c: *Client, x: i16, y: i16) bool {
-    const dt = c.getTile(Pos.config(x, y));
-    return dt.visible;
-}
-
-fn moveTo(player: *game.Player, map: *Map, pos: Pos) void {
-    const orig = player.getPos();
-    map.removeEntity(orig);
-    player.setPos(pos);
-    map.addEntity(player.getEntity(), player.getPos());
-    player.revealMap(map, orig);
-}
-
-fn expectFloor(c: *Client, x: i16, y: i16, t: MapTile, v: bool) !void {
-    try expect(getFloor(c, x, y) == t);
-    try expect(isVisible(c, x, y) == v);
-}
 
 //
 // Tests: consult the test_level map
 //
 
 test "render starting position" {
-    var testlist = [_]Client.Command{
-        .wait,
-        .ascend,
-        .descend,
-        .quit,
-    };
-
-    var mock = try makeClient(&testlist);
-    defer mock.deinit(std.testing.allocator);
-    const client = mock.client();
-    var player = makePlayer(client);
-    var map = try makeMap(&player);
-    defer map.deinit(std.testing.allocator);
-
-    var i = map.iterator(); // TODO this is dumb
-    while (i.next()) |p| {
-        player.setUnknown(p);
-    }
-    player.revealMap(map, player.getPos());
+    var state = try State.init(std.testing.allocator);
+    defer state.deinit(std.testing.allocator);
 
     // Initial position: adjacent flooring is visible, else unknown
+
     //      ..$
     //      .@.
     //      ...
 
-    try expectFloor(client, 2, 2, .unknown, false);
-    try expectFloor(client, 6, 6, .floor, true);
-    try expect(getEntity(client, 6, 6) == .player);
-    try expect(getItem(client, 6, 6) == .unknown);
-    try expectFloor(client, 7, 5, .floor, true);
-    try expect(getItem(client, 7, 5) == .gold);
-    try expectFloor(client, 8, 4, .unknown, false); // stairs down, not updated
+    try state.expectNotVisible(2, 2); // Edge of dark room
+
+    try state.atXY(6, 6);
+    try expect(state.getEntity(6, 6) == .player);
+    try state.expectVisible(6, 6); // Player location
+    try state.expectItem(Pos.config(6, 6), .unknown);
+
+    try state.expectVisible(7, 5);
+    try state.expectFloor(Pos.config(7, 5), .floor);
+    try state.expectItem(Pos.config(7, 5), .gold);
+
+    try state.expectNotVisible(8, 4); // Stairs down not in view
+
+    // Up against the wall of the dark room
 
     //       ###
     //       .@<
     //       ..>
 
-    moveTo(&player, map, Pos.config(7, 3));
-    try expectFloor(client, 6, 6, .floor, false); // no update, not visible
-    try expectFloor(client, 7, 2, .wall, true); // visible
-    try expectFloor(client, 8, 4, .stairs_down, true);
-    try expectFloor(client, 8, 3, .stairs_up, true);
+    state.moveTo(Pos.config(7, 3));
+    try state.expectNotVisible(6, 6);
+    try state.expectVisible(8, 4);
+    try state.expectFloor(Pos.config(8, 4), .stairs_down);
+    try state.expectVisible(8, 3);
+    try state.expectFloor(Pos.config(8, 3), .stairs_up);
+
+    // Lit room
 
     //                            #########
     //                            #.......#
@@ -134,12 +62,19 @@ test "render starting position" {
     //                            #.......#
     //                            #########
 
-    moveTo(&player, map, Pos.config(31, 7));
-    try expectFloor(client, 27, 5, .wall, true); // lit room
-    try expectFloor(client, 27, 10, .wall, true);
-    try expectFloor(client, 35, 5, .wall, true);
-    try expectFloor(client, 35, 10, .wall, true);
-    try expectFloor(client, 31, 7, .floor, true);
+    state.moveTo(Pos.config(31, 7));
+    try state.expectVisible(27, 5);
+    try state.expectFloor(Pos.config(27, 5), .wall);
+    try state.expectVisible(27, 10);
+    try state.expectFloor(Pos.config(27, 10), .wall);
+    try state.expectVisible(35, 5);
+    try state.expectFloor(Pos.config(35, 5), .wall);
+    try state.expectVisible(35, 10);
+    try state.expectFloor(Pos.config(35, 10), .wall);
+    try state.expectVisible(31, 7);
+    try state.expectFloor(Pos.config(31, 7), .floor);
+
+    // Left the room; contents not visible
 
     //                            #########
     //                            #       #
@@ -148,9 +83,12 @@ test "render starting position" {
     //                          ###       #
     //                            #########
 
-    moveTo(&player, map, Pos.config(26, 8));
-    try expectFloor(client, 25, 8, .floor, true);
-    try expectFloor(client, 31, 7, .floor, false);
+    state.moveTo(Pos.config(28, 8));
+    try state.expectNotVisible(25, 8);
+    try state.expectVisible(31, 7);
+    try state.expectFloor(Pos.config(31, 7), .floor);
+
+    // Threshold of room
 
     //                            #########
     //                            #.......#
@@ -159,9 +97,12 @@ test "render starting position" {
     //                          ###.......#
     //                            #########
 
-    moveTo(&player, map, Pos.config(27, 8));
-    try expectFloor(client, 25, 8, .floor, false);
-    try expectFloor(client, 31, 7, .floor, true);
+    state.moveTo(Pos.config(27, 8));
+    try state.expectNotVisible(25, 8);
+    try state.expectVisible(31, 7);
+    try state.expectFloor(Pos.config(31, 7), .floor);
+
+    // Fully inside room
 
     //                            #########
     //                            #.......#
@@ -169,9 +110,11 @@ test "render starting position" {
     //                            .@......#
     //                          ###.......#
     //                            #########
-    moveTo(&player, map, Pos.config(28, 8));
-    try expectFloor(client, 26, 8, .floor, false);
-    try expectFloor(client, 31, 7, .floor, true);
+
+    state.moveTo(Pos.config(28, 8));
+    try state.expectNotVisible(26, 8);
+    try state.expectVisible(31, 7);
+    try state.expectFloor(Pos.config(31, 7), .floor);
 }
 
 // EOF
