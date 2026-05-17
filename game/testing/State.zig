@@ -25,10 +25,10 @@ player: *game.Player,
 // Lifecycle
 //
 
-pub fn init(allocator: std.mem.Allocator, list: []Client.Command) !*Self {
+pub fn init(allocator: std.mem.Allocator) !*Self {
     var mc = try allocator.create(MockClient);
     errdefer allocator.destroy(mc);
-    mc.* = try MockClient.init(.{ .commands = list });
+    mc.* = try MockClient.init();
 
     var player = try allocator.create(game.Player);
     errdefer allocator.destroy(player);
@@ -75,14 +75,13 @@ pub fn expectPurse(self: *Self, val: i16) !void {
     try expect(self.client.getStatPurse() == val);
 }
 
-pub fn step(self: *Self, val: Action.Result) !void {
-    try expect(try game.doAction(self.player.getEntity(), self.map) == val);
+pub fn step(self: *Self, cmd: Client.Command) !Action.Result {
+    self.client.setCommand(cmd);
+    return try game.doAction(self.player.getEntity(), self.map);
 }
 
-pub fn stepXY(self: *Self, val: Action.Result, x: Pos.Dim, y: Pos.Dim) !void {
-    try self.step(val);
+pub fn atXY(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
     try expect(self.player.getPos().getX() == x);
     try expect(self.player.getPos().getY() == y);
 }
-
 // EOF
