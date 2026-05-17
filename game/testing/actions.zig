@@ -10,49 +10,10 @@ const Map = @import("roguelib").Map;
 const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
 
+const State = @import("State.zig");
+
 const expect = std.testing.expect;
-
-const level = @import("level.zig");
-
-//
-// Utilities
-//
-
-fn makeClient(testlist: []Client.Command) !MockClient {
-    return try MockClient.init(.{
-        .commands = testlist,
-    });
-}
-
-fn makePlayer(client: *Client) game.Player {
-    return game.Player.init(.{
-        .client = client,
-    });
-}
-
-fn makeMap(player: *game.Player) !*Map {
-    return try level.create(std.testing.allocator, player.getEntity());
-}
-
-fn step(player: *game.Player, map: *Map, val: Action.Result) !void {
-    try expect(try game.doAction(player.getEntity(), map) == val);
-}
-
-fn stepXY(
-    player: *game.Player,
-    map: *Map,
-    val: Action.Result,
-    x: Pos.Dim,
-    y: Pos.Dim,
-) !void {
-    try step(player, map, val);
-    try expect(player.getPos().getX() == x);
-    try expect(player.getPos().getY() == y);
-}
-
-fn expectMessage(m: *MockClient, msg: []const u8) !void {
-    try expect(std.mem.eql(u8, m.getMessage(), msg));
-}
+const test_allocator = std.testing.allocator;
 
 //
 // Tests: consult the test_level map
@@ -66,16 +27,13 @@ test "in-place boring stuff then quit" {
         .quit,
     };
 
-    var m = try makeClient(&testlist);
-    defer m.deinit();
-    var player = makePlayer(m.client());
-    var map = try makeMap(&player);
-    defer map.deinit(std.testing.allocator);
+    var state = try State.init(test_allocator, &testlist);
+    defer state.deinit(test_allocator);
 
-    try step(&player, map, .continue_game);
-    try step(&player, map, .continue_game);
-    try step(&player, map, .continue_game);
-    try step(&player, map, .end_game);
+    try state.step(.continue_game);
+    try state.step(.continue_game);
+    try state.step(.continue_game);
+    try state.step(.end_game);
 }
 
 test "move in a circle: all directions work" {
@@ -86,16 +44,13 @@ test "move in a circle: all directions work" {
         .go_south,
     };
 
-    var m = try makeClient(&testlist);
-    defer m.deinit();
-    var player = makePlayer(m.client());
-    var map = try makeMap(&player);
-    defer map.deinit(std.testing.allocator);
+    var state = try State.init(test_allocator, &testlist);
+    defer state.deinit(test_allocator);
 
-    try stepXY(&player, map, .continue_game, 5, 6);
-    try stepXY(&player, map, .continue_game, 5, 5);
-    try stepXY(&player, map, .continue_game, 6, 5);
-    try stepXY(&player, map, .continue_game, 6, 6);
+    try state.stepXY(.continue_game, 5, 6);
+    try state.stepXY(.continue_game, 5, 5);
+    try state.stepXY(.continue_game, 6, 5);
+    try state.stepXY(.continue_game, 6, 6);
 }
 
 test "hit a wall" {
@@ -105,15 +60,13 @@ test "hit a wall" {
         .go_east,
     };
 
-    var m = try makeClient(&testlist);
-    defer m.deinit();
-    var player = makePlayer(m.client());
-    var map = try makeMap(&player);
-    defer map.deinit(std.testing.allocator);
+    var state = try State.init(test_allocator, &testlist);
+    defer state.deinit(test_allocator);
 
-    try stepXY(&player, map, .continue_game, 7, 6);
-    try stepXY(&player, map, .continue_game, 8, 6);
-    try stepXY(&player, map, .continue_game, 8, 6); // Bonk
+    try state.stepXY(.continue_game, 7, 6);
+    try state.stepXY(.continue_game, 8, 6);
+    try state.stepXY(.continue_game, 8, 6); // Bonk
+    try state.expectMessage("Ouch!");
 }
 
 // Expand this as capabilities add...
@@ -133,43 +86,39 @@ test "pick up gold and etc" {
         .ascend,
     };
 
-    var m = try makeClient(&testlist);
-    defer m.deinit();
-    var player = makePlayer(m.client());
-    var map = try makeMap(&player);
-    defer map.deinit(std.testing.allocator);
+    var state = try State.init(test_allocator, &testlist);
+    defer state.deinit(test_allocator);
 
-    try step(&player, map, .continue_game);
-    try expectMessage(&m, "You find nothing!"); // search
+    try state.step(.continue_game);
+    try state.expectMessage("You find nothing!"); // search
 
-    try step(&player, map, .continue_game);
-    try step(&player, map, .continue_game);
+    try state.step(.continue_game);
+    try state.step(.continue_game);
 
-    try expect(map.getItem(player.getPos()) == .gold);
-    try expect(m.getStatPurse() == 0);
+    try state.expectItem(.gold);
+    try state.expectPurse(0);
 
-    try step(&player, map, .continue_game);
-    try expectMessage(&m, "You pick up the gold!"); // take
-    try expect(map.getItem(player.getPos()) == .unknown);
-    try expect(m.getStatPurse() == 1);
+    try state.step(.continue_game);
+    try state.expectMessage("You pick up the gold!"); // take
+    try state.expectItem(.unknown);
+    try state.expectPurse(1);
 
-    try step(&player, map, .continue_game);
-    try expectMessage(&m, "You step on a trap!"); // go east
-    try expect(map.getFloorTile(Pos.config(8, 5)) == .trap);
+    try state.step(.continue_game);
+    try state.expectMessage("You step on a trap!"); // go east
+    try state.expectFloor(Pos.config(8, 5), .trap);
 
-    try expect(map.getFloorTile(Pos.config(9, 5)) == .wall);
+    try state.expectFloor(Pos.config(9, 5), .wall);
+    try state.step(.continue_game);
+    try state.expectMessage("You find something!"); // search
+    try state.expectFloor(Pos.config(9, 5), .door); // secret door
 
-    try step(&player, map, .continue_game);
-    try expectMessage(&m, "You find something!"); // search
-    try expect(map.getFloorTile(Pos.config(9, 5)) == .door); // secret door
+    try state.step(.continue_game);
+    try state.step(.descend);
+    try state.expectMessage("You go ever deeper into the dungeon...");
 
-    try step(&player, map, .continue_game);
-    try step(&player, map, .descend);
-    try expectMessage(&m, "You go ever deeper into the dungeon...");
-
-    try step(&player, map, .continue_game);
-    try step(&player, map, .ascend);
-    try expectMessage(&m, "You ascend closer to the exit...");
+    try state.step(.continue_game);
+    try state.step(.ascend);
+    try state.expectMessage("You ascend closer to the exit...");
 }
 
 // EOF
