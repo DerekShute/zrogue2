@@ -41,7 +41,7 @@ const mapgen = @import("roguelib").mapgen;
 //
 
 pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
-    var map = try Map.init(allocator, 80, 24, 3, 2);
+    var map = try Map.init(allocator, game.XSIZE, game.YSIZE, 3, 2);
     errdefer map.deinit(allocator);
 
     var room = Room.config(Pos.config(2, 2), Pos.config(9, 9));

@@ -67,11 +67,11 @@ test "pick up gold and etc" {
     try expect(try state.step(.go_east) == .continue_game);
     try expect(try state.step(.go_north) == .continue_game);
 
-    try state.expectItem(.gold);
+    try state.expectItemAtPlayer(.gold);
     try state.expectPurse(0);
     try expect(try state.step(.take_item) == .continue_game);
     try state.expectMessage("You pick up the gold!"); // take
-    try state.expectItem(.unknown);
+    try state.expectItemAtPlayer(.unknown);
     try state.expectPurse(1);
 
     try expect(try state.step(.go_east) == .continue_game);
