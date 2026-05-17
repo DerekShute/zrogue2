@@ -8,19 +8,12 @@ const Client = @import("../Client.zig");
 const Self = @This();
 
 //
-// Types
-//
-
-pub const Config = struct {
-    commands: []Client.Command,
-};
-
-//
 // Members
 //
 
 c: Client = undefined,
-command_list: []Client.Command = undefined,
+next_command: ?Client.Command = null,
+command_list: []Client.Command = &.{},
 command_index: u16 = 0,
 
 // TODO: this is game specific
@@ -33,7 +26,7 @@ message: []u8 = &.{},
 // Constructor / Destructor
 //
 
-pub fn init(config: Config) !Self {
+pub fn init() !Self {
     const pc: Client.Config = .{
         .vtable = &.{
             .addMessage = mockAddMessage,
@@ -45,7 +38,6 @@ pub fn init(config: Config) !Self {
 
     return .{
         .c = try Client.init(pc),
-        .command_list = config.commands,
     };
 }
 
@@ -78,6 +70,9 @@ fn mockAddMessage(ptr: *anyopaque, msg: []const u8) void {
 
 fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
+    if (self.next_command) |cmd| {
+        return cmd;
+    }
     const i = self.command_index;
     if (i >= self.command_list.len) {
         @panic("No more mock commands to provide");
@@ -110,6 +105,16 @@ fn mockSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
 // Methods for testing convenience
 //
 
+pub fn setCommandList(self: *Self, list: []Client.Command) void {
+    self.next_command = null;
+    self.command_list = list;
+    self.command_index = 0;
+}
+
+pub fn setCommand(self: *Self, cmd: Client.Command) void {
+    self.next_command = cmd;
+}
+
 pub fn getStatPurse(self: *Self) i32 {
     return self.purse;
 }
@@ -135,13 +140,15 @@ var testlist = [_]Client.Command{
 };
 
 test "try out mock" {
-    var m = try init(.{
-        .commands = &testlist,
-    });
+    var m = try init();
     defer m.deinit();
 
     var c = m.client();
+    m.setCommand(.go_west);
     try expect(try c.getCommand() == .go_west);
+    try expect(try c.getCommand() == .go_west);
+    m.setCommand(.go_east);
+    try expect(try c.getCommand() == .go_east);
 
     try expect(m.getStatPurse() == 0);
     try expect(m.getStatDepth() == 0);
@@ -150,6 +157,16 @@ test "try out mock" {
     try expect(m.getStatPurse() == 10);
     c.setStatInt("depth", 4);
     try expect(m.getStatDepth() == 4);
+}
+
+test "try out list" {
+    var m = try init();
+    defer m.deinit();
+    var c = m.client();
+
+    m.setCommandList(&testlist);
+    try expect(try c.getCommand() == .go_west);
+    try expect(try c.getCommand() == .quit);
 }
 
 // EOF

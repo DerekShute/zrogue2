@@ -39,11 +39,9 @@ var testlist = [_]Client.Command{
 };
 
 test "run the game" {
-    const config: MockClient.Config = .{
-        .commands = &testlist,
-    };
-    var m = try MockClient.init(config);
+    var m = try MockClient.init();
     defer m.deinit();
+    m.setCommandList(&testlist);
 
     var player = game.Player.init(.{
         .client = m.client(),
