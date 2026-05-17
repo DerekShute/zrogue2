@@ -28,7 +28,8 @@ player: *game.Player,
 pub fn init(allocator: std.mem.Allocator) !*Self {
     var mc = try allocator.create(MockClient);
     errdefer allocator.destroy(mc);
-    mc.* = try MockClient.init();
+    mc.* = try MockClient.init(allocator, game.XSIZE, game.YSIZE);
+    errdefer mc.deinit(allocator);
 
     var player = try allocator.create(game.Player);
     errdefer allocator.destroy(player);
@@ -51,6 +52,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.map.deinit(allocator);
     allocator.destroy(self.player);
+    self.client.deinit(allocator);
     allocator.destroy(self.client);
     allocator.destroy(self);
 }

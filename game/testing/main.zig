@@ -39,8 +39,8 @@ var testlist = [_]Client.Command{
 };
 
 test "run the game" {
-    var m = try MockClient.init();
-    defer m.deinit();
+    var m = try MockClient.init(std.testing.allocator, game.XSIZE, game.YSIZE);
+    defer m.deinit(std.testing.allocator);
     m.setCommandList(&testlist);
 
     var player = game.Player.init(.{
