@@ -4,8 +4,15 @@
 
 const std = @import("std");
 const Client = @import("../Client.zig");
+const Grid = @import("../grid.zig").Grid;
 
 const Self = @This();
+
+//
+// Types
+//
+
+const DisplayGrid = Grid(Client.DisplayTile);
 
 //
 // Members
@@ -21,12 +28,13 @@ purse: i32 = 0,
 depth: i32 = 0,
 messagebuf: [80]u8 = undefined, // TODO: size
 message: []u8 = &.{},
+dg: DisplayGrid = undefined,
 
 //
 // Constructor / Destructor
 //
 
-pub fn init() !Self {
+pub fn init(allocator: std.mem.Allocator, x: usize, y: usize) !Self {
     const pc: Client.Config = .{
         .vtable = &.{
             .addMessage = mockAddMessage,
@@ -36,13 +44,18 @@ pub fn init() !Self {
         },
     };
 
+    const dg = try DisplayGrid.config(allocator, x, y);
+    errdefer dg.deinit(allocator);
+
     return .{
         .c = try Client.init(pc),
+        .dg = dg,
     };
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.c.deinit();
+    self.dg.deinit(allocator);
     return;
 }
 
@@ -140,8 +153,8 @@ var testlist = [_]Client.Command{
 };
 
 test "try out mock" {
-    var m = try init();
-    defer m.deinit();
+    var m = try init(std.testing.allocator, 20, 20);
+    defer m.deinit(std.testing.allocator);
 
     var c = m.client();
     m.setCommand(.go_west);
@@ -160,8 +173,8 @@ test "try out mock" {
 }
 
 test "try out list" {
-    var m = try init();
-    defer m.deinit();
+    var m = try init(std.testing.allocator, 20, 20);
+    defer m.deinit(std.testing.allocator);
     var c = m.client();
 
     m.setCommandList(&testlist);

@@ -27,8 +27,8 @@ pub const addTrap = features.addTrap;
 // Configuration
 //
 
-const XSIZE = 80; // Traditional dimensions
-const YSIZE = 24;
+pub const XSIZE = 80; // Traditional dimensions
+pub const YSIZE = 24;
 
 const MAX_DEPTH = 3;
 
