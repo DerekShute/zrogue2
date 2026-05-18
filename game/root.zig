@@ -39,6 +39,19 @@ pub const Config = struct {
 };
 
 //
+// Types
+//
+
+// FUTURE: IDs to slam into place.feature
+pub const Feature = enum {
+    none,
+    trap,
+    secret_door,
+    stairs_down, // FUTURE: 'enter' or 'interact'
+    stairs_up,
+};
+
+//
 // Testing Conveniences
 //
 
