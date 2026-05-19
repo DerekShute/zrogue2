@@ -21,6 +21,7 @@ flags: packed struct {
 // Constructor
 //
 
+// REFACTOR: to init()
 pub fn config(tl: Pos, br: Pos) Self {
     // (0,0) - (0,0) is reserved as the special 'uninitialized' room
     return .{
@@ -90,13 +91,13 @@ pub fn isInside(self: *Self, at: Pos) bool {
 const expect = @import("std").testing.expect;
 
 test "create a room and test properties" {
-    var room = config(Pos.config(10, 10), Pos.config(20, 20));
+    var room = config(.init(10, 10), .init(20, 20));
 
     try expect(room.getMaxX() == 20);
     try expect(room.getMaxY() == 20);
     try expect(room.getMinX() == 10);
     try expect(room.getMinY() == 10);
-    try expect(room.isInside(Pos.config(15, 15))); // Smoke: methods available
+    try expect(room.isInside(.init(15, 15))); // Smoke: methods available
 
     try expect(room.isGone() == false); // Expected default
     room.setGone();

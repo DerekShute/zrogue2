@@ -63,7 +63,7 @@ pub fn init(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, rooms
     const rooms = try allocator.alloc(Room, @intCast(roomsx * roomsy));
     errdefer allocator.free(rooms);
     for (rooms) |*room| {
-        room.* = Room.config(Pos.config(0, 0), Pos.config(0, 0));
+        room.* = Room.config(.init(0, 0), .init(0, 0));
     }
 
     m.height = height;
@@ -169,8 +169,8 @@ pub fn passable(self: *Self, p: Pos) bool {
 
 pub fn iterator(self: *Self) Pos.Range {
     return Pos.Range.init(
-        Pos.config(0, 0),
-        Pos.config(self.getWidth() - 1, self.getHeight() - 1),
+        .init(0, 0),
+        .init(self.getWidth() - 1, self.getHeight() - 1),
     );
 }
 
@@ -247,8 +247,8 @@ pub fn addRoom(self: *Self, room: Room) void {
     // getRoom() validates coordinates
 
     // Make sure that the region fits in one 'grid' location
-    var sr = self.getRoom(Pos.config(r.getMinX(), r.getMinY()));
-    const sr2 = self.getRoom(Pos.config(r.getMaxX(), r.getMaxY()));
+    var sr = self.getRoom(.init(r.getMinX(), r.getMinY()));
+    const sr2 = self.getRoom(.init(r.getMaxX(), r.getMaxY()));
     if (sr == null) {
         @panic("addRoom: room minimum off of map");
     } else if (sr2 == null) {
@@ -288,11 +288,11 @@ test "add a room and ask about it" {
     var map = try init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit(std.testing.allocator);
 
-    const r1 = Room.config(Pos.config(5, 5), Pos.config(10, 10));
+    const r1 = Room.config(.init(5, 5), .init(10, 10));
     map.addRoom(r1);
-    try expect(map.inRoom(Pos.config(7, 7)) == true);
-    try expect(map.inRoom(Pos.config(19, 19)) == false);
-    try expect(map.inRoom(Pos.config(-1, -1)) == false);
+    try expect(map.inRoom(.init(7, 7)) == true);
+    try expect(map.inRoom(.init(19, 19)) == false);
+    try expect(map.inRoom(.init(-1, -1)) == false);
 }
 
 // Map
@@ -301,11 +301,11 @@ test "map smoke test" {
     var map = try init(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit(std.testing.allocator);
 
-    map.addRoom(Room.config(Pos.config(10, 10), Pos.config(20, 20)));
-    map.setFloorTile(Pos.config(15, 15), .stairs_down);
-    try expect(map.getFloorTile(Pos.config(15, 15)) == .stairs_down);
-    map.setFloorTile(Pos.config(16, 16), .stairs_up);
-    try expect(map.getFloorTile(Pos.config(16, 16)) == .stairs_up);
+    map.addRoom(.config(.init(10, 10), .init(20, 20)));
+    map.setFloorTile(.init(15, 15), .stairs_down);
+    try expect(map.getFloorTile(.init(15, 15)) == .stairs_down);
+    map.setFloorTile(.init(16, 16), .stairs_up);
+    try expect(map.getFloorTile(.init(16, 16)) == .stairs_up);
 
     try expect(map.getHeight() == 50);
     try expect(map.getWidth() == 100);
@@ -378,32 +378,32 @@ test "inquire about room at invalid location" {
     var map = try init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit(std.testing.allocator);
 
-    try expect(map.getRoomRegion(Pos.config(21, 21)) == null);
-    try expect(map.getRoomRegion(Pos.config(-1, -1)) == null);
+    try expect(map.getRoomRegion(.init(21, 21)) == null);
+    try expect(map.getRoomRegion(.init(-1, -1)) == null);
 
-    try expect(map.getRoomNum(Pos.config(19, 0)) == 0);
-    try expect(map.getRoomNum(Pos.config(20, 0)) == null);
-    try expect(map.getRoomNum(Pos.config(0, 20)) == null);
-    try expect(map.getRoomNum(Pos.config(0, 19)) == 0);
+    try expect(map.getRoomNum(.init(19, 0)) == 0);
+    try expect(map.getRoomNum(.init(20, 0)) == null);
+    try expect(map.getRoomNum(.init(0, 20)) == null);
+    try expect(map.getRoomNum(.init(0, 19)) == 0);
 
     // The rest are inquiries that we default to 'false' for insane callers
     // commence groaning now
 
-    try expect(map.inRoom(Pos.config(20, 0)) == false);
-    try expect(map.inRoom(Pos.config(100, 100)) == false);
-    try expect(map.inRoom(Pos.config(-1, -1)) == false);
-    try expect(map.inRoom(Pos.config(-1, -1)) == false);
-    try expect(map.isLit(Pos.config(-1, -1)) == false);
-    try expect(map.isLit(Pos.config(100, 100)) == false);
+    try expect(map.inRoom(.init(20, 0)) == false);
+    try expect(map.inRoom(.init(100, 100)) == false);
+    try expect(map.inRoom(.init(-1, -1)) == false);
+    try expect(map.inRoom(.init(-1, -1)) == false);
+    try expect(map.isLit(.init(-1, -1)) == false);
+    try expect(map.isLit(.init(100, 100)) == false);
 }
 
 test "map multiple rooms" {
     var map = try init(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit(std.testing.allocator);
 
-    const r1 = Room.config(Pos.config(0, 0), Pos.config(10, 10));
+    const r1 = Room.config(.init(0, 0), .init(10, 10));
     map.addRoom(r1);
-    const r2 = Room.config(Pos.config(60, 20), Pos.config(70, 30));
+    const r2 = Room.config(.init(60, 20), .init(70, 30));
     map.addRoom(r2);
 }
 

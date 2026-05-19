@@ -57,7 +57,7 @@ pub fn init(allocator: std.mem.Allocator, width: usize, height: usize) !Self {
 
     return .{
         .grid = g,
-        .max = .config(@intCast(width - 1), @intCast(height - 1)),
+        .max = .init(@intCast(width - 1), @intCast(height - 1)),
     };
 }
 
@@ -112,7 +112,7 @@ pub const Iterator = struct {
 pub fn iterator(self: *Self) Self.Iterator {
     return .{
         .s = self,
-        .r = Pos.Range.init(.config(0, 0), self.max),
+        .r = Pos.Range.init(.init(0, 0), self.max),
     };
 }
 
@@ -162,29 +162,29 @@ test "basic use" {
     var map = try init(std.testing.allocator, 50, 50);
     defer map.deinit(std.testing.allocator);
 
-    try expect(map.getChanged(.config(10, 10)) == true); // Condition of init
-    map.setChanged(.config(10, 10), false); // Pretend this has been reported
+    try expect(map.getChanged(.init(10, 10)) == true); // Condition of init
+    map.setChanged(.init(10, 10), false); // Pretend this has been reported
 
-    try expect(map.getChanged(.config(10, 10)) == false);
+    try expect(map.getChanged(.init(10, 10)) == false);
 
-    map.setVisible(.config(10, 10), true);
-    try expect(map.getVisible(.config(10, 10)) == true);
-    try expect(map.getChanged(.config(10, 10)) == true);
+    map.setVisible(.init(10, 10), true);
+    try expect(map.getVisible(.init(10, 10)) == true);
+    try expect(map.getChanged(.init(10, 10)) == true);
 
-    map.setChanged(.config(10, 10), false); // Pretend this has been reported
-    try expect(map.getVisible(.config(10, 10)) == true);
+    map.setChanged(.init(10, 10), false); // Pretend this has been reported
+    try expect(map.getVisible(.init(10, 10)) == true);
 
-    map.setVisible(.config(10, 10), false);
-    try expect(map.getChanged(.config(10, 10)) == true);
+    map.setVisible(.init(10, 10), false);
+    try expect(map.getChanged(.init(10, 10)) == true);
 
-    map.setChanged(.config(10, 10), false); // Pretend this has been reported
+    map.setChanged(.init(10, 10), false); // Pretend this has been reported
 
-    map.setVisible(.config(10, 10), false); // No change
-    try expect(map.getChanged(.config(10, 10)) == false);
+    map.setVisible(.init(10, 10), false); // No change
+    try expect(map.getChanged(.init(10, 10)) == false);
 
     map.reset();
-    try expect(map.getVisible(.config(10, 10)) == false);
-    try expect(map.getChanged(.config(10, 10)) == true);
+    try expect(map.getVisible(.init(10, 10)) == false);
+    try expect(map.getChanged(.init(10, 10)) == true);
 }
 
 test "iterator" {
@@ -222,7 +222,7 @@ test "changed iterator" {
         try expect(false);
     }
 
-    map.setChanged(.config(1, 0), false); // Skip index 1
+    map.setChanged(.init(1, 0), false); // Skip index 1
 
     if (it.next_changed()) |i| {
         try expect(i.pos.getX() == 2);

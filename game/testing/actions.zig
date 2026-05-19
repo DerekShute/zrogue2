@@ -76,12 +76,12 @@ test "pick up gold and etc" {
 
     try expect(try state.step(.go_east) == .continue_game);
     try state.expectMessage("You step on a trap!"); // go east
-    try state.expectFloor(Pos.config(8, 5), .trap);
+    try state.expectFloor(.init(8, 5), .trap);
 
-    try state.expectFloor(Pos.config(9, 5), .wall);
+    try state.expectFloor(.init(9, 5), .wall);
     try expect(try state.step(.search) == .continue_game);
     try state.expectMessage("You find something!"); // search
-    try state.expectFloor(Pos.config(9, 5), .door); // secret door
+    try state.expectFloor(.init(9, 5), .door); // secret door
 
     try expect(try state.step(.go_north) == .continue_game);
     try expect(try state.step(.descend) == .descend);

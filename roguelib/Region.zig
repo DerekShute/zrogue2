@@ -18,6 +18,7 @@ to: Pos = undefined,
 // Constructor
 //
 
+// TODO: to init
 pub fn config(from: Pos, to: Pos) Self {
     if ((from.getX() < 0) or (from.getY() < 0)) {
         @panic("Region.config: Invalid low position");
@@ -34,8 +35,8 @@ pub fn config(from: Pos, to: Pos) Self {
 
 pub fn configRadius(center: Pos, radius: Pos.Dim) Self {
     // Square centered on 'center', radius 'radius'
-    const min = Pos.config(center.getX() - radius, center.getY() - radius);
-    const max = Pos.config(center.getX() + radius, center.getY() + radius);
+    const min = Pos.init(center.getX() - radius, center.getY() - radius);
+    const max = Pos.init(center.getX() + radius, center.getY() + radius);
 
     return config(min, max);
 }
@@ -75,8 +76,8 @@ pub fn isInside(self: *Self, p: Pos) bool {
 const expect = std.testing.expect;
 
 test "Region and Region methods" {
-    const min = Pos.config(2, 7);
-    const max = Pos.config(9, 11);
+    const min = Pos.init(2, 7);
+    const max = Pos.init(9, 11);
 
     var r = Self.config(min, max);
     try expect(min.eql(r.getMin()));
@@ -85,19 +86,19 @@ test "Region and Region methods" {
     try expect(r.getMin().eql(min));
     try expect(r.getMax().eql(max));
 
-    try expect(r.isInside(Pos.config(4, 10)));
-    try expect(r.isInside(Pos.config(2, 7)));
-    try expect(r.isInside(Pos.config(9, 11)));
-    try expect(r.isInside(Pos.config(2, 11)));
-    try expect(r.isInside(Pos.config(9, 7)));
-    try expect(!r.isInside(Pos.config(0, 0)));
-    try expect(!r.isInside(Pos.config(-10, -10)));
-    try expect(!r.isInside(Pos.config(10, 0)));
-    try expect(!r.isInside(Pos.config(0, 10)));
-    try expect(!r.isInside(Pos.config(15, 21)));
+    try expect(r.isInside(.init(4, 10)));
+    try expect(r.isInside(.init(2, 7)));
+    try expect(r.isInside(.init(9, 11)));
+    try expect(r.isInside(.init(2, 11)));
+    try expect(r.isInside(.init(9, 7)));
+    try expect(!r.isInside(.init(0, 0)));
+    try expect(!r.isInside(.init(-10, -10)));
+    try expect(!r.isInside(.init(10, 0)));
+    try expect(!r.isInside(.init(0, 10)));
+    try expect(!r.isInside(.init(15, 21)));
 
     // We will call 1x1 valid for now. 1x1 at 0,0 is the uninitialized room
-    _ = Self.config(Pos.config(0, 0), Pos.config(0, 0));
+    _ = config(.init(0, 0), .init(0, 0));
 }
 
 test "Region iterator" {
@@ -105,7 +106,7 @@ test "Region iterator" {
     var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
 
     // Construct the iteration
-    var r = Self.config(Pos.config(2, 7), Pos.config(9, 11));
+    var r = config(.init(2, 7), .init(9, 11));
     var i = r.iterator();
     while (i.next()) |pos| {
         const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);
@@ -135,7 +136,7 @@ test "Region iterator entire" {
     var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
 
     // Construct the iteration
-    var r = Self.config(Pos.config(0, 0), Pos.config(13, 13));
+    var r = config(.init(0, 0), .init(13, 13));
     var i = r.iterator();
     while (i.next()) |pos| {
         const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);
@@ -157,7 +158,7 @@ test "Region iterator entire" {
 }
 
 test "Region radius constructor" {
-    var r = Self.configRadius(Pos.config(10, 15), 2);
+    var r = Self.configRadius(.init(10, 15), 2);
 
     try expect(r.getMin().getX() == 8);
     try expect(r.getMin().getY() == 13);

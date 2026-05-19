@@ -60,8 +60,8 @@ fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) Room {
 
         // Need to leave column 79 and row 23 as wall
         if ((xpos < map.getWidth() - 3) and (ypos < map.getHeight() - 3)) {
-            const tl = Pos.config(xpos, ypos);
-            const br = Pos.config(xpos + 2, ypos + 2);
+            const tl = Pos.init(xpos, ypos);
+            const br = Pos.init(xpos + 2, ypos + 2);
             room = Room.config(tl, br);
             done = true;
         }
@@ -99,8 +99,8 @@ fn makeRoom(roomno: i16, map: *Map, r: *std.Random) Room {
         const endx = xpos + xlen - 1;
         const endy = ypos + ylen - 1;
         if ((endx < map.getWidth() - 2) and (endy < map.getHeight() - 2)) {
-            const tl = Pos.config(xpos, ypos);
-            const br = Pos.config(endx, endy);
+            const tl = Pos.init(xpos, ypos);
+            const br = Pos.init(endx, endy);
             room = Room.config(tl, br);
             done = true;
         }
@@ -169,7 +169,7 @@ fn findFloor(r: *std.Random, room: *Room) Pos {
     // FIXME: want a spot without anything else
     const row = r.intRangeAtMost(Pos.Dim, room.getMinX() + 1, room.getMaxX() - 1);
     const col = r.intRangeAtMost(Pos.Dim, room.getMinY() + 1, room.getMaxY() - 1);
-    return Pos.config(row, col);
+    return .init(row, col);
 }
 
 fn findAnyFloor(r: *std.Random, map: *Map) Pos {
@@ -211,13 +211,13 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
         const mid_x = r.intRangeAtMost(Pos.Dim, start_x + 1, end_x - 1);
         mapgen.addEastCorridor(
             map,
-            Pos.config(start_x, r1_y),
-            Pos.config(end_x, r2_y),
+            .init(start_x, r1_y),
+            .init(end_x, r2_y),
             mid_x,
             .floor,
         );
-        d1 = Pos.config(start_x, r1_y);
-        d2 = Pos.config(end_x, r2_y);
+        d1 = Pos.init(start_x, r1_y);
+        d2 = Pos.init(end_x, r2_y);
     } else { // Southward dig
         const r1_x = r.intRangeAtMost(Pos.Dim, r1.getMinX() + 1, r1.getMaxX() - 1);
         const start_y = r1.getMaxY();
@@ -226,13 +226,13 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
         const mid_y = r.intRangeAtMost(Pos.Dim, start_y + 1, end_y - 1);
         mapgen.addSouthCorridor(
             map,
-            Pos.config(r1_x, start_y),
-            Pos.config(r2_x, end_y),
+            .init(r1_x, start_y),
+            .init(r2_x, end_y),
             mid_y,
             .floor,
         );
-        d1 = Pos.config(r1_x, start_y);
-        d2 = Pos.config(r2_x, end_y);
+        d1 = Pos.init(r1_x, start_y);
+        d2 = Pos.init(r2_x, end_y);
     }
     if (!r1.flags.gone) {
         makeDoor(map, r, d1);

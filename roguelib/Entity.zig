@@ -52,7 +52,7 @@ fov: ?*FOVMap = null,
 
 pub fn init(config: Config) Self {
     return .{
-        .p = Pos.config(-1, -1),
+        .p = .init(-1, -1),
         .tile = config.tile,
         .vtable = config.vtable,
     };
