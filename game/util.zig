@@ -10,7 +10,6 @@ const Feature = @import("roguelib").Feature;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
-const Tileset = @import("roguelib").Tileset;
 const features = @import("features.zig");
 
 const revealMap = @import("fov.zig").revealMap;

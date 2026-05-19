@@ -60,6 +60,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .imports = &.{
             .{ .name = "roguelib", .module = roguelib_mod },
+            .{ .name = "rogueui", .module = ui_mod }, // MapTile
         },
     });
 
