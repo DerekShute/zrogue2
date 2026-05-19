@@ -1,6 +1,8 @@
 //!
 //! The game itself as a module to import from the various interfaces
 //!
+//! Mostly a primitive original Rogue
+//!
 
 const std = @import("std");
 
@@ -12,7 +14,6 @@ const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen");
 pub const Player = @import("roguelib").Player;
 const Pos = @import("roguelib").Pos;
-const Tileset = @import("roguelib").Tileset;
 
 const level = @import("level.zig");
 

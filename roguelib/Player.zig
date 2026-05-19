@@ -68,6 +68,7 @@ fn playerGetAction(ptr: *Entity) !Action {
     return self.getAction();
 }
 
+// NOCOMMIT: client will just convert to DisplayTile anyway
 fn playerSetMapTile(ptr: *Entity, pos: Pos, tile: Tileset, visible: bool) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     self.client.setMapTile(pos, tile, visible);

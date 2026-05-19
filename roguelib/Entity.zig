@@ -134,6 +134,7 @@ pub fn notifyDisplay(self: *Self, map: *Map) void {
         if (self.fov) |fov| {
             var i = fov.iterator();
             while (i.next_changed()) |change| {
+                // NOCOMMIT: this is 90% the conversion to DisplayTile
                 var tile = Tileset.init; // unknown, not visible
                 if (change.visible) {
                     tile = map.getTileset(change.pos);
