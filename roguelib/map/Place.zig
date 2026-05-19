@@ -4,8 +4,8 @@
 
 const Entity = @import("../Entity.zig");
 const Feature = @import("../Feature.zig");
-const MapTile = @import("../maptile.zig").MapTile;
-const Tileset = @import("../maptile.zig").Tileset;
+const Tileset = @import("../Tileset.zig");
+const MapTile = Tileset.MapTile;
 
 const Self = @This();
 

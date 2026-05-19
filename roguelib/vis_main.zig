@@ -19,7 +19,7 @@ const Map = @import("Map.zig");
 const Player = @import("Player.zig");
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
-const Tileset = @import("maptile.zig"); // Slightly a lie
+const Tileset = @import("Tileset.zig"); // Slightly a lie
 
 fn printer(array: []const []const u8) void {
     for (array) |name| {

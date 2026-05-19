@@ -179,11 +179,17 @@ pub fn build(b: *std.Build) void {
     });
     const run_game_tests = b.addRunArtifact(game_tests);
 
+    const ui_tests = b.addTest(.{
+        .root_module = ui_mod,
+    });
+    const run_ui_tests = b.addRunArtifact(ui_tests);
+
     // Test build target
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_connector_tests.step);
     test_step.dependOn(&run_roguelib_tests.step);
     test_step.dependOn(&run_game_tests.step);
+    test_step.dependOn(&run_ui_tests.step);
 
     //
     // Visualization

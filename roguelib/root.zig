@@ -9,13 +9,12 @@ pub const Feature = @import("Feature.zig");
 pub const FOVMap = @import("fov/FOVMap.zig");
 pub const Grid = @import("grid.zig").Grid;
 pub const Map = @import("Map.zig");
-pub const MapTile = @import("maptile.zig").MapTile;
 pub const Player = @import("Player.zig");
 pub const Pos = @import("Pos.zig");
 pub const Region = @import("Region.zig");
 pub const Room = @import("map/Room.zig");
-pub const Tileset = @import("maptile.zig").Tileset;
-
+pub const Tileset = @import("Tileset.zig");
+pub const MapTile = Tileset.MapTile; // TODO make implicit
 pub const mapgen = @import("mapgen.zig");
 
 // Testing mockups

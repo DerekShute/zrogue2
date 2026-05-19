@@ -8,10 +8,10 @@ const Action = @import("Action.zig");
 const Client = @import("Client.zig");
 const Entity = @import("Entity.zig");
 const Map = @import("Map.zig");
-const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
-const Tileset = @import("maptile.zig").Tileset;
+const Tileset = @import("Tileset.zig");
+const MapTile = Tileset.MapTile;
 
 //
 // Types
