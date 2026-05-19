@@ -13,22 +13,21 @@ const Self = @This();
 // Members
 //
 
-floor: MapTile = .unknown,
 entity: ?*Entity = undefined,
-item: MapTile = .unknown, // FUTURE: Item type
 feature: ?Feature = null,
+floor: MapTile = undefined,
+item: MapTile = undefined, // FUTURE: Item type
 
 //
 // Constructor, probably not idiomatic
 //
 
-// TODO init const with builder pattern
-pub fn config(self: *Self) void {
-    self.floor = .wall;
-    self.entity = null;
-    self.feature = null;
-    self.item = .unknown;
-}
+pub const init: Self = .{
+    .entity = null,
+    .feature = null,
+    .floor = .wall,
+    .item = .unknown,
+};
 
 //
 // Methods
@@ -101,9 +100,8 @@ const expect = @import("std").testing.expect;
 // Need mock Entity to test
 
 test "basic tests" {
-    var place: Self = .{};
+    var place: Self = .init;
 
-    place.config();
     place.setFloorTile(.wall);
     const ts = place.getTileset();
     try expect(ts.floor == .wall);

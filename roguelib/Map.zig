@@ -57,7 +57,7 @@ pub fn init(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, rooms
 
     var p = places.iterator();
     while (p.next()) |place| {
-        place.config();
+        place.* = .init;
     }
 
     const rooms = try allocator.alloc(Room, @intCast(roomsx * roomsy));
