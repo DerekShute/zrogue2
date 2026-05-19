@@ -6,12 +6,12 @@ const std = @import("std");
 
 const Action = @import("Action.zig");
 const Client = @import("Client.zig");
+const DisplayTile = @import("rogueui").DisplayTile;
 const Entity = @import("Entity.zig");
 const Map = @import("Map.zig");
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
-const Tileset = @import("Tileset.zig");
-const MapTile = Tileset.MapTile;
+const MapTile = @import("Tileset.zig").MapTile;
 
 //
 // Types
@@ -68,10 +68,9 @@ fn playerGetAction(ptr: *Entity) !Action {
     return self.getAction();
 }
 
-// NOCOMMIT: client will just convert to DisplayTile anyway
-fn playerSetMapTile(ptr: *Entity, pos: Pos, tile: Tileset, visible: bool) void {
+fn playerSetMapTile(ptr: *Entity, pos: Pos, dt: DisplayTile) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    self.client.setMapTile(pos, tile, visible);
+    self.client.setMapTile(pos, dt);
 }
 
 fn playerTakeItem(ptr: *Entity, i: MapTile) void {

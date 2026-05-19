@@ -89,8 +89,7 @@ fn useTableUpdate(allocator: Allocator, connect: *Connector, name: []const u8) v
 fn useMapUpdate(allocator: Allocator, connect: *Connector, name: []const u8) void {
     _ = allocator;
     _ = name;
-    var pos: [2]i16 = .{ 0, 1 };
-    connect.writeMapUpdate(&pos, Connector.DisplayTile.init) catch return;
+    connect.writeMapUpdate(0, 1, Connector.DisplayTile.init) catch return;
 }
 
 //

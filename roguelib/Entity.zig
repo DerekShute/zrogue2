@@ -5,12 +5,12 @@
 const std = @import("std");
 
 const Action = @import("Action.zig");
+const DisplayTile = @import("rogueui").DisplayTile;
 const FOVMap = @import("fov/FOVMap.zig");
 const Map = @import("Map.zig");
+const MapTile = @import("rogueui").MapTile;
 const Pos = @import("Pos.zig");
 const queue = @import("queue.zig");
-const Tileset = @import("Tileset.zig");
-const MapTile = Tileset.MapTile;
 
 const Self = @This();
 
@@ -25,7 +25,7 @@ pub const VTable = struct {
 
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
     getAction: ?*const fn (self: *Self) Error!Action = null,
-    setMapTile: ?*const fn (self: *Self, pos: Pos, tile: Tileset, visible: bool) void = null,
+    setMapTile: ?*const fn (self: *Self, pos: Pos, tile: DisplayTile) void = null,
     takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
 };
 
@@ -134,12 +134,17 @@ pub fn notifyDisplay(self: *Self, map: *Map) void {
         if (self.fov) |fov| {
             var i = fov.iterator();
             while (i.next_changed()) |change| {
-                // NOCOMMIT: this is 90% the conversion to DisplayTile
-                var tile = Tileset.init; // unknown, not visible
+                var dt = DisplayTile.init; // not visible
                 if (change.visible) {
-                    tile = map.getTileset(change.pos);
+                    const tile = map.getTileset(change.pos);
+                    dt = DisplayTile{
+                        .entity = @intFromEnum(tile.entity),
+                        .floor = @intFromEnum(tile.floor),
+                        .item = @intFromEnum(tile.item),
+                        .visible = true,
+                    };
                 }
-                smt(self, change.pos, tile, change.visible);
+                smt(self, change.pos, dt);
             }
         }
     }

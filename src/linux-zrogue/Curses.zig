@@ -10,6 +10,7 @@
 const std = @import("std");
 
 const Client = @import("roguelib").Client;
+const Pos = @import("roguelib").Pos;
 const Rogue = @import("rogueui").Rogue; // Presentation
 
 const Self = @This();
@@ -179,9 +180,9 @@ fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
     return cmd;
 }
 
-fn cursesSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
+fn cursesSetMapTile(ptr: *anyopaque, pos: Pos, tile: Client.DisplayTile) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    self.ui.setMapTile(x, y, tile);
+    self.ui.setMapTile(@intCast(pos.getX()), @intCast(pos.getY()), tile);
     self.refresh();
 }
 

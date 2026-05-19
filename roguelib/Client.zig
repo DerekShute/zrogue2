@@ -9,7 +9,6 @@ const std = @import("std");
 pub const Command = @import("rogueui").Command;
 pub const DisplayTile = @import("rogueui").DisplayTile;
 const Pos = @import("Pos.zig");
-const Tileset = @import("Tileset.zig");
 
 const Self = @This();
 
@@ -39,7 +38,7 @@ pub const VTable = struct {
     getCommand: *const fn (ctx: *anyopaque) Error!Command,
 
     // Update a map location with new information
-    setMapTile: *const fn (ctx: *anyopaque, u: u16, u: u16, tile: DisplayTile) void,
+    setMapTile: *const fn (ctx: *anyopaque, pos: Pos, tile: DisplayTile) void,
 
     // Stats known by game and provider implementation
     setStatInt: *const fn (ctx: *anyopaque, name: []const u8, value: i32) void,
@@ -86,20 +85,10 @@ pub inline fn addMessage(self: *Self, msg: []const u8) void {
     self.vtable.addMessage(self.ptr, msg);
 }
 
-pub fn setMapTile(self: *Self, pos: Pos, tile: Tileset, visible: bool) void {
-    const dt = DisplayTile{
-        .entity = @intFromEnum(tile.entity),
-        .floor = @intFromEnum(tile.floor),
-        .item = @intFromEnum(tile.item),
-        .visible = visible,
-    };
+// Map Update
 
-    self.vtable.setMapTile(
-        self.ptr,
-        @intCast(pos.getX()),
-        @intCast(pos.getY()),
-        dt,
-    );
+pub fn setMapTile(self: *Self, pos: Pos, tile: DisplayTile) void {
+    self.vtable.setMapTile(self.ptr, pos, tile);
 }
 
 // Command
