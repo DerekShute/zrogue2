@@ -25,8 +25,21 @@ pub const Command = enum {
 };
 
 //
-// Maptile and Tileset
+// Map Tiles
 //
+
+// Abstract Tile (internal to library)
+pub const Tile = enum(u8) {
+    none,
+    _,
+
+    pub const init: Tile = .none;
+
+    // argument must be an enum u8
+    pub fn fromOther(tile: anytype) Tile {
+        return @enumFromInt(@intFromEnum(tile));
+    }
+};
 
 // TODO: This is Rogue-specific
 pub const MapTile = enum(u8) {
@@ -54,6 +67,10 @@ pub const MapTile = enum(u8) {
 
     pub fn isPassable(self: MapTile) bool {
         return (self != .wall);
+    }
+
+    pub fn fromTile(self: Tile) MapTile {
+        return @enumFromInt(@intFromEnum(self));
     }
 };
 
@@ -86,6 +103,12 @@ pub const DisplayTile = struct {
 
 const std = @import("std");
 const expect = std.testing.expect;
+
+test "lock MapTile and Tile assumptions" {
+    // Just a base assumption
+
+    try expect(@intFromEnum(MapTile.unknown) == @intFromEnum(Tile.none));
+}
 
 test "lock MapTile behavior" {
     for (0..@typeInfo(MapTile).@"enum".fields.len) |i| {
