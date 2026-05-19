@@ -24,11 +24,6 @@ var ui: Rogue = undefined;
 //
 // NCurses minutia
 //
-// TODO: mutex!
-
-fn awaitKeypress() void {
-    _ = ui.readKeypress();
-}
 
 fn displayMessage() void {
     ui.displayMessage();
@@ -108,7 +103,6 @@ fn unsupported(ctx: *anyopaque) !void {
 
 fn readCommand(connector: *Connector) !void {
     const cmd = ui.readCommand();
-    // TODO: help command
     try connector.writeCommandMsg(@intFromEnum(cmd));
 }
 

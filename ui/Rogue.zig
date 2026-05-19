@@ -25,6 +25,7 @@ const YSIZE = 24;
 //
 // Members
 //
+// TODO: mutexes for protection
 
 ncurses: NCurses = undefined,
 
@@ -35,6 +36,12 @@ depth: i32 = 0,
 // Message
 messagebuf: [XSIZE]u8 = undefined, // TODO: size
 message: []u8 = &.{},
+
+// Map Display
+//
+// Map is short 2 lines for lines of text
+
+map: [XSIZE * (YSIZE - 2)]DisplayTile = undefined,
 
 //
 // Constructor / Destructor
@@ -104,16 +111,26 @@ fn renderChar(tile: DisplayTile) u8 {
     return mapToChar(floor);
 }
 
-//
-// Input Utility
-//
-
-pub fn readKeypress(self: *Self) NCurses.Keypress {
-    return self.ncurses.readKeypress();
+fn setMap(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
+    self.map[x + y * XSIZE] = tile;
 }
 
-pub fn readCommand(self: *Self) Command {
-    return switch (self.readKeypress()) {
+fn refreshMap(self: *Self) void {
+    // TODO: slice iteration probably works better
+    for (0..YSIZE - 2) |y| {
+        for (0..XSIZE) |x| {
+            const tile = self.map[x + y * XSIZE];
+            self.ncurses.setChar(@intCast(x), @intCast(y + 1), renderChar(tile));
+        }
+    }
+}
+
+fn flushDisplay(self: *Self) void {
+    self.ncurses.refresh();
+}
+
+fn getCommand(self: *Self) Command {
+    return switch (self.ncurses.readKeypress()) {
         .key_left => .go_west,
         .key_right => .go_east,
         .key_up => .go_north,
@@ -129,6 +146,39 @@ pub fn readCommand(self: *Self) Command {
 }
 
 //
+// Input Utility
+//
+
+pub fn readCommand(self: *Self) Command {
+    var did_help: bool = false;
+
+    var cmd = self.getCommand();
+    while (cmd == .help) {
+        // Can now type your command with the help menu in sight
+        // 'help' again to make display go away
+        did_help = true;
+        self.displayHelp();
+        cmd = self.getCommand();
+        if (cmd == .help) { // make menu go away, retry
+            self.redraw();
+            cmd = self.getCommand();
+            did_help = false;
+        }
+    }
+
+    // FUTURE: age message
+    self.setMessage(" ");
+    self.displayMessage();
+    if (did_help) {
+        self.redraw();
+    } else {
+        self.flushDisplay();
+    }
+
+    return cmd;
+}
+
+//
 // Content Updates
 //
 
@@ -139,9 +189,11 @@ pub fn setMapTile(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
     // position 0,1
     //
     // NOTE: this does alter the display!  Refresh it at your leisure!
-
+    //
+    // TODO: display happens elsewhere
     if ((x < XSIZE) and (y < YSIZE - 2)) {
         self.ncurses.setChar(x, y + 1, renderChar(tile));
+        self.setMap(x, y, tile);
     }
 }
 
@@ -189,7 +241,7 @@ const help_text =
     \\*                                                                              *
 ;
 
-pub fn displayHelp(self: *Self) void {
+fn displayHelp(self: *Self) void {
     var iter = std.mem.splitScalar(u8, help_text, '\n');
     var i: u16 = 0;
 
@@ -199,7 +251,7 @@ pub fn displayHelp(self: *Self) void {
         self.setText(0, i, line);
         i = i + 1;
     }
-    self.displayRefresh();
+    self.flushDisplay();
 }
 
 //
@@ -214,7 +266,7 @@ pub fn displayMessage(self: *Self) void {
 }
 
 pub fn displayRefresh(self: *Self) void {
-    self.ncurses.refresh();
+    self.flushDisplay();
 }
 
 // "Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s"
@@ -228,6 +280,14 @@ pub fn displayStatLine(self: *Self) void {
     // We know that error.NoSpaceLeft can't happen here
     _ = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
     self.setText(0, YSIZE - 1, buf[0..]);
+}
+
+// Fully refresh the display
+pub fn redraw(self: *Self) void {
+    self.displayMessage();
+    self.displayStatLine();
+    self.refreshMap();
+    self.flushDisplay();
 }
 
 //
