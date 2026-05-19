@@ -1,6 +1,8 @@
 //!
 //! Mapgen utility functions
 //!
+//! FUTURE: Rogue-specific and should be broken out/apart
+//!
 
 const std = @import("std");
 const Entity = @import("Entity.zig");
@@ -69,29 +71,23 @@ pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {
 // Rooms
 //
 
-pub fn addRoom(m: *Map, room: Room) void {
-    var r = room; // slide to non-const
-    m.addRoom(r);
+// Rectangular room that includes the bounding walls
 
-    // The original drew horizontal and vertical bars
-    // Fns.vert(map, minx, .{ miny + 1, maxy - 1 });
-    // Fns.vert(map, maxx, .{ miny + 1, maxy - 1 });
-    // Fns.horiz(map, miny, .{ minx, maxx });
-    // Fns.horiz(map, maxy, .{ minx, maxx });
+pub fn addRoom(m: *Map, room: Room, floor: MapTile) void {
+    var _r = room; // slide to non-const
+    m.addRoom(_r);
 
-    // Floor
-
-    const s = Pos.config(r.getMinX() + 1, r.getMinY() + 1);
-    const e = Pos.config(r.getMaxX() - 1, r.getMaxY() - 1);
-
-    // TODO Future: room shapes and contents
+    // Floor boundaries
+    const s = Pos.config(_r.getMinX() + 1, _r.getMinY() + 1);
+    const e = Pos.config(_r.getMaxX() - 1, _r.getMaxY() - 1);
 
     // source and end are known good because we added the room above
-
-    drawField(m, s, e, .floor);
+    drawField(m, s, e, floor);
 }
 
+// FUTURE: room lookup is game-specific
 pub fn getRoom(m: *Map, roomno: usize) *Room {
+
     // Slightly better than using the raw reference
     if (roomno >= m.rooms.len) {
         @panic("mapgen.getRoom bad room number");
@@ -103,23 +99,31 @@ pub fn getRoom(m: *Map, roomno: usize) *Room {
 // Corridors
 //
 
-pub fn addSouthCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) void {
-    // TODO: the start and end should be validated
-    drawVertLine(m, start, mid, .floor);
-    drawHorizLine(m, Pos.config(start.getX(), mid), end.getX(), .floor);
-    drawVertLine(m, Pos.config(end.getX(), mid), end.getY(), .floor);
+// Basically-southgoing corridor
+pub fn addSouthCorridor(
+    map: *Map,
+    start: Pos,
+    end: Pos,
+    mid: Pos.Dim, // Cross corridor location
+    floor: MapTile,
+) void {
+    drawVertLine(map, start, mid, floor);
+    drawHorizLine(map, Pos.config(start.getX(), mid), end.getX(), floor);
+    drawVertLine(map, Pos.config(end.getX(), mid), end.getY(), floor);
 }
 
-pub fn addEastCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) void {
-    // TODO: the start and end should be validated
-    drawHorizLine(m, start, mid, .floor);
-    drawVertLine(m, Pos.config(mid, start.getY()), end.getY(), .floor);
-    drawHorizLine(m, Pos.config(mid, end.getY()), end.getX(), .floor);
+// Basically-eastgoing corridor
+pub fn addEastCorridor(
+    map: *Map,
+    start: Pos,
+    end: Pos,
+    mid: Pos.Dim,
+    floor: MapTile,
+) void {
+    drawHorizLine(map, start, mid, floor);
+    drawVertLine(map, Pos.config(mid, start.getY()), end.getY(), floor);
+    drawHorizLine(map, Pos.config(mid, end.getY()), end.getX(), floor);
 }
-
-// TODO: common functions...
-// * locate a place for a door
-// * draw a maze
 
 //
 // Unit tests
@@ -132,7 +136,7 @@ test "mapgen smoke test" {
     defer m.deinit(std.testing.allocator);
 
     const r = Room.config(Pos.config(10, 10), Pos.config(20, 20));
-    addRoom(m, r);
+    addRoom(m, r, .floor);
 
     try expect(m.isLit(Pos.config(15, 15)) == true);
 
@@ -157,7 +161,7 @@ test "dig corridors" {
     // Doors are created by the level generator
 
     // Eastward dig, southgoing vertical
-    addEastCorridor(m, Pos.config(4, 4), Pos.config(20, 10), 12);
+    addEastCorridor(m, Pos.config(4, 4), Pos.config(20, 10), 12, .floor);
     try expect(m.getFloorTile(Pos.config(12, 7)) == .floor); // halfway
     try expect(m.getFloorTile(Pos.config(12, 4)) == .floor);
     try expect(m.getFloorTile(Pos.config(12, 10)) == .floor);
@@ -166,7 +170,7 @@ test "dig corridors" {
     drawField(m, Pos.config(4, 4), Pos.config(20, 10), .wall); // reset
 
     // Eastward dig, northgoing vertical
-    addEastCorridor(m, Pos.config(4, 10), Pos.config(20, 4), 12);
+    addEastCorridor(m, Pos.config(4, 10), Pos.config(20, 4), 12, .floor);
     try expect(m.getFloorTile(Pos.config(12, 7)) == .floor); // halfway
     try expect(m.getFloorTile(Pos.config(12, 4)) == .floor);
     try expect(m.getFloorTile(Pos.config(12, 10)) == .floor);
@@ -175,7 +179,7 @@ test "dig corridors" {
     drawField(m, Pos.config(4, 4), Pos.config(20, 10), .wall); // reset
 
     // Southward dig, westgoing horizontal
-    addSouthCorridor(m, Pos.config(10, 8), Pos.config(3, 14), 11);
+    addSouthCorridor(m, Pos.config(10, 8), Pos.config(3, 14), 11, .floor);
     try expect(m.getFloorTile(Pos.config(6, 11)) == .floor); // halfway
     try expect(m.getFloorTile(Pos.config(3, 11)) == .floor);
     try expect(m.getFloorTile(Pos.config(10, 11)) == .floor);
@@ -184,7 +188,7 @@ test "dig corridors" {
     drawField(m, Pos.config(3, 8), Pos.config(10, 14), .wall); // reset
 
     // Southward dig, eastgoing horizontal
-    addSouthCorridor(m, Pos.config(3, 8), Pos.config(10, 14), 11);
+    addSouthCorridor(m, Pos.config(3, 8), Pos.config(10, 14), 11, .floor);
     try expect(m.getFloorTile(Pos.config(6, 11)) == .floor); // halfway
     try expect(m.getFloorTile(Pos.config(3, 11)) == .floor);
     try expect(m.getFloorTile(Pos.config(10, 11)) == .floor);
@@ -198,17 +202,17 @@ test "dig unusual corridors" {
     defer m.deinit(std.testing.allocator);
 
     // One tile
-    addSouthCorridor(m, Pos.config(5, 10), Pos.config(5, 12), 11);
+    addSouthCorridor(m, Pos.config(5, 10), Pos.config(5, 12), 11, .floor);
     try expect(m.getFloorTile(Pos.config(5, 11)) == .floor);
 
     // straight East
-    addEastCorridor(m, Pos.config(10, 5), Pos.config(15, 5), 12);
+    addEastCorridor(m, Pos.config(10, 5), Pos.config(15, 5), 12, .floor);
     try expect(m.getFloorTile(Pos.config(11, 5)) == .floor);
     try expect(m.getFloorTile(Pos.config(13, 5)) == .floor);
     try expect(m.getFloorTile(Pos.config(14, 5)) == .floor);
 
     // straight South
-    addSouthCorridor(m, Pos.config(16, 8), Pos.config(16, 13), 10);
+    addSouthCorridor(m, Pos.config(16, 8), Pos.config(16, 13), 10, .floor);
     try expect(m.getFloorTile(Pos.config(16, 9)) == .floor);
     try expect(m.getFloorTile(Pos.config(16, 10)) == .floor);
     try expect(m.getFloorTile(Pos.config(16, 12)) == .floor);

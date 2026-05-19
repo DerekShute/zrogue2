@@ -46,14 +46,14 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
 
     var room = Room.config(Pos.config(2, 2), Pos.config(9, 9));
     room.setDark();
-    mapgen.addRoom(map, room);
+    mapgen.addRoom(map, room, .floor);
 
-    mapgen.addRoom(map, Room.config(Pos.config(27, 5), Pos.config(35, 10)));
-    mapgen.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13);
+    mapgen.addRoom(map, Room.config(Pos.config(27, 5), Pos.config(35, 10)), .floor);
+    mapgen.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13, .floor);
 
-    mapgen.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)));
+    mapgen.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)), .floor);
 
-    mapgen.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10);
+    mapgen.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10, .floor);
 
     mapgen.addItemToMap(map, Pos.config(7, 5), .gold);
 
