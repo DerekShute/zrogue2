@@ -8,6 +8,7 @@ const std = @import("std");
 
 const Client = @import("roguelib").Client;
 const Connector = @import("connector");
+const Pos = @import("roguelib").Pos;
 
 const Self = @This();
 
@@ -152,15 +153,14 @@ fn remoteGetCommand(ptr: *anyopaque) !Client.Command {
     return .wait; // TODO need optionalreturn or something
 }
 
-fn remoteSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
+fn remoteSetMapTile(ptr: *anyopaque, pos: Pos, tile: Client.DisplayTile) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    var spot: [2]i16 = .{ @intCast(x), @intCast(y) }; // TODO Increasingly stupid
 
     if (self.state != .connected) { // Prevent flood of failures
         return;
     }
 
-    self.connector.writeMapUpdate(&spot, tile) catch |err| {
+    self.connector.writeMapUpdate(pos.getX(), pos.getY(), tile) catch |err| {
         log.info("[{f}] remoteSetMapTile {}", .{ self, err });
         self.setState(.closing);
         return; // TODO no error return is a problem

@@ -5,6 +5,7 @@
 const std = @import("std");
 const Client = @import("../Client.zig");
 const Grid = @import("../grid.zig").Grid;
+const Pos = @import("../Pos.zig");
 
 const Self = @This();
 
@@ -99,10 +100,13 @@ fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
     return self.command_list[i];
 }
 
-fn mockSetMapTile(ptr: *anyopaque, x: u16, y: u16, tile: Client.DisplayTile) void {
+fn mockSetMapTile(ptr: *anyopaque, pos: Pos, tile: Client.DisplayTile) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
     // std.debug.print("set tile {}/{} to {}\n", .{ x, y, tile });
-    const dt = self.dg.find(@intCast(x), @intCast(y)) catch @panic("mockSetMapTile error");
+    const dt = self.dg.find(
+        @intCast(pos.getX()),
+        @intCast(pos.getY()),
+    ) catch @panic("mockSetMapTile error");
     dt.* = tile;
 }
 

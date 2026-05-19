@@ -236,9 +236,9 @@ pub fn writeEntryRequest(self: *Self, text: []const u8) !void {
     try write(self, .{ .text = text });
 }
 
-pub fn writeMapUpdate(self: *Self, pos: []i16, tile: DisplayTile) !void {
+pub fn writeMapUpdate(self: *Self, x: i16, y: i16, tile: DisplayTile) !void {
     const write = Write(MapUpdate, .map_update).write;
-    try write(self, .{ .pos = .{ pos[0], pos[1] }, .tile = tile });
+    try write(self, .{ .pos = .{ x, y }, .tile = tile });
 }
 
 pub fn writeMessage(self: *Self, text: []const u8) !void {
