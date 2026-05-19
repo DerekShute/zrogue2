@@ -59,9 +59,16 @@ pub fn init() !Self {
         return error.DisplayTooSmall;
     }
 
-    return .{
+    var self: Self = .{
         .ncurses = curses,
     };
+
+    for (0..YSIZE - 2) |y| {
+        for (0..XSIZE) |x| {
+            self.map[x + y * XSIZE] = .init;
+        }
+    }
+    return self;
 }
 
 pub fn deinit(self: *Self) void {
@@ -111,11 +118,7 @@ fn renderChar(tile: DisplayTile) u8 {
     return mapToChar(floor);
 }
 
-fn setMap(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
-    self.map[x + y * XSIZE] = tile;
-}
-
-fn refreshMap(self: *Self) void {
+fn redrawMap(self: *Self) void {
     // TODO: slice iteration probably works better
     for (0..YSIZE - 2) |y| {
         for (0..XSIZE) |x| {
@@ -191,9 +194,14 @@ pub fn setMapTile(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
     // NOTE: this does alter the display!  Refresh it at your leisure!
     //
     // TODO: display happens elsewhere
+
     if ((x < XSIZE) and (y < YSIZE - 2)) {
-        self.ncurses.setChar(x, y + 1, renderChar(tile));
-        self.setMap(x, y, tile);
+        if (!tile.visible) {
+            self.map[x + y * XSIZE].visible = false;
+        } else {
+            self.map[x + y * XSIZE] = tile;
+        }
+        self.ncurses.setChar(x, y + 1, renderChar(self.map[x + y * XSIZE]));
     }
 }
 
@@ -286,7 +294,7 @@ pub fn displayStatLine(self: *Self) void {
 pub fn redraw(self: *Self) void {
     self.displayMessage();
     self.displayStatLine();
-    self.refreshMap();
+    self.redrawMap();
     self.flushDisplay();
 }
 
