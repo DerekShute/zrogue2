@@ -4,6 +4,7 @@
 
 const Entity = @import("../Entity.zig");
 const Feature = @import("../Feature.zig");
+const Tile = @import("rogueui").Tile;
 const Tileset = @import("../Tileset.zig");
 const MapTile = Tileset.MapTile;
 
@@ -15,8 +16,8 @@ const Self = @This();
 
 entity: ?*Entity = undefined,
 feature: ?Feature = null,
-floor: MapTile = undefined,
-item: MapTile = undefined, // FUTURE: Item type
+floor: Tile = undefined,
+item: Tile = undefined, // FUTURE: Item type
 
 //
 // Constructor, probably not idiomatic
@@ -25,8 +26,8 @@ item: MapTile = undefined, // FUTURE: Item type
 pub const init: Self = .{
     .entity = null,
     .feature = null,
-    .floor = .wall,
-    .item = .unknown,
+    .floor = .fromOther(MapTile.wall), // TODO: Map default, should be explicit
+    .item = .init,
 };
 
 //
@@ -35,9 +36,9 @@ pub const init: Self = .{
 
 pub fn getTileset(self: *Self) Tileset {
     var ts: Tileset = .{
-        .floor = self.floor,
+        .floor = .fromTile(self.floor),
         .entity = .unknown,
-        .item = self.item,
+        .item = .fromTile(self.item),
     };
 
     if (self.entity) |e| {
@@ -55,28 +56,33 @@ pub fn setEntity(self: *Self, to: *Entity) void {
 }
 
 pub fn removeEntity(self: *Self) void {
-    // TODO: validate that there is one?
     self.entity = null;
 }
 
 pub fn setItem(self: *Self, to: MapTile) void {
-    self.item = to;
+    if (self.item != .none) {
+        @panic("Place.setItem: already in use\n");
+    }
+    self.item = .fromOther(to);
 }
 
 pub fn getItem(self: *Self) MapTile {
-    return self.item;
+    return .fromTile(self.item);
 }
 
 pub fn removeItem(self: *Self) void {
-    // TODO: validate that there is one?
-    self.item = .unknown;
+    self.item = .none;
 }
 
 pub fn setFloorTile(self: *Self, to: MapTile) void {
-    self.floor = to;
+    self.floor = .fromOther(to);
 }
 
 pub fn setFeature(self: *Self, to: ?Feature) void {
+    if ((self.feature != null) and (to != null)) {
+        // Set it to null first, for safety
+        @panic("Place.setFeature: already in use\n");
+    }
     self.feature = to;
 }
 
@@ -88,7 +94,8 @@ pub fn passable(self: *Self) bool {
     if (self.entity) |_| {
         return false;
     }
-    return self.floor.isPassable();
+    const floor = MapTile.fromTile(self.floor);
+    return floor.isPassable();
 }
 
 //
@@ -96,8 +103,6 @@ pub fn passable(self: *Self) bool {
 //
 
 const expect = @import("std").testing.expect;
-
-// Need mock Entity to test
 
 test "basic tests" {
     var place: Self = .init;
