@@ -8,9 +8,8 @@
 const std = @import("std");
 pub const Command = @import("rogueui").Command;
 pub const DisplayTile = @import("rogueui").DisplayTile;
-const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
-const Tileset = @import("maptile.zig").Tileset;
+const Tileset = @import("Tileset.zig");
 
 const Self = @This();
 

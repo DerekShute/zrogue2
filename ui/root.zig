@@ -28,7 +28,7 @@ pub const Command = enum {
 // Maptile and Tileset
 //
 
-// TODO: break out item vs entity vs floor as separate tiles
+// TODO: This is Rogue-specific
 pub const MapTile = enum(u8) {
     unknown,
     floor,
@@ -39,6 +39,8 @@ pub const MapTile = enum(u8) {
     stairs_up, // Last feature
     gold,
     player,
+
+    pub const init = .unknown;
 
     pub fn isFeature(self: MapTile) bool {
         const s: usize = @intFromEnum(self);
@@ -78,6 +80,32 @@ pub const DisplayTile = struct {
     };
 };
 
-// NOTE: There's some testing of MapTile in roguelib
+//
+// Unit Tests
+//
+
+const std = @import("std");
+const expect = std.testing.expect;
+
+test "lock MapTile behavior" {
+    for (0..@typeInfo(MapTile).@"enum".fields.len) |i| {
+        const tile: MapTile = @enumFromInt(i);
+
+        // Floors and unknown are not features.  Otherwise everything below
+        // gold is.
+
+        switch (tile) {
+            .unknown, .floor => try expect(tile.isFeature() == false),
+            else => {
+                try expect(tile.isFeature() == (i < @intFromEnum(MapTile.gold)));
+            },
+        }
+
+        // Walls and undiscovered secret doors are not passable.
+        // .unknown is unclear
+        const passable = (i != @intFromEnum(MapTile.wall));
+        try expect(tile.isPassable() == passable);
+    }
+}
 
 // EOF

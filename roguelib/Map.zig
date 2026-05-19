@@ -7,12 +7,12 @@ const std = @import("std");
 const Entity = @import("Entity.zig");
 const Feature = @import("Feature.zig");
 const Grid = @import("grid.zig").Grid;
-const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
 const Place = @import("map/Place.zig");
 const Region = @import("Region.zig");
 const Room = @import("map/Room.zig");
-const Tileset = @import("maptile.zig").Tileset;
+const Tileset = @import("Tileset.zig");
+const MapTile = Tileset.MapTile;
 
 const PlaceGrid = Grid(Place);
 

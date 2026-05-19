@@ -7,10 +7,10 @@ const std = @import("std");
 const Action = @import("Action.zig");
 const FOVMap = @import("fov/FOVMap.zig");
 const Map = @import("Map.zig");
-const MapTile = @import("maptile.zig").MapTile;
 const Pos = @import("Pos.zig");
 const queue = @import("queue.zig");
-const Tileset = @import("maptile.zig").Tileset;
+const Tileset = @import("Tileset.zig");
+const MapTile = Tileset.MapTile;
 
 const Self = @This();
 
