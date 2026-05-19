@@ -29,17 +29,16 @@ xy: [2]Dim = .{ -1, -1 },
 // Methods
 //
 
-// REFACTOR: this becomes init() and you can call .init() if Pos is assumed
-pub inline fn config(x: Dim, y: Dim) Self {
+pub inline fn init(x: Dim, y: Dim) Self {
     return .{ .xy = .{ x, y } };
 }
 
 pub inline fn direct(d: Direction) Self {
     return switch (d) {
-        .north => Self.config(0, -1),
-        .east => Self.config(1, 0),
-        .south => Self.config(0, 1),
-        .west => Self.config(-1, 0),
+        .north => init(0, -1),
+        .east => init(1, 0),
+        .south => init(0, 1),
+        .west => init(-1, 0),
     };
 }
 
@@ -65,7 +64,7 @@ pub inline fn eql(self: Self, other: Self) bool {
 
 // Implication is that one of these is a delta
 pub inline fn add(pos1: Self, pos2: Self) Self {
-    return config(pos1.getX() + pos2.getX(), pos1.getY() + pos2.getY());
+    return init(pos1.getX() + pos2.getX(), pos1.getY() + pos2.getY());
 }
 
 // Chebyshev distance
@@ -100,9 +99,9 @@ pub const Range = struct {
             return null;
         }
         if (x >= self.end.getX()) { // next row
-            self.curr = config(self.start.getX(), y + 1);
+            self.curr = Self.init(self.start.getX(), y + 1);
         } else {
-            self.curr = config(x + 1, y); // next column
+            self.curr = Self.init(x + 1, y); // next column
         }
         return old;
     }
@@ -115,26 +114,26 @@ pub const Range = struct {
 const expect = std.testing.expect;
 
 test "create a Pos and use its operations" {
-    const a = config(5, 5);
+    const a = init(5, 5);
     const b: Dim = 5;
 
     try expect(a.getY() == b);
     try expect(a.getX() == b);
     try expect(a.quant() == 25);
     try expect(a.isDim());
-    try expect(a.eql(config(5, 5)));
+    try expect(a.eql(init(5, 5)));
 
     // Distance calculations
 
-    try expect(distance(config(1, 1), config(2, 2)) == 1);
-    try expect(distance(config(1, 1), config(3, 3)) == 2);
-    try expect(distance(config(1, 1), config(0, 0)) == 1);
-    try expect(distance(config(1, 1), config(1, 1)) == 0);
-    try expect(distance(config(-1, -1), config(0, 0)) == 1);
+    try expect(distance(init(1, 1), init(2, 2)) == 1);
+    try expect(distance(init(1, 1), init(3, 3)) == 2);
+    try expect(distance(init(1, 1), init(0, 0)) == 1);
+    try expect(distance(init(1, 1), init(1, 1)) == 0);
+    try expect(distance(init(-1, -1), init(0, 0)) == 1);
 }
 
 test "try out Range" {
-    var r = Range.init(config(7, 3), config(10, 8));
+    var r = Range.init(init(7, 3), init(10, 8));
 
     var hitlowx: bool = false;
     var hitlowy: bool = false;

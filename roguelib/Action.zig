@@ -43,11 +43,11 @@ pos: Pos, // MoveAction (delta)
 //
 
 pub fn config(t: Type) Self {
-    return .{ .kind = t, .pos = Pos.config(0, 0) };
+    return .{ .kind = t, .pos = .init(0, 0) };
 }
 
 pub fn configDir(t: Type, d: Pos.Direction) Self {
-    return .{ .kind = t, .pos = Pos.direct(d) };
+    return .{ .kind = t, .pos = .direct(d) };
 }
 
 pub fn configPos(t: Type, p: Pos) Self {
@@ -75,10 +75,10 @@ const expect = std.testing.expect;
 test "entity action" {
     var action = config(.quit);
 
-    try expect(action.getPos().eql(Pos.config(0, 0)));
+    try expect(action.getPos().eql(.init(0, 0)));
 
     action = configDir(.move, .west);
-    try expect(action.getPos().eql(Pos.config(-1, 0)));
+    try expect(action.getPos().eql(.init(-1, 0)));
     try expect(action.getType() == .move);
 }
 

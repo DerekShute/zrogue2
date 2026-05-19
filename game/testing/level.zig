@@ -44,26 +44,26 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     var map = try Map.init(allocator, game.XSIZE, game.YSIZE, 3, 2);
     errdefer map.deinit(allocator);
 
-    var room = Room.config(Pos.config(2, 2), Pos.config(9, 9));
+    var room = Room.config(.init(2, 2), .init(9, 9));
     room.setDark();
     mapgen.addRoom(map, room, .floor);
 
-    mapgen.addRoom(map, Room.config(Pos.config(27, 5), Pos.config(35, 10)), .floor);
-    mapgen.addEastCorridor(map, Pos.config(9, 5), Pos.config(27, 8), 13, .floor);
+    mapgen.addRoom(map, Room.config(.init(27, 5), .init(35, 10)), .floor);
+    mapgen.addEastCorridor(map, .init(9, 5), .init(27, 8), 13, .floor);
 
-    mapgen.addRoom(map, Room.config(Pos.config(4, 12), Pos.config(20, 19)), .floor);
+    mapgen.addRoom(map, Room.config(.init(4, 12), .init(20, 19)), .floor);
 
-    mapgen.addSouthCorridor(map, Pos.config(4, 9), Pos.config(18, 12), 10, .floor);
+    mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10, .floor);
 
-    mapgen.addItemToMap(map, Pos.config(7, 5), .gold);
+    mapgen.addItemToMap(map, .init(7, 5), .gold);
 
-    map.setFloorTile(Pos.config(8, 4), .stairs_down);
-    map.setFloorTile(Pos.config(8, 3), .stairs_up);
+    map.setFloorTile(.init(8, 4), .stairs_down);
+    map.setFloorTile(.init(8, 3), .stairs_up);
 
-    game.addSecretDoor(map, Pos.config(9, 5));
-    game.addTrap(map, Pos.config(8, 5));
+    game.addSecretDoor(map, .init(9, 5));
+    game.addTrap(map, .init(8, 5));
 
-    mapgen.addEntityToMap(map, player, Pos.config(6, 6));
+    mapgen.addEntityToMap(map, player, .init(6, 6));
 
     return map;
 }
