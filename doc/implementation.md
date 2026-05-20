@@ -3,21 +3,25 @@
 A work in progress.  There is:
 
 * roguelib : generic map-and-mechanics
-  * protocol : the messaging protocol messages and test apparatus
-* doc : you are here
-* game : the game that would be implemented, that wields the mapgen and
-  roguelib
-* src : source directory of various programs
-  * fuzz : fuzz/error testing for server
-  * linux-client : client side of server
-  * linux-server : server side
-  * linux-zrogue : single-player game version
+  * vis_main.zig : the thing that builds the visualization graph
   * testing : apparatus
+* common : a bunch of stuff put here for dependency resolution
+  * Probably belongs in game/
+* connector : the network (Reader/Writer) protocol
+* doc : you are here
+* game : the game that would be implemented, that wields the mapgen and roguelib
+  * ui.zig : the Rogue presentation / personality, used by the client and the standalone
+    * keypress interpretation / element positioning and reporting
+    * Technically a separate module, which may be a lousy idea
+  * testing : apparatus
+* src : source directory of various programs
+  * cli-client : raw command-line network client for debugging and analysis
+  * fuzz : fuzz/error testing for server
+  * linux-client : client side of server.
+  * linux-server : server side
+  * linux-zrogue : single-player (standalone) game version
 * ui : chum bucket for user interface
   * NCurses : low-level ncurses utilities (a separate module)
-  * Rogue : Rogue presentation layer for ncurses
-    * keypress interpretation
-    * element positioning and reporting
 
 ## Modules
 

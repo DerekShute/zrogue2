@@ -152,6 +152,25 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(client_exe);
 
     //
+    // Client via simple cli
+    //
+
+    const cli_exe = b.addExecutable(.{
+        .name = "cli",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/cli-client/main.zig"),
+            .target = target,
+            .optimize = test_optimize,
+            .imports = &.{
+                .{ .name = "connector", .module = connector_mod },
+                .{ .name = "common", .module = common_mod },
+            },
+            .link_libc = true,
+        }),
+    });
+    b.installArtifact(cli_exe);
+
+    //
     // Tests
     //
 

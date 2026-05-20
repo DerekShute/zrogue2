@@ -8,16 +8,20 @@
         // `zig build --fetch` recursively fetches all dependencies
     },
 
+    // TODO: how much detail is required here?  This seems fragile.
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "common",
         "connector",
         "doc",
         "game",
         "roguelib",
         "src",
+        "tools",
         "ui",
         "LICENSE",
+        "README.md",
     },
 }
 
