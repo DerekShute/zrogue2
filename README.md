@@ -93,7 +93,7 @@ Food?  Implies timers, possibly inventory, statuses
   * [Implementation Details](/doc/implementation.md)
   * [Items](/doc/items.md)
   * [Levels](/doc/levels.md)
-  * [Protocol] (/doc/protocol.md)
+  * [Protocol](/doc/protocol.md)
 
 # What, you want to use this?
 

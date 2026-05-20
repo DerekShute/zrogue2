@@ -8,8 +8,6 @@ const UI = @import("ui");
 
 const net = std.Io.net;
 const Allocator = std.mem.Allocator;
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
 
 //
 // Globals
