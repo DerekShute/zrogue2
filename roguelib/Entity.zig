@@ -5,10 +5,10 @@
 const std = @import("std");
 
 const Action = @import("Action.zig");
-const DisplayTile = @import("rogueui").DisplayTile;
+const DisplayTile = @import("common").DisplayTile;
 const FOVMap = @import("fov/FOVMap.zig");
 const Map = @import("Map.zig");
-const MapTile = @import("rogueui").MapTile;
+const MapTile = @import("Tileset.zig").MapTile;
 const Pos = @import("Pos.zig");
 const queue = @import("queue.zig");
 

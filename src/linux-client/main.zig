@@ -3,11 +3,8 @@
 //!
 
 const std = @import("std");
-const Rogue = @import("rogueui").Rogue; // Presentation
-
-const Client = @import("roguelib").Client;
-const MapTile = @import("roguelib").MapTile;
 const Connector = @import("connector");
+const UI = @import("ui");
 
 const net = std.Io.net;
 const Allocator = std.mem.Allocator;
@@ -19,7 +16,7 @@ const Writer = std.io.Writer;
 //
 
 var ending: bool = false;
-var ui: Rogue = undefined;
+var ui: UI = undefined;
 
 //
 // NCurses minutia
@@ -139,7 +136,7 @@ fn run_game(peer: net.IpAddress, allocator: Allocator, io: std.Io) !void {
     const stream = try peer.connect(io, .{ .mode = .stream });
     defer stream.close(io);
 
-    ui = try Rogue.init();
+    ui = try UI.init();
     defer ui.deinit();
 
     var reader = stream.reader(io, rbuf);

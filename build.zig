@@ -26,16 +26,32 @@ pub fn build(b: *std.Build) void {
     // Modules
     //
 
+    const common_mod = b.addModule("common", .{
+        .root_source_file = b.path("roguelib/common.zig"),
+        .target = target,
+    });
+
     const curses_mod = b.addModule("ncurses", .{
         .root_source_file = b.path("ui/NCurses/root.zig"),
         .target = target,
     });
 
-    const ui_mod = b.addModule("rogueui", .{
-        .root_source_file = b.path("ui/root.zig"),
+    const roguelib_mod = b.addModule("roguelib", .{
+        .root_source_file = b.path("roguelib/root.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "common", .module = common_mod },
+        },
+    });
+
+    // The rogue personality on top of curses
+
+    const rogue_ui_mod = b.addModule("rogue-ui", .{
+        .root_source_file = b.path("game/ui.zig"),
         .target = target,
         .imports = &.{
             .{ .name = "ncurses", .module = curses_mod },
+            .{ .name = "common", .module = common_mod },
         },
     });
 
@@ -43,15 +59,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("connector/root.zig"),
         .target = target,
         .imports = &.{
-            .{ .name = "rogueui", .module = ui_mod },
-        },
-    });
-
-    const roguelib_mod = b.addModule("roguelib", .{
-        .root_source_file = b.path("roguelib/root.zig"),
-        .target = target,
-        .imports = &.{
-            .{ .name = "rogueui", .module = ui_mod },
+            .{ .name = "common", .module = common_mod },
         },
     });
 
@@ -60,7 +68,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .imports = &.{
             .{ .name = "roguelib", .module = roguelib_mod },
-            .{ .name = "rogueui", .module = ui_mod }, // MapTile
+            .{ .name = "common", .module = common_mod },
         },
     });
 
@@ -77,12 +85,11 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "game", .module = game_mod },
                 .{ .name = "roguelib", .module = roguelib_mod },
-                .{ .name = "rogueui", .module = ui_mod },
+                .{ .name = "ui", .module = rogue_ui_mod },
             },
             .link_libc = true,
         }),
     });
-
     rogue_exe.root_module.addOptions("build", options); // exposes version
     rogue_exe.root_module.linkSystemLibrary("ncursesw", .{});
     b.installArtifact(rogue_exe);
@@ -104,8 +111,11 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
-
     b.installArtifact(server_exe);
+
+    //
+    // 'fuzz tester' (not really)
+    //
 
     const fuzz_exe = b.addExecutable(.{
         .name = "fuzz",
@@ -119,11 +129,10 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
-
     b.installArtifact(fuzz_exe);
 
     //
-    // Client
+    // Client via NCurses
     //
 
     const client_exe = b.addExecutable(.{
@@ -134,63 +143,36 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "connector", .module = connector_mod },
-                .{ .name = "rogueui", .module = ui_mod },
-                .{ .name = "roguelib", .module = roguelib_mod },
+                .{ .name = "ui", .module = rogue_ui_mod },
             },
             .link_libc = true,
         }),
     });
-
     client_exe.root_module.linkSystemLibrary("ncursesw", .{});
     b.installArtifact(client_exe);
-
-    //
-    // Run rogue
-    //
-
-    const run_step = b.step("run", "Run the app");
-
-    const run_cmd = b.addRunArtifact(rogue_exe);
-    run_step.dependOn(&run_cmd.step);
-
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
 
     //
     // Tests
     //
 
-    const connector_tests = b.addTest(.{
-        .root_module = connector_mod,
-    });
-    const run_connector_tests = b.addRunArtifact(connector_tests);
+    const connector_tests = b.addRunArtifact(
+        b.addTest(.{ .root_module = connector_mod }),
+    );
+    const roguelib_tests = b.addRunArtifact(
+        b.addTest(.{ .root_module = roguelib_mod }),
+    );
+    const game_tests = b.addRunArtifact(
+        b.addTest(.{ .root_module = game_mod }),
+    );
+    const common_tests = b.addRunArtifact(
+        b.addTest(.{ .root_module = common_mod }),
+    );
 
-    const roguelib_tests = b.addTest(.{
-        .root_module = roguelib_mod,
-    });
-    const run_roguelib_tests = b.addRunArtifact(roguelib_tests);
-
-    const game_tests = b.addTest(.{
-        .root_module = game_mod,
-    });
-    const run_game_tests = b.addRunArtifact(game_tests);
-
-    const ui_tests = b.addTest(.{
-        .root_module = ui_mod,
-    });
-    const run_ui_tests = b.addRunArtifact(ui_tests);
-
-    // Test build target
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_connector_tests.step);
-    test_step.dependOn(&run_roguelib_tests.step);
-    test_step.dependOn(&run_game_tests.step);
-    test_step.dependOn(&run_ui_tests.step);
+    test_step.dependOn(&connector_tests.step);
+    test_step.dependOn(&roguelib_tests.step);
+    test_step.dependOn(&game_tests.step);
+    test_step.dependOn(&common_tests.step);
 
     //
     // Visualization
@@ -204,7 +186,7 @@ pub fn build(b: *std.Build) void {
             .optimize = test_optimize,
             .imports = &.{
                 .{ .name = "roguelib", .module = roguelib_mod },
-                .{ .name = "rogueui", .module = ui_mod },
+                .{ .name = "common", .module = common_mod },
             },
         }),
     });

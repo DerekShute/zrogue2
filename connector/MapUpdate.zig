@@ -3,7 +3,7 @@
 //!
 
 const std = @import("std");
-pub const DisplayTile = @import("rogueui").DisplayTile;
+pub const DisplayTile = @import("common").DisplayTile;
 
 const Allocator = std.mem.Allocator;
 const Reader = std.Io.Reader;

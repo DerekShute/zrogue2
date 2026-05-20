@@ -1,6 +1,6 @@
 .{
     .name = .zrogue2,
-    .version = "0.2.0",
+    .version = "0.3.0",
     .fingerprint = 0xac6ab72ef49c0013,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
@@ -11,10 +11,12 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
-        "src",
+        "connector",
         "doc",
         "game",
         "roguelib",
+        "src",
+        "ui",
         "LICENSE",
     },
 }

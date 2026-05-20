@@ -6,8 +6,8 @@
 //!
 
 const std = @import("std");
-pub const Command = @import("rogueui").Command;
-pub const DisplayTile = @import("rogueui").DisplayTile;
+pub const Command = @import("common").Command;
+pub const DisplayTile = @import("common").DisplayTile;
 const Pos = @import("Pos.zig");
 
 const Self = @This();
