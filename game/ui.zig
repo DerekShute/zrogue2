@@ -8,9 +8,9 @@
 //!
 
 const std = @import("std");
-const Command = @import("root.zig").Command;
-const DisplayTile = @import("root.zig").DisplayTile;
-const MapTile = @import("root.zig").MapTile;
+const Command = @import("common").Command;
+const DisplayTile = @import("common").DisplayTile;
+const MapTile = @import("common").MapTile;
 
 const NCurses = @import("ncurses");
 pub const Keypress = NCurses.Keypress;

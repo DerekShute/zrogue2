@@ -4,7 +4,7 @@
 //!
 //! FUTURE: lighting, feature
 //!
-pub const MapTile = @import("rogueui").MapTile;
+pub const MapTile = @import("common").MapTile;
 
 const Self = @This();
 

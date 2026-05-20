@@ -6,7 +6,7 @@ const std = @import("std");
 
 const Action = @import("Action.zig");
 const Client = @import("Client.zig");
-const DisplayTile = @import("rogueui").DisplayTile;
+const DisplayTile = @import("common").DisplayTile;
 const Entity = @import("Entity.zig");
 const Map = @import("Map.zig");
 const Pos = @import("Pos.zig");

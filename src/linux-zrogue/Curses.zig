@@ -11,7 +11,7 @@ const std = @import("std");
 
 const Client = @import("roguelib").Client;
 const Pos = @import("roguelib").Pos;
-const Rogue = @import("rogueui").Rogue; // Presentation
+const UI = @import("ui");
 
 const Self = @This();
 
@@ -20,14 +20,14 @@ const Self = @This();
 //
 
 c: Client = undefined,
-ui: Rogue = undefined,
+ui: UI = undefined,
 
 //
 // Lifecycle
 //
 
 pub fn init() !Self {
-    var ui = try Rogue.init();
+    var ui = try UI.init();
     errdefer ui.deinit();
 
     const c: Client.Config = .{

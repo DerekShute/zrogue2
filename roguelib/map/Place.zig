@@ -4,7 +4,7 @@
 
 const Entity = @import("../Entity.zig");
 const Feature = @import("../Feature.zig");
-const Tile = @import("rogueui").Tile;
+const Tile = @import("common").Tile;
 const Tileset = @import("../Tileset.zig");
 const MapTile = Tileset.MapTile;
 
