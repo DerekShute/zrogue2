@@ -12,7 +12,7 @@ const Player = @import("roguelib").Player;
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
-const revealMap = @import("fov.zig").revealMap;
+const fov = @import("fov.zig");
 
 //
 // Constants that this mapgen relies on
@@ -214,7 +214,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
             .init(start_x, r1_y),
             .init(end_x, r2_y),
             mid_x,
-            .floor,
+            .corridor,
         );
         d1 = Pos.init(start_x, r1_y);
         d2 = Pos.init(end_x, r2_y);
@@ -229,7 +229,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
             .init(r1_x, start_y),
             .init(r2_x, end_y),
             mid_y,
-            .floor,
+            .corridor,
         );
         d1 = Pos.init(r1_x, start_y);
         d2 = Pos.init(r2_x, end_y);
@@ -269,7 +269,7 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
 pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
     mapgen.addEntityToMap(map, player.getEntity(), findAnyFloor(rand, map));
     player.setDepth(@intCast(map.level)); // TODO: blecch
-    revealMap(&player.entity, map, player.getPos()); // initial position
+    fov.enterRoom(&player.entity, map); // initial position
     player.entity.notifyDisplay(map);
 }
 

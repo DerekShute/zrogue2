@@ -75,6 +75,7 @@ fn mapToChar(tile: MapTile) u8 {
     return switch (tile) {
         .unknown => '_', // Different
         .floor => '.',
+        .corridor => '.',
         .gold => '$',
         .wall => '#',
         .door => '+',

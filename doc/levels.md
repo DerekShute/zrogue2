@@ -29,8 +29,9 @@ in action, and has been distilled to an S-shape formed by traveling either
 South or East as the primary digging direction and an orthogonal adjustment at
 the midpoint.
 
-Corridors are floor tiles surrounded by wall.  This will probably make magic-
-mapping interesting.
+Corridors are 'corridor' tiles surrounded by wall.  The transition of corridor
+to door and door to floor or corridor drives room entry and departure and this
+eventually hooks into monster behavior.
 
 ## "Gone" rooms
 
@@ -60,4 +61,14 @@ succeeds.  It eventually will but this is a little weird to see.
 This is all bizarre in a world where 80x24 is a quaint thing but making people
 resize to weird dimensions feels wrong.
 
+## Floor tiles
 
+wall, floor, corridor, stairs, etc.
+
+Currently a melange of library and game implementation; should be a game
+concept only
+
+Floor tiles can be 'lit' in rooms; this avoids room lookups during movement
+
+Eventually floor tiles will be 'passable' so that fewer things need know that
+walls are impermeable

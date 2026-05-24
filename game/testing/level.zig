@@ -14,7 +14,7 @@
 // ###....$^+....##################################
 // ###...@..####.##############.......#############
 // ###......####.##############.......#############
-// ###......####......................#############
+// ###......####..............+.......#############
 // ####.#######################.......#############
 // ####...............#############################
 // ##################.#############################
@@ -49,11 +49,12 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     mapgen.addRoom(map, room, .floor);
 
     mapgen.addRoom(map, Room.config(.init(27, 5), .init(35, 10)), .floor);
-    mapgen.addEastCorridor(map, .init(9, 5), .init(27, 8), 13, .floor);
+    mapgen.addEastCorridor(map, .init(9, 5), .init(27, 8), 13, .corridor);
+    map.setFloorTile(.init(27, 8), .door); // FOV requires
 
     mapgen.addRoom(map, Room.config(.init(4, 12), .init(20, 19)), .floor);
 
-    mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10, .floor);
+    mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10, .corridor);
 
     mapgen.addItemToMap(map, .init(7, 5), .gold);
 

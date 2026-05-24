@@ -12,42 +12,52 @@ const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 
 //
-// Set the rectangular region as visible or invisible
+// Adjust the view, going from where the Entity was to where it is now.
 //
+pub fn adjust(entity: *Entity, map: *Map, old_pos: Pos) void {
+    const new_pos = entity.getPos();
+    const new_floor = map.getFloorTile(new_pos);
+    const old_floor = map.getFloorTile(old_pos);
+    const new_lit = map.isLit(new_pos);
+    const old_lit = map.isLit(old_pos);
 
-fn renderRegion(entity: *Entity, r: Region, visible: bool) void {
-    var _r = r; // ditch const
-    var ri = _r.iterator();
-    while (ri.next()) |p| {
-        entity.setPosVisible(p, visible);
+    if ((old_floor == .door) and (new_floor == .floor)) {
+        // Into the room properly
+        entity.setRegionVisible(.configRadius(old_pos, 1), false);
+    } else if ((new_floor == .door) and (old_floor == .corridor)) {
+        // Into threshold
+        entity.setRegionVisible(.configRadius(old_pos, 1), false);
+        enterRoom(entity, map);
+    } else if ((new_floor == .corridor) and (old_floor == .door)) {
+        // Leaving threshold and into dark corridor
+        leaveRoom(entity, map, old_pos);
+    } else if (!new_lit and !old_lit) {
+        // Moving around in a corridor or a dark room
+        entity.setRegionVisible(.configRadius(old_pos, 1), false);
     }
+    entity.setRegionVisible(.configRadius(new_pos, 1), true);
 }
 
-//
-// Render the view, going from where the Entity was to where it is now
-//
-pub fn revealMap(entity: *Entity, map: *Map, old_pos: Pos) void {
-
-    // Border-of-room and in-corridor hack
-    renderRegion(entity, .configRadius(old_pos, 1), false);
-
-    // TODO: only if former != now
-
-    if (map.getRoomRegion(old_pos)) |former| {
-        // Leaving a lit room : update that it is not visible
-        if (map.isLit(old_pos)) {
-            renderRegion(entity, former, false);
-        }
-    }
-    if (map.getRoomRegion(entity.getPos())) |now| {
-        // Entering or already in a lit room : update
-        if (map.isLit(entity.getPos())) {
-            renderRegion(entity, now, true);
+pub fn enterRoom(entity: *Entity, map: *Map) void {
+    if (map.isLit(entity.getPos())) {
+        // Entering a lit room : update what is now visible
+        if (map.getRoomRegion(entity.getPos())) |region| {
+            entity.setRegionVisible(region, true);
         }
     }
 
-    // Doorways and hallways need explicit
-    renderRegion(entity, .configRadius(entity.getPos(), 1), true);
+    // FUTURE: triggers for monsters, etc.
+}
+
+pub fn leaveRoom(entity: *Entity, map: *Map, old_pos: Pos) void {
+    if (map.isLit(old_pos)) {
+        // Leaving a lit room : update what is now visible
+        if (map.getRoomRegion(old_pos)) |region| {
+            entity.setRegionVisible(region, false);
+        }
+    }
+
+    // FUTURE: triggers for monsters, etc.
 }
 
 // EOF

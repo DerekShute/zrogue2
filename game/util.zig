@@ -12,7 +12,7 @@ const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 const features = @import("features.zig");
 
-const revealMap = @import("fov.zig").revealMap;
+const fov = @import("fov.zig");
 
 //
 // Types
@@ -80,18 +80,22 @@ fn doMove(entity: *Entity, action: *Action, map: *Map) Action.Result {
     const old_pos = entity.getPos();
     const new_pos = Pos.add(old_pos, action.getPos());
 
-    if (map.passable(new_pos)) {
-        map.removeEntity(old_pos);
-        entity.setPos(new_pos);
-        map.addEntity(entity, new_pos);
-        revealMap(entity, map, old_pos);
-        if (map.getFeature(new_pos)) |f| {
-            _ = f.enter(entity, map, new_pos);
-        }
-        entity.notifyDisplay(map);
-    } else {
+    if (!map.passable(new_pos)) {
         entity.addMessage("Ouch!"); // Future: 'bump' callback
+        return .continue_game;
     }
+
+    map.removeEntity(old_pos);
+    entity.setPos(new_pos);
+    map.addEntity(entity, new_pos);
+
+    fov.adjust(entity, map, old_pos);
+
+    if (map.getFeature(new_pos)) |f| { // REFACTOR: map.enterFeature()
+        _ = f.enter(entity, map, new_pos);
+    }
+
+    entity.notifyDisplay(map);
 
     return .continue_game;
 }
