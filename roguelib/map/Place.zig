@@ -18,6 +18,8 @@ entity: ?*Entity = undefined,
 feature: ?Feature = null,
 floor: Tile = undefined,
 item: Tile = undefined, // FUTURE: Item type
+lit: bool = undefined,
+// TODO: passable explicit bool
 
 //
 // Constructor, probably not idiomatic
@@ -28,6 +30,7 @@ pub const init: Self = .{
     .feature = null,
     .floor = .fromOther(MapTile.wall), // TODO: Map default, should be explicit
     .item = .init,
+    .lit = false,
 };
 
 //
@@ -98,6 +101,16 @@ pub fn passable(self: *Self) bool {
     return floor.isPassable();
 }
 
+// Flags (lit)
+
+pub fn isLit(self: *Self) bool {
+    return self.lit;
+}
+
+pub fn setLit(self: *Self, val: bool) void {
+    self.lit = val;
+}
+
 //
 // Unit Tests
 //
@@ -114,6 +127,10 @@ test "basic tests" {
     try expect(ts.item == .unknown);
     try expect(place.passable() == false);
     try expect(place.feature == null);
+
+    try expect(place.isLit() == false);
+    place.setLit(true);
+    try expect(place.isLit() == true);
 }
 
 // EOF

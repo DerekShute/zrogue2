@@ -88,6 +88,7 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 //
 
 fn toPlace(self: *Self, p: Pos) *Place {
+    // TODO: negative position will choke the cast
     const x: usize = @intCast(p.getX());
     const y: usize = @intCast(p.getY());
     const place = self.places.find(x, y) catch {
@@ -159,6 +160,15 @@ pub fn setFloorTile(self: *Self, p: Pos, tile: MapTile) void {
 
 pub fn passable(self: *Self, p: Pos) bool {
     return self.toPlace(p).passable();
+}
+
+// Lit
+
+pub fn isLit(self: *Self, p: Pos) bool {
+    return self.toPlace(p).isLit();
+}
+pub fn setLit(self: *Self, p: Pos, lit: bool) void {
+    self.toPlace(p).setLit(lit);
 }
 
 //
@@ -264,15 +274,6 @@ pub fn addRoom(self: *Self, room: Room) void {
     }
 
     sr.?.* = r;
-}
-
-pub fn isLit(self: *Self, p: Pos) bool {
-    if (self.getRoom(p)) |room| {
-        if (room.isInside(p)) {
-            return room.isLit();
-        }
-    }
-    return false; // TODO: ugh
 }
 
 //
@@ -393,8 +394,11 @@ test "inquire about room at invalid location" {
     try expect(map.inRoom(.init(100, 100)) == false);
     try expect(map.inRoom(.init(-1, -1)) == false);
     try expect(map.inRoom(.init(-1, -1)) == false);
-    try expect(map.isLit(.init(-1, -1)) == false);
-    try expect(map.isLit(.init(100, 100)) == false);
+
+    // It is invalid to even ask
+    //
+    // try expect(map.isLit(.init(-1, -1)) == false);
+    // try expect(map.isLit(.init(100, 100)) == false);
 }
 
 test "map multiple rooms" {

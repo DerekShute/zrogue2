@@ -13,7 +13,7 @@ const Self = @This();
 
 r: Region = undefined,
 flags: packed struct {
-    lit: bool,
+    lit: bool, // REFACTOR: subsumed by tile lighting
     gone: bool,
 },
 
@@ -56,7 +56,6 @@ pub fn setGone(self: *Self) void {
 // Region Methods
 
 pub fn getRegion(self: *Self) Region {
-    // TODO inadvisable
     return self.r;
 }
 

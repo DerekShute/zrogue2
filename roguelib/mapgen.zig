@@ -42,6 +42,14 @@ fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     }
 }
 
+fn setLit(m: *Map, region: Region, lit: bool) void {
+    var _r = region; // Slide out of const
+    var i = _r.iterator();
+    while (i.next()) |pos| {
+        m.setLit(pos, lit);
+    }
+}
+
 //
 // Entities
 //
@@ -83,6 +91,10 @@ pub fn addRoom(m: *Map, room: Room, floor: MapTile) void {
 
     // source and end are known good because we added the room above
     drawField(m, s, e, floor);
+
+    if (_r.isLit()) {
+        setLit(m, _r.getRegion(), true);
+    }
 }
 
 // FUTURE: room lookup is game-specific
