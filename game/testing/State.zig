@@ -58,7 +58,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
         .player = player,
     };
 
-    fov.revealMap(entity, map, player.getPos());
+    fov.adjust(entity, map, player.getPos());
     entity.notifyDisplay(map);
 
     return self;
@@ -83,18 +83,27 @@ pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
     return @enumFromInt(dt.entity);
 }
 
+pub fn resetToRoom(self: *Self, pos: Pos) void {
+    const orig = self.player.getPos();
+    const entity = self.player.getEntity();
+    self.map.removeEntity(orig);
+    self.player.setPos(pos);
+    self.map.addEntity(entity, pos);
+    fov.enterRoom(entity, self.map);
+    entity.notifyDisplay(self.map);
+}
+
 pub fn moveTo(self: *Self, pos: Pos) void {
     const orig = self.player.getPos();
     const entity = self.player.getEntity();
     self.map.removeEntity(orig);
     self.player.setPos(pos);
     self.map.addEntity(entity, pos);
-    fov.revealMap(entity, self.map, orig);
+    fov.adjust(entity, self.map, orig);
     entity.notifyDisplay(self.map);
 }
 
 pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {
-    // NOCOMMIT this doesn't test for visibility
     try expect(self.map.getFloorTile(pos) == floor);
 }
 

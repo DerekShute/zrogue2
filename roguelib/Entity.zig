@@ -11,6 +11,7 @@ const Map = @import("Map.zig");
 const MapTile = @import("Tileset.zig").MapTile;
 const Pos = @import("Pos.zig");
 const queue = @import("queue.zig");
+const Region = @import("Region.zig");
 
 const Self = @This();
 
@@ -75,7 +76,11 @@ pub fn getPos(self: *Self) Pos {
 }
 
 pub fn setPos(self: *Self, p: Pos) void {
+    if (self.p.getX() != -1) {
+        self.setPosChanged(self.p);
+    }
     self.p = p;
+    self.setPosChanged(p);
 }
 
 pub fn getMoves(self: *Self) i32 {
@@ -115,6 +120,16 @@ pub fn setPosChanged(self: *Self, loc: Pos) void {
 pub fn setPosVisible(self: *Self, loc: Pos, visible: bool) void {
     if (self.fov) |fov| {
         fov.setVisible(loc, visible);
+    }
+}
+
+pub fn setRegionVisible(self: *Self, region: Region, visible: bool) void {
+    var _r = region; // Flip to var
+    if (self.fov) |fov| {
+        var ri = _r.iterator();
+        while (ri.next()) |p| {
+            fov.setVisible(p, visible);
+        }
     }
 }
 

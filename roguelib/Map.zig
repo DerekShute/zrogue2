@@ -148,7 +148,6 @@ pub fn setFeature(self: *Self, p: Pos, f: ?Feature) void {
     self.toPlace(p).setFeature(f);
 }
 
-// Mostly convenience of testing
 pub fn getFloorTile(self: *Self, p: Pos) MapTile {
     const ts = self.toPlace(p).getTileset();
     return ts.floor;

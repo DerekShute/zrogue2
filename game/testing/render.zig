@@ -58,12 +58,13 @@ test "render starting position" {
     //                            #########
     //                            #.......#
     //                            #...@...#
-    //                            ........#
+    //                            +.......#
     //                            #.......#
     //                            #########
 
-    state.moveTo(.init(31, 7));
+    state.resetToRoom(.init(31, 7));
     try state.expectVisible(27, 5);
+    try state.expectFloor(.init(27, 8), .door);
     try state.expectFloor(.init(27, 5), .wall);
     try state.expectVisible(27, 10);
     try state.expectFloor(.init(27, 10), .wall);
@@ -79,13 +80,16 @@ test "render starting position" {
     //                            #########
     //                            #       #
     //                          ###       #
-    //                          .@.       #
+    //                          .@+       #
     //                          ###       #
     //                            #########
 
-    state.moveTo(.init(28, 8));
-    try state.expectNotVisible(25, 8);
-    try state.expectVisible(31, 7);
+    state.moveTo(.init(27, 8)); // at door: pacify FOV floor tile use
+    try state.expectVisible(26, 8); // tile right outside is visible
+
+    state.moveTo(.init(26, 8)); // now outside: room not visible
+    try state.expectVisible(25, 8); // adjacent corridor
+    try state.expectNotVisible(31, 7); // Inside room
     try state.expectFloor(.init(31, 7), .floor);
 
     // Threshold of room
@@ -107,11 +111,12 @@ test "render starting position" {
     //                            #########
     //                            #.......#
     //                          ###.......#
-    //                            .@......#
+    //                            +@......#
     //                          ###.......#
     //                            #########
 
     state.moveTo(.init(28, 8));
+    try state.expectVisible(28, 8);
     try state.expectNotVisible(26, 8);
     try state.expectVisible(31, 7);
     try state.expectFloor(.init(31, 7), .floor);

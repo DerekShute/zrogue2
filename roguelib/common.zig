@@ -43,6 +43,7 @@ pub const Tile = enum(u8) {
 pub const MapTile = enum(u8) {
     unknown,
     floor,
+    corridor,
     wall, // Start of features
     trap, // visible trap
     door,
@@ -116,7 +117,7 @@ test "lock MapTile behavior" {
         // gold is.
 
         switch (tile) {
-            .unknown, .floor => try expect(tile.isFeature() == false),
+            .unknown, .floor, .corridor => try expect(tile.isFeature() == false),
             else => {
                 try expect(tile.isFeature() == (i < @intFromEnum(MapTile.gold)));
             },
