@@ -295,6 +295,8 @@ pub fn create(config: Config, allocator: std.mem.Allocator) !*Map {
     reserveGoneRooms(map, rand);
 
     for (0..max_rooms) |i| {
+        // FUTURE: This is broken out oddly. Builder pattern that works a
+        // config and submits that to mapgen for construction?
         const r = mapgen.getRoom(map, i);
         if (r.flags.gone) { // TODO: interface
             mapgen.addRoom(map, makeGoneRoom(@intCast(i), map, rand), .floor);
