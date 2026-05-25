@@ -63,11 +63,8 @@ pub fn init() !Self {
         .ncurses = curses,
     };
 
-    for (0..YSIZE - 2) |y| {
-        for (0..XSIZE) |x| {
-            self.map[x + y * XSIZE] = .init;
-        }
-    }
+    self.resetMap();
+
     return self;
 }
 
@@ -149,6 +146,14 @@ fn getCommand(self: *Self) Command {
     };
 }
 
+fn resetMap(self: *Self) void {
+    for (0..YSIZE - 2) |y| {
+        for (0..XSIZE) |x| {
+            self.map[x + y * XSIZE] = .init;
+        }
+    }
+}
+
 //
 // Input Utility
 //
@@ -218,6 +223,7 @@ pub fn setStat(self: *Self, name: []const u8, value: i32) void {
         self.purse = value;
     } else if (std.mem.eql(u8, "depth", name)) {
         self.depth = value;
+        self.resetMap();
     }
 }
 

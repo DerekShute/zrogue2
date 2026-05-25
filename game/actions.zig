@@ -183,6 +183,10 @@ pub fn enterRoom(entity: *Entity, map: *Map) void {
         if (map.getRoomRegion(entity.getPos())) |region| {
             entity.setRegionVisible(region, true);
         }
+    } else {
+        // When being inserted onto a new level and initial room is dark...
+
+        entity.setRegionVisible(.configRadius(entity.getPos(), 1), true);
     }
 
     // FUTURE: triggers for monsters, etc.
