@@ -148,7 +148,7 @@ pub fn run(config: Config) !void {
         fov.reset();
     } // Game run loop
 
-    // TODO : game endings go here
+    // FUTURE: game endings go here
 }
 
 //
