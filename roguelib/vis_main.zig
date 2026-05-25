@@ -15,6 +15,7 @@ const Action = @import("Action.zig");
 const Client = @import("Client.zig");
 const Entity = @import("Entity.zig");
 const Feature = @import("Feature.zig");
+const FOVMap = @import("FOVMap.zig");
 const Map = @import("Map.zig");
 const Player = @import("Player.zig");
 const Pos = @import("Pos.zig");
@@ -33,8 +34,8 @@ pub fn main() !void {
     printer(Client.fields);
     printer(Client.displaytile_fields); // from UI
     printer(Entity.fields);
-    printer(Entity.fov_fields);
     printer(Feature.fields);
+    printer(FOVMap.fields);
     printer(Map.fields);
     printer(Map.place_fields);
     printer(Map.room_fields);

@@ -6,7 +6,7 @@ const std = @import("std");
 
 const Action = @import("Action.zig");
 const DisplayTile = @import("common").DisplayTile;
-const FOVMap = @import("fov/FOVMap.zig");
+const FOVMap = @import("FOVMap.zig");
 const Map = @import("Map.zig");
 const MapTile = @import("Tileset.zig").MapTile;
 const Pos = @import("Pos.zig");
@@ -198,6 +198,5 @@ test "entity queue" {
 
 const genFields = @import("utils/visual.zig").genFields;
 pub var fields = genFields(Self);
-pub var fov_fields = genFields(FOVMap); // Harmless lie
 
 // EOF

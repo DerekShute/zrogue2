@@ -5,9 +5,9 @@
 //!
 
 const std = @import("std");
-const Grid = @import("../grid.zig").Grid;
-const Pos = @import("../Pos.zig");
-const Region = @import("../Region.zig");
+const Grid = @import("grid.zig").Grid;
+const Pos = @import("Pos.zig");
+const Region = @import("Region.zig");
 
 //
 // Types
@@ -238,5 +238,12 @@ test "changed iterator" {
     it = map.iterator(); // Changed bits reset, so no more
     try expect(it.next_changed() == null);
 }
+
+//
+// Visualization
+//
+
+const genFields = @import("utils/visual.zig").genFields;
+pub var fields = genFields(Self);
 
 // EOF
