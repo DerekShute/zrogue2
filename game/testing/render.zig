@@ -90,7 +90,8 @@ test "render starting position" {
     try state.expectVisible(26, 8); // tile right outside is visible
 
     state.moveTo(.init(26, 8)); // now outside: room not visible
-    try state.expectMapUpdates(58); // 54 for bulk of room + 4 changed at move
+    try state.expectTileUpdates(58); // 54 for bulk of room + 4 changed at move
+    try state.expectMapUpdates(13);
     try state.expectVisible(25, 8); // adjacent corridor
     try state.expectNotVisible(31, 7); // Inside room
     try state.expectFloor(.init(31, 7), .floor);
@@ -105,7 +106,8 @@ test "render starting position" {
     //                            #########
 
     state.moveTo(.init(27, 8));
-    try state.expectMapUpdates(60); // 54 room, 3 outside, 3 invalidated
+    try state.expectTileUpdates(60); // 64 room, 3 outside, 3 invalidated
+    try state.expectMapUpdates(18);
     try state.expectNotVisible(25, 8);
     try state.expectVisible(31, 7);
     try state.expectFloor(.init(31, 7), .floor);
@@ -120,6 +122,7 @@ test "render starting position" {
     //                            #########
 
     state.moveTo(.init(28, 8));
+    try state.expectTileUpdates(9);
     try state.expectMapUpdates(9); // 3 invalidated, 6 affected
     try state.expectVisible(28, 8);
     try state.expectNotVisible(26, 8);
@@ -134,6 +137,7 @@ test "render starting position" {
     //                            #########
 
     state.moveTo(.init(29, 8));
+    try state.expectTileUpdates(2);
     try state.expectMapUpdates(2); // leave one, move to the other
 }
 

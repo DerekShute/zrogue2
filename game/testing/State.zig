@@ -85,6 +85,7 @@ pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
 pub fn moveTo(self: *Self, pos: Pos) void {
     const entity = self.player.getEntity();
     _ = self.client.getMapUpdates();
+    _ = self.client.getTileUpdates();
     actions.moveEntity(entity, self.map, pos);
 }
 
@@ -102,6 +103,11 @@ pub fn expectItem(self: *Self, pos: Pos, item: MapTile) !void {
 
 pub fn expectMapUpdates(self: *Self, count: i32) !void {
     const got = self.client.getMapUpdates();
+    try expect(got == count);
+}
+
+pub fn expectTileUpdates(self: *Self, count: i32) !void {
+    const got = self.client.getTileUpdates();
     try expect(got == count);
 }
 

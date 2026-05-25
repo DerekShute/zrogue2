@@ -67,8 +67,10 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
 
 fn updateMap(ctx: *anyopaque, pos: [2]i16, count: u8, tile: Connector.DisplayTile) !void {
     _ = ctx;
-    _ = count; // TODO
-    setMapTile(@intCast(pos[0]), @intCast(pos[1]), tile);
+    const x: usize = @intCast(pos[0]);
+    for (0..count) |i| {
+        setMapTile(@intCast(x + i), @intCast(pos[1]), tile);
+    }
     refresh(); // TODO: only care when waiting for command
 }
 
