@@ -38,7 +38,7 @@ pub const VTable = struct {
     getCommand: *const fn (ctx: *anyopaque) Error!Command,
 
     // Update a map location with new information
-    setMapTile: *const fn (ctx: *anyopaque, pos: Pos, tile: DisplayTile) void,
+    setMapTile: *const fn (ctx: *anyopaque, pos: Pos, count: u8, tile: DisplayTile) void,
 
     // Stats known by game and provider implementation
     setStatInt: *const fn (ctx: *anyopaque, name: []const u8, value: i32) void,
@@ -87,8 +87,8 @@ pub inline fn addMessage(self: *Self, msg: []const u8) void {
 
 // Map Update
 
-pub fn setMapTile(self: *Self, pos: Pos, tile: DisplayTile) void {
-    self.vtable.setMapTile(self.ptr, pos, tile);
+pub fn setMapTile(self: *Self, pos: Pos, count: u8, tile: DisplayTile) void {
+    self.vtable.setMapTile(self.ptr, pos, count, tile);
 }
 
 // Command

@@ -12,18 +12,20 @@ const Writer = std.Io.Writer;
 const Self = @This();
 
 pos: [2]i16,
+count: u8,
 tile: DisplayTile,
-// TODO: slice of tiles (row update), etc.
+// FUTURE: slice of tiles (row update), etc.
 
 //
 // Lifecycle
 //
 
-pub fn init(allocator: Allocator, pos: []const i16, tile: DisplayTile) !*Self {
+pub fn init(allocator: Allocator, pos: []const i16, count: u8, tile: DisplayTile) !*Self {
     const s: *Self = try allocator.create(Self);
     errdefer allocator.destroy(s);
     s.pos[0] = pos[0];
     s.pos[1] = pos[1];
+    s.count = count;
     s.tile = tile;
     return s;
 }
@@ -41,6 +43,7 @@ pub fn read(reader: *Reader, allocator: Allocator) !*Self {
     s.pos[0] = std.mem.readInt(i16, &buf, .big);
     try reader.readSliceAll(&buf);
     s.pos[1] = std.mem.readInt(i16, &buf, .big);
+    s.count = try reader.takeByte();
     const visible = try reader.takeByte();
     s.tile.visible = (visible == 1);
 
@@ -63,6 +66,7 @@ pub fn write(self: *const Self, writer: *Writer) !void {
     try writer.writeAll(buf[0..]);
     std.mem.writeInt(i16, &buf, self.pos[1], .big);
     try writer.writeAll(buf[0..]);
+    try writer.writeByte(self.count);
     if (self.tile.visible) {
         try writer.writeByte(1); // visible
         try writer.writeByte(self.tile.entity);
@@ -90,7 +94,7 @@ test "basic usage" {
         .visible = true,
     };
 
-    var msg = try init(t_allocator, &.{ 0, 1 }, tile);
+    var msg = try init(t_allocator, &.{ 0, 1 }, 1, tile);
     defer msg.deinit(t_allocator);
 
     var buffer: [128]u8 = undefined;
@@ -104,6 +108,7 @@ test "basic usage" {
 
     try expect(msg.pos[0] == reply.pos[0]);
     try expect(msg.pos[1] == reply.pos[1]);
+    try expect(msg.count == reply.count);
     try expect(msg.tile.visible == reply.tile.visible);
     try expect(msg.tile.entity == reply.tile.entity);
     try expect(msg.tile.item == reply.tile.item);

@@ -68,9 +68,9 @@ fn playerGetAction(ptr: *Entity) !Action {
     return self.getAction();
 }
 
-fn playerSetMapTile(ptr: *Entity, pos: Pos, dt: DisplayTile) void {
+fn playerSetMapTile(ptr: *Entity, pos: Pos, count: u8, dt: DisplayTile) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    self.client.setMapTile(pos, dt);
+    self.client.setMapTile(pos, count, dt);
 }
 
 fn playerTakeItem(ptr: *Entity, i: MapTile) void {

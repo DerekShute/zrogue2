@@ -89,7 +89,7 @@ fn useTableUpdate(allocator: Allocator, connect: *Connector, name: []const u8) v
 fn useMapUpdate(allocator: Allocator, connect: *Connector, name: []const u8) void {
     _ = allocator;
     _ = name;
-    connect.writeMapUpdate(0, 1, Connector.DisplayTile.init) catch return;
+    connect.writeMapUpdate(0, 1, 10, Connector.DisplayTile.init) catch return;
 }
 
 //
@@ -141,10 +141,10 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
     msg_count += 1;
 }
 
-fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
+fn updateMap(ctx: *anyopaque, pos: [2]i16, count: u8, tile: Connector.DisplayTile) !void {
     _ = ctx;
     _ = tile;
-
+    _ = count;
     var m = grid.find(@intCast(pos[0]), @intCast(pos[1])) catch return error.Failed;
     m.touched = true;
     msg_count += 1;

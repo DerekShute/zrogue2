@@ -52,6 +52,7 @@ pub const VTable = struct {
     updateMap: ?*const fn (
         ctx: *anyopaque,
         pos: [2]i16,
+        count: u8,
         tile: DisplayTile,
     ) Error!void = null,
     updateMessage: ?*const fn (ctx: *anyopaque, text: []const u8) Error!void = null,
@@ -111,7 +112,7 @@ fn doMapUpdate(ctx: *anyopaque, ptr: *anyopaque) Error!void {
     const self: *Self = @ptrCast(@alignCast(ctx));
     const msg: *MapUpdate = @ptrCast(@alignCast(ptr));
     if (self.vt.updateMap) |cb| {
-        return cb(self.ctx, msg.pos, msg.tile);
+        return cb(self.ctx, msg.pos, msg.count, msg.tile);
     } else {
         return self.vt.unsupported(self.ctx);
     }
@@ -236,9 +237,9 @@ pub fn writeEntryRequest(self: *Self, text: []const u8) !void {
     try write(self, .{ .text = text });
 }
 
-pub fn writeMapUpdate(self: *Self, x: i16, y: i16, tile: DisplayTile) !void {
+pub fn writeMapUpdate(self: *Self, x: i16, y: i16, count: u8, tile: DisplayTile) !void {
     const write = Write(MapUpdate, .map_update).write;
-    try write(self, .{ .pos = .{ x, y }, .tile = tile });
+    try write(self, .{ .pos = .{ x, y }, .count = count, .tile = tile });
 }
 
 pub fn writeMessage(self: *Self, text: []const u8) !void {

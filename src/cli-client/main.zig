@@ -103,7 +103,8 @@ fn renderChar(tile: DisplayTile) u8 {
     return mapToChar(floor);
 }
 
-fn setMapTile(x: u16, y: u16, tile: DisplayTile) void {
+fn setMapTile(x: u16, y: u16, count: u8, tile: DisplayTile) void {
+    _ = count; // TODO
     if ((x < XSIZE) and (y < YSIZE - 2)) {
         map[x + y * XSIZE] = renderChar(tile);
     }
@@ -140,9 +141,9 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
     return error.Departing;
 }
 
-fn updateMap(ctx: *anyopaque, pos: [2]i16, tile: Connector.DisplayTile) !void {
+fn updateMap(ctx: *anyopaque, pos: [2]i16, count: u8, tile: Connector.DisplayTile) !void {
     _ = ctx;
-    setMapTile(@intCast(pos[0]), @intCast(pos[1]), tile);
+    setMapTile(@intCast(pos[0]), @intCast(pos[1]), count, tile);
 }
 
 fn updateMessage(ctx: *anyopaque, text: []const u8) !void {

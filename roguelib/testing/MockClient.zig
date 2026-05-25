@@ -101,7 +101,8 @@ fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
     return self.command_list[i];
 }
 
-fn mockSetMapTile(ptr: *anyopaque, pos: Pos, tile: Client.DisplayTile) void {
+fn mockSetMapTile(ptr: *anyopaque, pos: Pos, count: u8, tile: Client.DisplayTile) void {
+    _ = count; // TODO
     const self: *Self = @ptrCast(@alignCast(ptr));
     // std.debug.print("set tile {}/{} to {}\n", .{ x, y, tile });
     const dt = self.dg.find(
