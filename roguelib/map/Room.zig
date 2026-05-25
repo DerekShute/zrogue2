@@ -1,6 +1,9 @@
 //!
 //! Room : generally a rectangle of open space, connected by corridors
 //!        (has stuff inside)
+//!
+//! REFACTOR: most of this is mapgen-only and does not need to be carried
+//! inside the map itself
 
 const Pos = @import("../Pos.zig");
 const Region = @import("../Region.zig");

@@ -78,7 +78,7 @@ fn doMove(entity: *Entity, action: *Action, map: *Map) Action.Result {
     const new_pos = Pos.add(entity.getPos(), action.getPos());
 
     if (!map.passable(new_pos)) {
-        entity.addMessage("Ouch!"); // Future: 'bump' callback
+        entity.addMessage("Ouch!"); // FUTURE: 'bump' callback
         return .continue_game;
     }
 
@@ -91,7 +91,7 @@ fn doQuit(entity: *Entity, action: *Action, map: *Map) Action.Result {
     _ = entity;
     _ = action;
     _ = map;
-    // TODO: save, ask, etc.
+    // FUTURE: save, ask, etc.
     return .end_game;
 }
 

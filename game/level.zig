@@ -234,10 +234,10 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
         d1 = Pos.init(r1_x, start_y);
         d2 = Pos.init(r2_x, end_y);
     }
-    if (!r1.flags.gone) {
+    if (!r1.isGone()) {
         makeDoor(map, r, d1);
     }
-    if (!r2.flags.gone) {
+    if (!r2.isGone()) {
         makeDoor(map, r, d2);
     }
 }
@@ -249,7 +249,7 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
     while (i > 0) {
         const r = rand.intRangeAtMost(usize, 0, max_rooms - 1);
         const room = mapgen.getRoom(map, r);
-        if (room.flags.gone) { // TODO - interface
+        if (room.isGone()) {
             continue;
         }
         room.setGone();
