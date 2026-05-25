@@ -148,6 +148,13 @@ pub fn setFeature(self: *Self, p: Pos, f: ?Feature) void {
     self.toPlace(p).setFeature(f);
 }
 
+pub fn enterFeature(self: *Self, entity: *Entity, p: Pos) bool {
+    if (self.getFeature(p)) |f| {
+        return f.enter(entity, self, p);
+    }
+    return false;
+}
+
 pub fn getFloorTile(self: *Self, p: Pos) MapTile {
     const ts = self.toPlace(p).getTileset();
     return ts.floor;
