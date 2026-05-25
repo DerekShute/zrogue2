@@ -17,7 +17,7 @@ const Pos = @import("roguelib").Pos;
 
 const level = @import("level.zig");
 
-const util = @import("util.zig");
+const actions = @import("actions.zig");
 
 // TODO: this is suboptimal
 
@@ -56,7 +56,7 @@ pub const Feature = enum {
 // Testing Conveniences
 //
 
-pub const doAction = util.doAction;
+pub const doAction = actions.doAction;
 
 //
 // Internals
@@ -79,7 +79,7 @@ fn play(config: *level.Config, map: *Map, queue: *Entity.Queue) State {
     // FUTURE: Other Entities means having a .depart result
 
     while (queue.next()) |entity| {
-        result = util.doAction(entity, map) catch {
+        result = doAction(entity, map) catch {
             return .end;
         };
         if (result != .continue_game) {
