@@ -41,11 +41,18 @@ pub fn read(reader: *Reader, allocator: Allocator) !*Self {
     s.pos[0] = std.mem.readInt(i16, &buf, .big);
     try reader.readSliceAll(&buf);
     s.pos[1] = std.mem.readInt(i16, &buf, .big);
-    s.tile.entity = try reader.takeByte();
-    s.tile.item = try reader.takeByte();
-    s.tile.floor = try reader.takeByte();
     const visible = try reader.takeByte();
     s.tile.visible = (visible == 1);
+
+    if (s.tile.visible) {
+        s.tile.entity = try reader.takeByte();
+        s.tile.item = try reader.takeByte();
+        s.tile.floor = try reader.takeByte();
+    } else {
+        s.tile.entity = DisplayTile.unknown_val;
+        s.tile.item = DisplayTile.unknown_val;
+        s.tile.floor = DisplayTile.unknown_val;
+    }
     return s;
 }
 
@@ -56,13 +63,13 @@ pub fn write(self: *const Self, writer: *Writer) !void {
     try writer.writeAll(buf[0..]);
     std.mem.writeInt(i16, &buf, self.pos[1], .big);
     try writer.writeAll(buf[0..]);
-    try writer.writeByte(self.tile.entity);
-    try writer.writeByte(self.tile.item);
-    try writer.writeByte(self.tile.floor);
     if (self.tile.visible) {
-        try writer.writeByte(1);
+        try writer.writeByte(1); // visible
+        try writer.writeByte(self.tile.entity);
+        try writer.writeByte(self.tile.item);
+        try writer.writeByte(self.tile.floor);
     } else {
-        try writer.writeByte(0);
+        try writer.writeByte(0); // visible
     }
 }
 
@@ -77,9 +84,9 @@ const FailingAllocator = std.testing.FailingAllocator;
 
 test "basic usage" {
     const tile: DisplayTile = .{
-        .entity = 0,
-        .item = 1,
-        .floor = 2,
+        .entity = 2,
+        .item = 4,
+        .floor = 6,
         .visible = true,
     };
 
@@ -97,10 +104,10 @@ test "basic usage" {
 
     try expect(msg.pos[0] == reply.pos[0]);
     try expect(msg.pos[1] == reply.pos[1]);
+    try expect(msg.tile.visible == reply.tile.visible);
     try expect(msg.tile.entity == reply.tile.entity);
     try expect(msg.tile.item == reply.tile.item);
     try expect(msg.tile.floor == reply.tile.floor);
-    try expect(msg.tile.visible == reply.tile.visible);
 }
 
 // EOF
