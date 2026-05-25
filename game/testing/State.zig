@@ -13,7 +13,7 @@ const Pos = @import("roguelib").Pos;
 
 const game = @import("../root.zig");
 
-const fov = @import("../fov.zig");
+const actions = @import("../actions.zig");
 const level = @import("level.zig"); // Test level
 
 const expect = std.testing.expect;
@@ -58,8 +58,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
         .player = player,
     };
 
-    fov.adjust(entity, map, player.getPos());
-    entity.notifyDisplay(map);
+    actions.moveEntity(entity, map, player.getPos());
 
     return self;
 }
@@ -83,24 +82,10 @@ pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
     return @enumFromInt(dt.entity);
 }
 
-pub fn resetToRoom(self: *Self, pos: Pos) void {
-    const orig = self.player.getPos();
-    const entity = self.player.getEntity();
-    self.map.removeEntity(orig);
-    self.player.setPos(pos);
-    self.map.addEntity(entity, pos);
-    fov.enterRoom(entity, self.map);
-    entity.notifyDisplay(self.map);
-}
-
 pub fn moveTo(self: *Self, pos: Pos) void {
-    const orig = self.player.getPos();
     const entity = self.player.getEntity();
-    self.map.removeEntity(orig);
-    self.player.setPos(pos);
-    self.map.addEntity(entity, pos);
-    fov.adjust(entity, self.map, orig);
-    entity.notifyDisplay(self.map);
+    _ = self.client.getMapUpdates();
+    actions.moveEntity(entity, self.map, pos);
 }
 
 pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {
@@ -113,6 +98,11 @@ pub fn expectItemAtPlayer(self: *Self, item: MapTile) !void {
 
 pub fn expectItem(self: *Self, pos: Pos, item: MapTile) !void {
     try expect(self.map.getItem(pos) == item);
+}
+
+pub fn expectMapUpdates(self: *Self, count: i32) !void {
+    const got = self.client.getMapUpdates();
+    try expect(got == count);
 }
 
 pub fn expectMessage(self: *Self, msg: []const u8) !void {
@@ -131,10 +121,6 @@ pub fn expectNotVisible(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
 pub fn expectVisible(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
     const dt = try self.client.getTile(x, y);
     try expect(dt.visible);
-}
-
-pub fn revealMap(self: *Self) void {
-    fov.revealMap(self.player.getEntity(), self.map, self.player.getPos());
 }
 
 pub fn step(self: *Self, cmd: Client.Command) !Action.Result {
