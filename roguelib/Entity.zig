@@ -26,7 +26,7 @@ pub const VTable = struct {
 
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
     getAction: ?*const fn (self: *Self) Error!Action = null,
-    setMapTile: ?*const fn (self: *Self, pos: Pos, tile: DisplayTile) void = null,
+    setMapTile: ?*const fn (self: *Self, pos: Pos, count: u8, tile: DisplayTile) void = null,
     takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
 };
 
@@ -159,7 +159,7 @@ pub fn notifyDisplay(self: *Self, map: *Map) void {
                         .visible = true,
                     };
                 }
-                smt(self, change.pos, dt);
+                smt(self, change.pos, 1, dt);
             }
         }
     }
