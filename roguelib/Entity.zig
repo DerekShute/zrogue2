@@ -142,26 +142,76 @@ pub fn setRegionVisible(self: *Self, region: Region, visible: bool) void {
 //
 // TODO: still not really cool with this
 //
+// FUTURE: slice of DisplayTile
+//
 pub fn notifyDisplay(self: *Self, map: *Map) void {
-    // FUTURE: consolidate identical tiles, have a count
+    var dt: DisplayTile = undefined;
+    var pos: Pos = undefined;
+    var count: u8 = 0;
 
-    if (self.vtable.setMapTile) |smt| {
-        if (self.fov) |fov| {
-            var i = fov.iterator();
-            while (i.next_changed()) |change| {
-                var dt = DisplayTile.init; // not visible
-                if (change.visible) {
-                    const tile = map.getTileset(change.pos);
-                    dt = DisplayTile{
-                        .entity = @intFromEnum(tile.entity),
-                        .floor = @intFromEnum(tile.floor),
-                        .item = @intFromEnum(tile.item),
-                        .visible = true,
-                    };
-                }
-                smt(self, change.pos, 1, dt);
+    if ((self.vtable.setMapTile == null) or (self.fov == null)) {
+        return;
+    }
+    const smt = self.vtable.setMapTile.?;
+    const fov = self.fov.?;
+
+    var i = fov.iterator();
+    while (i.next_changed()) |change| {
+        if (count == 0) {
+            pos = change.pos;
+            count = 1;
+            dt = .init;
+            if (change.visible) {
+                const tile = map.getTileset(change.pos);
+                dt = DisplayTile{
+                    .entity = @intFromEnum(tile.entity),
+                    .floor = @intFromEnum(tile.floor),
+                    .item = @intFromEnum(tile.item),
+                    .visible = true,
+                };
+            }
+            continue;
+        }
+        // One in the tank; can it be combined?
+
+        const tile = map.getTileset(change.pos);
+        if ((change.pos.getY() == pos.getY()) and
+            (change.pos.getX() == pos.getX() + count))
+        {
+            if (!change.visible and !dt.visible) {
+                // Equally invisible; can combine
+                count = count + 1;
+                continue;
+            }
+
+            if ((change.visible == dt.visible) and // implies both visible
+                (dt.entity == @intFromEnum(tile.entity)) and
+                (dt.floor == @intFromEnum(tile.floor)) and
+                (dt.item == @intFromEnum(tile.item)))
+            {
+                // The same and both visible; combine
+                count = count + 1;
+                continue;
             }
         }
+
+        // Can't graft it, so flush the existing and keep going
+        smt(self, pos, count, dt);
+        pos = change.pos;
+        count = 1;
+        dt = .init;
+        if (change.visible) {
+            dt = DisplayTile{
+                .entity = @intFromEnum(tile.entity),
+                .floor = @intFromEnum(tile.floor),
+                .item = @intFromEnum(tile.item),
+                .visible = true,
+            };
+        }
+    } // While
+    if (count > 0) {
+        // Flush anything trailing
+        smt(self, pos, count, dt);
     }
 }
 

@@ -50,6 +50,7 @@ var map: [XSIZE * (YSIZE - 2)]u8 = undefined;
 
 // Counts of things
 var mapcount: u32 = 0;
+var tilecount: u32 = 0;
 var messagecount: u32 = 0;
 var statcount: u32 = 0;
 
@@ -104,11 +105,14 @@ fn renderChar(tile: DisplayTile) u8 {
 }
 
 fn setMapTile(x: u16, y: u16, count: u8, tile: DisplayTile) void {
-    _ = count; // TODO
-    if ((x < XSIZE) and (y < YSIZE - 2)) {
-        map[x + y * XSIZE] = renderChar(tile);
+    for (0..count) |i| {
+        const xidx: usize = @intCast(x);
+        if ((xidx + i < XSIZE) and (y < YSIZE - 2)) {
+            map[(xidx + i) + y * XSIZE] = renderChar(tile);
+        }
     }
     mapcount = mapcount + 1;
+    tilecount = tilecount + count;
 }
 
 pub fn setMessage(text: []const u8) void {
@@ -194,7 +198,7 @@ fn gameLoop(connector: *Connector) !void {
 
     while (!ending) {
         try sleep(1); // TODO: too long
-        try print("map updates: {}\n", .{mapcount});
+        try print("map updates: {}:{}\n", .{ mapcount, tilecount });
         for (0..YSIZE - 2) |y| {
             for (0..XSIZE) |x| {
                 const tile = map[x + y * XSIZE];
@@ -211,6 +215,7 @@ fn gameLoop(connector: *Connector) !void {
         mapcount = 0;
         messagecount = 0;
         statcount = 0;
+        tilecount = 0;
         try print("Next? ", .{});
 
         const cmd = try stdin.takeDelimiterExclusive('\n');

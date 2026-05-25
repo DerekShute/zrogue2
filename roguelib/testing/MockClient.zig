@@ -30,7 +30,9 @@ depth: i32 = 0,
 messagebuf: [80]u8 = undefined, // TODO: size
 message: []u8 = &.{},
 dg: DisplayGrid = undefined,
-map_updates: i32 = 0,
+
+map_updates: i32 = 0, // Update messages
+tile_updates: i32 = 0, // Individual tiles updated
 
 //
 // Constructor / Destructor
@@ -102,15 +104,14 @@ fn mockGetCommand(ptr: *anyopaque) Client.Error!Client.Command {
 }
 
 fn mockSetMapTile(ptr: *anyopaque, pos: Pos, count: u8, tile: Client.DisplayTile) void {
-    _ = count; // TODO
     const self: *Self = @ptrCast(@alignCast(ptr));
-    // std.debug.print("set tile {}/{} to {}\n", .{ x, y, tile });
-    const dt = self.dg.find(
-        @intCast(pos.getX()),
-        @intCast(pos.getY()),
-    ) catch @panic("mockSetMapTile error");
-    dt.* = tile;
+    const x: usize = @intCast(pos.getX());
+    for (0..count) |i| {
+        const dt = self.dg.find(x + i, @intCast(pos.getY())) catch @panic("mockSetMapTile error");
+        dt.* = tile;
+    }
     self.map_updates += 1;
+    self.tile_updates += count;
 }
 
 fn mockSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
@@ -160,6 +161,13 @@ pub fn getMapUpdates(self: *Self) i32 {
     // Resets count
     const ret = self.map_updates;
     self.map_updates = 0;
+    return ret;
+}
+
+pub fn getTileUpdates(self: *Self) i32 {
+    // Resets count
+    const ret = self.tile_updates;
+    self.tile_updates = 0;
     return ret;
 }
 

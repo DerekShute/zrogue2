@@ -144,13 +144,15 @@ fn depart(ctx: *anyopaque, text: []const u8) !void {
 fn updateMap(ctx: *anyopaque, pos: [2]i16, count: u8, tile: Connector.DisplayTile) !void {
     _ = ctx;
     _ = tile;
-    _ = count;
-    var m = grid.find(@intCast(pos[0]), @intCast(pos[1])) catch return error.Failed;
-    m.touched = true;
+    const x: usize = @intCast(pos[0]);
+    for (0..count) |i| {
+        var m = grid.find(x + i, @intCast(pos[1])) catch return error.Failed;
+        m.touched = true;
+    }
     msg_count += 1;
     if (pos[0] < min_x) {
         min_x = pos[0];
-    } else if (pos[0] > max_x) {
+    } else if (pos[0] + count - 1 > max_x) {
         max_x = pos[0];
     }
     if (pos[1] < min_y) {

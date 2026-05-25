@@ -78,8 +78,10 @@ fn cursesGetCommand(ptr: *anyopaque) !Client.Command {
 
 fn cursesSetMapTile(ptr: *anyopaque, pos: Pos, count: u8, tile: Client.DisplayTile) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    _ = count;
-    self.ui.setMapTile(@intCast(pos.getX()), @intCast(pos.getY()), tile);
+    const x: usize = @intCast(pos.getX());
+    for (0..count) |i| {
+        self.ui.setMapTile(@intCast(x + i), @intCast(pos.getY()), tile);
+    }
     self.ui.displayRefresh();
 }
 
