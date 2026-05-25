@@ -30,6 +30,7 @@ depth: i32 = 0,
 messagebuf: [80]u8 = undefined, // TODO: size
 message: []u8 = &.{},
 dg: DisplayGrid = undefined,
+map_updates: i32 = 0,
 
 //
 // Constructor / Destructor
@@ -108,6 +109,7 @@ fn mockSetMapTile(ptr: *anyopaque, pos: Pos, tile: Client.DisplayTile) void {
         @intCast(pos.getY()),
     ) catch @panic("mockSetMapTile error");
     dt.* = tile;
+    self.map_updates += 1;
 }
 
 fn mockSetStatInt(ptr: *anyopaque, name: []const u8, value: i32) void {
@@ -151,6 +153,13 @@ pub fn getStatDepth(self: *Self) i32 {
 
 pub fn getMessage(self: *Self) []const u8 {
     return self.message;
+}
+
+pub fn getMapUpdates(self: *Self) i32 {
+    // Resets count
+    const ret = self.map_updates;
+    self.map_updates = 0;
+    return ret;
 }
 
 //
