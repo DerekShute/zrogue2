@@ -5,7 +5,6 @@
 const std = @import("std");
 
 const Entity = @import("Entity.zig");
-const Feature = @import("Feature.zig");
 const Grid = @import("grid.zig").Grid;
 const Pos = @import("Pos.zig");
 const Place = @import("map/Place.zig");
@@ -140,20 +139,17 @@ pub fn getTileset(self: *Self, p: Pos) Tileset {
     return self.toPlace(p).getTileset();
 }
 
-pub fn getFeature(self: *Self, p: Pos) ?Feature {
+// Features
+
+pub fn getFeature(self: *Self, p: Pos) ?u8 {
     return self.toPlace(p).getFeature();
 }
 
-pub fn setFeature(self: *Self, p: Pos, f: ?Feature) void {
+pub fn setFeature(self: *Self, p: Pos, f: ?u8) void {
     self.toPlace(p).setFeature(f);
 }
 
-pub fn enterFeature(self: *Self, entity: *Entity, p: Pos) bool {
-    if (self.getFeature(p)) |f| {
-        return f.enter(entity, self, p);
-    }
-    return false;
-}
+// Floor tiles
 
 pub fn getFloorTile(self: *Self, p: Pos) MapTile {
     const ts = self.toPlace(p).getTileset();

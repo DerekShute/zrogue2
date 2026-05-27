@@ -4,9 +4,34 @@
 
 const std = @import("std");
 const Entity = @import("roguelib").Entity;
-const Feature = @import("roguelib").Feature;
 const Pos = @import("roguelib").Pos;
 const Map = @import("roguelib").Map;
+
+//
+// Enum to guide switches
+//
+
+pub const Feature = enum {
+    trap,
+    secret_door,
+    stairs_down, // FUTURE: 'enter' or 'interact'
+    stairs_up,
+    // FUTURE: illusionary wall, hidden treasure
+};
+
+//
+// mapgen
+//
+
+pub fn addSecretDoor(m: *Map, p: Pos) void {
+    m.setFloorTile(p, .wall);
+    m.setFeature(p, @intFromEnum(Feature.secret_door));
+}
+
+pub fn addTrap(m: *Map, p: Pos) void {
+    m.setFloorTile(p, .floor);
+    m.setFeature(p, @intFromEnum(Feature.trap));
+}
 
 //
 // Secret Door
@@ -33,56 +58,46 @@ fn findTrap(entity: *Entity, m: *Map, p: Pos) bool {
     if (m.getFloorTile(p) == .floor) {
         m.setFloorTile(p, .trap);
         entity.setPosChanged(p);
+        // FUTURE: message here
         return true; // Found
     }
     return false;
 }
 
-fn enterTrap(entity: *Entity, m: *Map, p: Pos) bool {
+fn enterTrap(entity: *Entity, m: *Map, p: Pos) void {
     // FUTURE: chance to avoid
     // FUTURE: consequences
     m.setFloorTile(p, .trap);
     entity.setPosChanged(p);
     entity.addMessage("You step on a trap!");
-    return true;
 }
 
 //
-// Interface
+// Callback invocation
 //
 
-const secret_vtable: Feature.VTable = .{
-    .find = findSecretDoor,
-};
-
-pub fn addSecretDoor(m: *Map, p: Pos) void {
-    m.setFloorTile(p, .wall);
-    m.setFeature(p, .{ .vtable = &secret_vtable });
+pub fn enter(entity: *Entity, map: *Map, pos: Pos) void {
+    if (map.getFeature(pos)) |val| {
+        const f: Feature = @enumFromInt(val);
+        switch (f) {
+            .trap => enterTrap(entity, map, pos),
+            else => {},
+        }
+    }
 }
 
-const trap_vtable: Feature.VTable = .{
-    .find = findTrap,
-    .enter = enterTrap,
-};
-
-pub fn addTrap(m: *Map, p: Pos) void {
-    m.setFloorTile(p, .floor);
-    m.setFeature(p, .{ .vtable = &trap_vtable });
+pub fn find(entity: *Entity, map: *Map, pos: Pos) bool {
+    if (map.getFeature(pos)) |val| {
+        const f: Feature = @enumFromInt(val);
+        return switch (f) {
+            .trap => findTrap(entity, map, pos),
+            .secret_door => findSecretDoor(entity, map, pos),
+            else => false,
+        };
+    }
+    return false; // NOCOMMIT: needed?
 }
 
-pub fn initTrap() Feature {
-    return .{
-        .vtable = .{
-            .find = findTrap,
-            .enter = enterTrap,
-        },
-    };
-}
-
-//
-// Unit tests
-//
-
-// TODO: still tricky
+// FUTURE: take, open, climb, descend, etc.
 
 // EOF
