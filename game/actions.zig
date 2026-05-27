@@ -169,8 +169,6 @@ pub fn moveEntity(entity: *Entity, map: *Map, new_pos: Pos) void {
     entity.setRegionVisible(.configRadius(new_pos, 1), true);
 
     features.enter(entity, map, new_pos);
-
-    entity.notifyDisplay(map);
 }
 
 //
