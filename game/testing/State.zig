@@ -59,6 +59,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     };
 
     actions.moveEntity(entity, map, player.getPos());
+    entity.notifyDisplay(map);
 
     return self;
 }
@@ -87,6 +88,7 @@ pub fn moveTo(self: *Self, pos: Pos) void {
     _ = self.client.getMapUpdates();
     _ = self.client.getTileUpdates();
     actions.moveEntity(entity, self.map, pos);
+    entity.notifyDisplay(self.map);
 }
 
 pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {

@@ -72,6 +72,7 @@ fn play(config: *level.Config, map: *Map, queue: *Entity.Queue) State {
         if (result != .continue_game) {
             break;
         }
+        entity.notifyDisplay(map);
         queue.enqueue(entity); // Continues
     }
 
