@@ -6,7 +6,6 @@ const std = @import("std");
 
 const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
-const Feature = @import("roguelib").Feature;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
@@ -102,11 +101,10 @@ fn doSearch(entity: *Entity, action: *Action, map: *Map) Action.Result {
     var i = r.iterator();
     var found: bool = false;
     while (i.next()) |pos| {
-        if (map.getFeature(pos)) |f| {
-            found |= f.find(entity, map, pos); // aggregate result
-        }
+        found |= features.find(entity, map, pos);
     }
 
+    // FUTURE: when clients can handle multiple messages, embed in handler
     if (found) {
         entity.addMessage("You find something!");
     } else {
@@ -170,10 +168,14 @@ pub fn moveEntity(entity: *Entity, map: *Map, new_pos: Pos) void {
     }
     entity.setRegionVisible(.configRadius(new_pos, 1), true);
 
-    _ = map.enterFeature(entity, new_pos);
+    features.enter(entity, map, new_pos);
 
     entity.notifyDisplay(map);
 }
+
+//
+// Rooms
+//
 
 // Enter a room
 

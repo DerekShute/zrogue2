@@ -15,7 +15,7 @@ const Self = @This();
 //
 
 entity: ?*Entity = undefined,
-feature: ?Feature = null,
+feature: ?u8 = undefined,
 floor: Tile = undefined,
 item: Tile = undefined, // FUTURE: Item type
 lit: bool = undefined,
@@ -81,17 +81,17 @@ pub fn setFloorTile(self: *Self, to: MapTile) void {
     self.floor = .fromOther(to);
 }
 
-pub fn setFeature(self: *Self, to: ?Feature) void {
-    if ((self.feature != null) and (to != null)) {
-        // Set it to null first, for safety
-        @panic("Place.setFeature: already in use\n");
-    }
+// Features
+
+pub fn setFeature(self: *Self, to: ?u8) void {
     self.feature = to;
 }
 
-pub fn getFeature(self: *Self) ?Feature {
+pub fn getFeature(self: *Self) ?u8 {
     return self.feature;
 }
+
+// FUTURE: as a bool
 
 pub fn passable(self: *Self) bool {
     if (self.entity) |_| {
