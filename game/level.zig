@@ -143,8 +143,8 @@ fn makeTraps(map: *Map, r: *std.Random, level: usize) void {
     const count = r.intRangeAtMost(usize, 1, @divTrunc(level, 4) + 1);
     for (0..count) |_| {
         const pos = findAnyFloor(r, map);
-        if (map.getFeature(pos)) |_| {
-            // TODO: definitely suboptimal.  findAnyFloor should only return empty floor
+        if (map.getFeature(pos) == null) {
+            // TODO: findAnyFloor should only return empty floor
             features.addTrap(map, pos);
         }
     }
