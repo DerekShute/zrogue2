@@ -4,14 +4,15 @@
 
 const std = @import("std");
 
-const Action = @import("Action.zig");
-const Client = @import("Client.zig");
 const DisplayTile = @import("common").DisplayTile;
-const Entity = @import("Entity.zig");
-const Map = @import("Map.zig");
-const Pos = @import("Pos.zig");
-const Region = @import("Region.zig");
-const MapTile = @import("Tileset.zig").MapTile;
+const MapTile = @import("common").MapTile;
+
+const Action = @import("roguelib").Action;
+const Client = @import("roguelib").Client;
+const Entity = @import("roguelib").Entity;
+const Map = @import("roguelib").Map;
+const Pos = @import("roguelib").Pos;
+const Region = @import("roguelib").Region;
 
 //
 // Types
@@ -37,6 +38,7 @@ const Self = @This();
 entity: Entity = undefined, // Must be first for vtable magic
 client: *Client = undefined,
 purse: u16 = 0,
+// FUTURE: name, connection abstraction, account information
 
 //
 // Constructor
@@ -155,12 +157,5 @@ fn takeItem(self: *Self, i: MapTile) void {
 //
 
 // Part of the larger test rig...no mock Clients here
-
-//
-// Visualization
-//
-
-const genFields = @import("utils/visual.zig").genFields;
-pub var fields = genFields(Self);
 
 // EOF
