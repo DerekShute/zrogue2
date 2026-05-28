@@ -175,7 +175,7 @@ fn findFloor(r: *std.Random, room: *Room) Pos {
 
 fn findAnyFloor(r: *std.Random, map: *Map) Pos {
     const i = r.intRangeAtMost(usize, 0, max_rooms - 1);
-    const room = mapgen.getRoom(map, i);
+    const room = map.roomFromNum(i);
 
     return findFloor(r, room);
 }
@@ -196,8 +196,8 @@ fn notConnected(graph: []bool, r1: usize, r2: usize) bool {
 fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
     const i = @min(rn1, rn2); // Western or Northern
     const j = @max(rn1, rn2); // Eastern or Southern
-    var r1 = mapgen.getRoom(map, i);
-    var r2 = mapgen.getRoom(map, j);
+    var r1 = map.roomFromNum(i);
+    var r2 = map.roomFromNum(j);
     var d1: Pos = undefined;
     var d2: Pos = undefined;
 
@@ -249,7 +249,7 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
     var i: usize = rand.intRangeAtMost(usize, 0, 3);
     while (i > 0) {
         const r = rand.intRangeAtMost(usize, 0, max_rooms - 1);
-        const room = mapgen.getRoom(map, r);
+        const room = map.roomFromNum(r);
         if (room.isGone()) {
             continue;
         }
@@ -300,7 +300,7 @@ pub fn create(config: Config, allocator: std.mem.Allocator) !*Map {
     for (0..max_rooms) |i| {
         // FUTURE: This is broken out oddly. Builder pattern that works a
         // config and submits that to mapgen for construction?
-        const r = mapgen.getRoom(map, i);
+        const r = map.roomFromNum(i);
         if (r.flags.gone) { // TODO: interface
             mapgen.addRoom(map, makeGoneRoom(@intCast(i), map, rand), .floor);
             continue;

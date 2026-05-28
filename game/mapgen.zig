@@ -95,16 +95,6 @@ pub fn addRoom(m: *Map, room: Room, floor: MapTile) void {
     }
 }
 
-// NOCOMMIT: does not belong here
-pub fn getRoom(m: *Map, roomno: usize) *Room {
-
-    // Slightly better than using the raw reference
-    if (roomno >= m.rooms.len) {
-        @panic("mapgen.getRoom bad room number");
-    }
-    return &m.rooms[roomno];
-}
-
 //
 // Corridors
 //
