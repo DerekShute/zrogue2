@@ -193,9 +193,16 @@ pub fn iterator(self: *Self) Pos.Range {
     );
 }
 
+// Rooms
 //
-// rooms
-//
+// FUTURE: getRoomNum is a mapgen thing, but no idea how to make it generic
+
+fn getRoom(self: *Self, p: Pos) ?*Room {
+    if (self.getRoomNum(p)) |loc| { // TODO does this make sense?
+        return &self.rooms[loc];
+    }
+    return null;
+}
 
 fn getRoomNum(self: *Self, p: Pos) ?usize {
     if ((p.getX() < 0) or (p.getY() < 0)) {
@@ -217,32 +224,7 @@ fn getRoomNum(self: *Self, p: Pos) ?usize {
     return loc;
 }
 
-// FUTURE: getRoomNum is a mapgen thing
-fn getRoom(self: *Self, p: Pos) ?*Room {
-    if (self.getRoomNum(p)) |loc| { // TODO does this make sense?
-        return &self.rooms[loc];
-    }
-    return null;
-}
-
-fn getInRoom(self: *Self, p: Pos) ?*Room {
-    // If in the room, return it, else null
-    if (self.getRoom(p)) |room| {
-        if (room.isInside(p)) {
-            return room;
-        }
-    } // else ugh
-
-    return null;
-}
-
-pub fn inRoom(self: *Self, p: Pos) bool {
-    if (self.getRoom(p)) |room| {
-        return room.isInside(p);
-    }
-    return false; // TODO: ugh
-}
-
+// REFACTOR: game/actions.zig
 pub fn getRoomRegion(self: *Self, p: Pos) ?Region {
     if (self.getRoom(p)) |room| {
         if (room.isInside(p)) {
@@ -250,6 +232,13 @@ pub fn getRoomRegion(self: *Self, p: Pos) ?Region {
         }
     }
     return null; // p not in actual room
+}
+
+pub fn roomFromNum(self: *Self, num: usize) *Room {
+    if (num >= self.rooms.len) {
+        @panic("map.roomFromNum bad room number");
+    }
+    return &self.rooms[num];
 }
 
 pub fn addRoom(self: *Self, room: Room) void {
@@ -294,15 +283,15 @@ const expectError = std.testing.expectError;
 
 // Rooms
 
-test "add a room and ask about it" {
+test "add a room" {
     var map = try init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit(std.testing.allocator);
 
     const r1 = Room.config(.init(5, 5), .init(10, 10));
     map.addRoom(r1);
-    try expect(map.inRoom(.init(7, 7)) == true);
-    try expect(map.inRoom(.init(19, 19)) == false);
-    try expect(map.inRoom(.init(-1, -1)) == false);
+    var region = map.getRoomRegion(.init(7, 7));
+    try expect(region.?.getMin().getX() == 5);
+    try expect(region.?.getMin().getY() == 5);
 }
 
 // Map
@@ -395,14 +384,6 @@ test "inquire about room at invalid location" {
     try expect(map.getRoomNum(.init(20, 0)) == null);
     try expect(map.getRoomNum(.init(0, 20)) == null);
     try expect(map.getRoomNum(.init(0, 19)) == 0);
-
-    // The rest are inquiries that we default to 'false' for insane callers
-    // commence groaning now
-
-    try expect(map.inRoom(.init(20, 0)) == false);
-    try expect(map.inRoom(.init(100, 100)) == false);
-    try expect(map.inRoom(.init(-1, -1)) == false);
-    try expect(map.inRoom(.init(-1, -1)) == false);
 
     // It is invalid to even ask
     //
