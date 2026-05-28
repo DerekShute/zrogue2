@@ -10,6 +10,7 @@ const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 const features = @import("features.zig");
+const mapgen = @import("mapgen.zig");
 
 //
 // Types
@@ -54,7 +55,7 @@ fn doNothing(entity: *Entity, action: *Action, map: *Map) Action.Result {
 
 fn doAscend(entity: *Entity, action: *Action, map: *Map) Action.Result {
     _ = action;
-    if (map.getFloorTile(entity.getPos()) == .stairs_up) {
+    if (mapgen.getFloor(map, entity.getPos()) == .stairs_up) {
         entity.addMessage("You ascend closer to the exit..."); // TODO stupid
         return .ascend;
     }
@@ -64,7 +65,7 @@ fn doAscend(entity: *Entity, action: *Action, map: *Map) Action.Result {
 
 fn doDescend(entity: *Entity, action: *Action, map: *Map) Action.Result {
     _ = action;
-    if (map.getFloorTile(entity.getPos()) == .stairs_down) {
+    if (mapgen.getFloor(map, entity.getPos()) == .stairs_down) {
         entity.addMessage("You go ever deeper into the dungeon...");
         return .descend;
     }
@@ -143,8 +144,8 @@ pub fn moveEntity(entity: *Entity, map: *Map, new_pos: Pos) void {
     entity.setPos(new_pos);
     map.addEntity(entity, new_pos);
 
-    const new_floor = map.getFloorTile(new_pos);
-    const old_floor = map.getFloorTile(old_pos);
+    const new_floor = mapgen.getFloor(map, new_pos);
+    const old_floor = mapgen.getFloor(map, old_pos);
     const new_lit = map.isLit(new_pos);
     const old_lit = map.isLit(old_pos);
 

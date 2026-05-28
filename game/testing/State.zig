@@ -16,6 +16,7 @@ const game = @import("../root.zig");
 
 const actions = @import("../actions.zig");
 const level = @import("level.zig"); // Test level
+const mapgen = @import("../mapgen.zig");
 
 const expect = std.testing.expect;
 const Self = @This();
@@ -93,7 +94,7 @@ pub fn moveTo(self: *Self, pos: Pos) void {
 }
 
 pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {
-    try expect(self.map.getFloorTile(pos) == floor);
+    try expect(mapgen.getFloor(self.map, pos) == floor);
 }
 
 pub fn expectItemAtPlayer(self: *Self, item: MapTile) !void {
