@@ -25,6 +25,7 @@ pub const Feature = enum {
 
 pub fn addSecretDoor(m: *Map, p: Pos) void {
     m.setFloorTile(p, .wall);
+    m.setPassable(p, false);
     m.setFeature(p, @intFromEnum(Feature.secret_door));
 }
 
@@ -43,6 +44,7 @@ fn findSecretDoor(entity: *Entity, m: *Map, p: Pos) bool {
     // FUTURE: message
     m.setFloorTile(p, .door);
     m.setFeature(p, null);
+    m.setPassable(p, true);
     entity.setPosChanged(p);
 
     return true; // Found

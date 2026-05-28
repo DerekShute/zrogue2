@@ -160,8 +160,14 @@ pub fn setFloorTile(self: *Self, p: Pos, tile: MapTile) void {
     self.toPlace(p).setFloorTile(tile);
 }
 
-pub fn passable(self: *Self, p: Pos) bool {
-    return self.toPlace(p).passable();
+// Passable
+
+pub fn isPassable(self: *Self, p: Pos) bool {
+    return self.toPlace(p).isPassable();
+}
+
+pub fn setPassable(self: *Self, p: Pos, val: bool) void {
+    return self.toPlace(p).setPassable(val);
 }
 
 // Lit

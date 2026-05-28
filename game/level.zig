@@ -120,6 +120,7 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) void {
     //     if (rnd(10) + 1 < level && rnd(5) == 0) then secret door
 
     map.setFloorTile(p, .door);
+    map.setPassable(p, true);
     if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
         features.addSecretDoor(map, p);
     }

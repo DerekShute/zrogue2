@@ -76,7 +76,7 @@ fn doDescend(entity: *Entity, action: *Action, map: *Map) Action.Result {
 fn doMove(entity: *Entity, action: *Action, map: *Map) Action.Result {
     const new_pos = Pos.add(entity.getPos(), action.getPos());
 
-    if (!map.passable(new_pos)) {
+    if (!map.isPassable(new_pos)) {
         entity.addMessage("Ouch!"); // FUTURE: 'bump' callback
         return .continue_game;
     }

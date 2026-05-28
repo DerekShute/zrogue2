@@ -64,10 +64,6 @@ pub const MapTile = enum(u8) {
         };
     }
 
-    pub fn isPassable(self: MapTile) bool {
-        return (self != .wall);
-    }
-
     pub fn fromTile(self: Tile) MapTile {
         return @enumFromInt(@intFromEnum(self));
     }
@@ -122,11 +118,6 @@ test "lock MapTile behavior" {
                 try expect(tile.isFeature() == (i < @intFromEnum(MapTile.gold)));
             },
         }
-
-        // Walls and undiscovered secret doors are not passable.
-        // .unknown is unclear
-        const passable = (i != @intFromEnum(MapTile.wall));
-        try expect(tile.isPassable() == passable);
     }
 }
 
