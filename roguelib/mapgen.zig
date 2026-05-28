@@ -1,7 +1,9 @@
 //!
 //! Mapgen utility functions
 //!
-//! FUTURE: Rogue-specific and should be broken out/apart
+//! FUTURE: Rogue-specific and should be broken out/apart, ridding MapTile
+//!
+//! REFACTOR: look at use cases and define more efficient API
 //!
 
 const std = @import("std");
@@ -16,12 +18,14 @@ const Room = @import("map/Room.zig");
 //
 // Utility Functions
 //
-
+// NOTE: assumes a corridor: dark and passable
 fn drawHorizLine(m: *Map, start: Pos, end_x: Pos.Dim, tile: MapTile) void {
     const minx = @min(start.getX(), end_x + 1);
     const maxx = @max(start.getX(), end_x + 1);
     for (@intCast(minx)..@intCast(maxx)) |x| {
-        m.setFloorTile(.init(@intCast(x), start.getY()), tile);
+        const p = Pos.init(@intCast(x), start.getY());
+        m.setFloorTile(p, tile);
+        m.setPassable(p, true);
     }
 }
 
@@ -29,7 +33,9 @@ fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) void {
     const miny = @min(start.getY(), end_y + 1);
     const maxy = @max(start.getY(), end_y + 1);
     for (@intCast(miny)..@intCast(maxy)) |y| {
-        m.setFloorTile(.init(start.getX(), @intCast(y)), tile);
+        const p = Pos.init(start.getX(), @intCast(y));
+        m.setFloorTile(p, tile);
+        m.setPassable(p, true);
     }
 }
 
@@ -39,6 +45,7 @@ fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     var ri = r.iterator();
     while (ri.next()) |pos| {
         m.setFloorTile(pos, tile);
+        m.setPassable(pos, (tile == .floor)); // Tests use .wall for reset
     }
 }
 
@@ -151,6 +158,7 @@ test "mapgen smoke test" {
     addRoom(m, r, .floor);
 
     try expect(m.isLit(.init(15, 15)) == true);
+    try expect(m.isPassable(.init(15, 15)) == true);
 
     try expect(m.getFloorTile(.init(0, 0)) == .wall);
     try expect(m.getFloorTile(.init(10, 10)) == .wall);
@@ -175,37 +183,50 @@ test "dig corridors" {
     // Eastward dig, southgoing vertical
     addEastCorridor(m, .init(4, 4), .init(20, 10), 12, .floor);
     try expect(m.getFloorTile(.init(12, 7)) == .floor); // halfway
+    try expect(m.isLit(.init(12, 7)) == false);
+    try expect(m.isPassable(.init(12, 7)) == true);
     try expect(m.getFloorTile(.init(12, 4)) == .floor);
     try expect(m.getFloorTile(.init(12, 10)) == .floor);
     try expect(m.getFloorTile(.init(4, 4)) == .floor);
     try expect(m.getFloorTile(.init(20, 10)) == .floor);
+
     drawField(m, .init(4, 4), .init(20, 10), .wall); // reset
 
     // Eastward dig, northgoing vertical
     addEastCorridor(m, .init(4, 10), .init(20, 4), 12, .floor);
     try expect(m.getFloorTile(.init(12, 7)) == .floor); // halfway
+    try expect(m.isLit(.init(12, 7)) == false);
+    try expect(m.isPassable(.init(12, 7)) == true);
+
     try expect(m.getFloorTile(.init(12, 4)) == .floor);
     try expect(m.getFloorTile(.init(12, 10)) == .floor);
     try expect(m.getFloorTile(.init(4, 10)) == .floor);
     try expect(m.getFloorTile(.init(20, 4)) == .floor);
+
     drawField(m, .init(4, 4), .init(20, 10), .wall); // reset
 
     // Southward dig, westgoing horizontal
     addSouthCorridor(m, .init(10, 8), .init(3, 14), 11, .floor);
     try expect(m.getFloorTile(.init(6, 11)) == .floor); // halfway
+    try expect(m.isPassable(.init(6, 11)) == true);
+
     try expect(m.getFloorTile(.init(3, 11)) == .floor);
     try expect(m.getFloorTile(.init(10, 11)) == .floor);
     try expect(m.getFloorTile(.init(10, 8)) == .floor);
     try expect(m.getFloorTile(.init(3, 14)) == .floor);
+
     drawField(m, .init(3, 8), .init(10, 14), .wall); // reset
 
     // Southward dig, eastgoing horizontal
     addSouthCorridor(m, .init(3, 8), .init(10, 14), 11, .floor);
     try expect(m.getFloorTile(.init(6, 11)) == .floor); // halfway
+    try expect(m.isPassable(.init(6, 11)) == true);
+
     try expect(m.getFloorTile(.init(3, 11)) == .floor);
     try expect(m.getFloorTile(.init(10, 11)) == .floor);
     try expect(m.getFloorTile(.init(3, 8)) == .floor);
     try expect(m.getFloorTile(.init(10, 14)) == .floor);
+
     drawField(m, .init(3, 8), .init(10, 14), .wall); // reset
 }
 

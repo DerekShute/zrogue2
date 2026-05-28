@@ -39,7 +39,8 @@ const mapgen = @import("roguelib").mapgen;
 //
 // Fixed things at fixed locations for deterministic behavior
 //
-
+// REFACTOR: remove player-entity from this
+//
 pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     var map = try Map.init(allocator, game.XSIZE, game.YSIZE, 3, 2);
     errdefer map.deinit(allocator);
@@ -55,6 +56,7 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     mapgen.addRoom(map, Room.config(.init(4, 12), .init(20, 19)), .floor);
 
     mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10, .corridor);
+    // TODO: makeDoor not exposed and requires std.Random
 
     mapgen.addItemToMap(map, .init(7, 5), .gold);
 
@@ -69,4 +71,22 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     return map;
 }
 
+//
+// Unit Tests (of the mapgen in general)
+//
+
+const expect = std.testing.expect;
+const test_allocator = std.testing.allocator;
+
+test "lit rooms, dark rooms, passability" {
+    var entity = Entity.init(.{ .tile = .player, .vtable = &.{} });
+    var map = try create(test_allocator, &entity);
+    defer map.deinit(test_allocator);
+
+    try expect(map.isPassable(.init(9, 5)) == false); // unfound secret door
+    try expect(map.isPassable(.init(8, 5)) == true); // unfound trap
+    try expect(map.isPassable(.init(8, 4)) == true); // stairs down
+    try expect(map.isPassable(.init(8, 3)) == true); // stairs up
+    try expect(map.isPassable(.init(8, 15)) == true); // room
+}
 // EOF

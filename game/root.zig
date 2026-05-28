@@ -146,6 +146,7 @@ pub fn run(config: Config) !void {
 comptime {
     _ = @import("level.zig");
     _ = @import("testing/actions.zig");
+    _ = @import("testing/level.zig");
     _ = @import("testing/main.zig");
     _ = @import("testing/render.zig");
 }
