@@ -10,6 +10,7 @@ const Map = @import("roguelib").Map;
 const MapTile = @import("common").MapTile;
 const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
+const Tile = @import("common").Tile;
 
 const game = @import("../root.zig");
 
@@ -96,11 +97,13 @@ pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {
 }
 
 pub fn expectItemAtPlayer(self: *Self, item: MapTile) !void {
-    try expect(self.map.getItem(self.player.getPos()) == item);
+    const t: Tile = @enumFromInt(@intFromEnum(item));
+    try expect(self.map.getItem(self.player.getPos()) == t);
 }
 
 pub fn expectItem(self: *Self, pos: Pos, item: MapTile) !void {
-    try expect(self.map.getItem(pos) == item);
+    const t: Tile = @enumFromInt(@intFromEnum(item));
+    try expect(self.map.getItem(pos) == t);
 }
 
 pub fn expectMapUpdates(self: *Self, count: i32) !void {

@@ -1,19 +1,16 @@
 //!
-//! Mapgen utility functions
-//!
-//! FUTURE: Rogue-specific and should be broken out/apart, ridding MapTile
+//! Rogue-specific mapgen utility functions
 //!
 //! REFACTOR: look at use cases and define more efficient API
 //!
 
 const std = @import("std");
-const Entity = @import("Entity.zig");
-const Feature = @import("Feature.zig");
-const Map = @import("Map.zig");
-const MapTile = @import("Tileset.zig").MapTile;
-const Pos = @import("Pos.zig");
-const Region = @import("Region.zig");
-const Room = @import("map/Room.zig");
+const Entity = @import("roguelib").Entity;
+const Map = @import("roguelib").Map;
+const MapTile = @import("common").MapTile;
+const Pos = @import("roguelib").Pos;
+const Region = @import("roguelib").Region;
+const Room = @import("roguelib").Room;
 
 //
 // Utility Functions
@@ -67,19 +64,12 @@ pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
 }
 
 //
-// Features
-//
-
-pub fn addFeature(m: *Map, p: Pos, f: ?Feature) void {
-    m.setFeature(p, f);
-}
-
-//
 // Items
 //
+// TODO: MapTile becomes identifier
 
-pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {
-    m.addItem(p, t);
+pub fn addItem(m: *Map, p: Pos, t: MapTile) void {
+    m.setItem(p, @enumFromInt(@intFromEnum(t)));
 }
 
 //
@@ -87,7 +77,8 @@ pub fn addItemToMap(m: *Map, p: Pos, t: MapTile) void {
 //
 
 // Rectangular room that includes the bounding walls
-
+//
+// REFACTOR: back to .floor
 pub fn addRoom(m: *Map, room: Room, floor: MapTile) void {
     var _r = room; // slide to non-const
     m.addRoom(_r);
@@ -104,7 +95,7 @@ pub fn addRoom(m: *Map, room: Room, floor: MapTile) void {
     }
 }
 
-// FUTURE: room lookup is game-specific
+// NOCOMMIT: does not belong here
 pub fn getRoom(m: *Map, roomno: usize) *Room {
 
     // Slightly better than using the raw reference

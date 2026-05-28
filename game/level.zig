@@ -6,7 +6,7 @@ const std = @import("std");
 
 const features = @import("features.zig");
 const Map = @import("roguelib").Map;
-const mapgen = @import("roguelib").mapgen;
+const mapgen = @import("mapgen.zig");
 const MapTile = @import("rogueui").MapTile;
 const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
@@ -130,7 +130,7 @@ fn makeGold(map: *Map, r: *std.Random, room: *Room) void {
     // FUTURE : if !amulet and if level < max_level
     if (r.intRangeAtMost(usize, 0, 1) == 0) { // 50%
         const pos = findFloor(r, room);
-        mapgen.addItemToMap(map, pos, .gold);
+        mapgen.addItem(map, pos, .gold);
     }
 }
 

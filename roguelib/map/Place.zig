@@ -3,7 +3,6 @@
 //!
 
 const Entity = @import("../Entity.zig");
-const Feature = @import("../Feature.zig");
 const Tile = @import("common").Tile;
 const Tileset = @import("../Tileset.zig");
 const MapTile = Tileset.MapTile;
@@ -68,21 +67,17 @@ pub fn removeEntity(self: *Self) void {
     self.entity = null;
 }
 
-// FUTURE: an index/ID that is Game controlled
+// Items
 
-pub fn setItem(self: *Self, to: MapTile) void {
-    if (self.item != .none) {
+pub fn getItem(self: *Self) Tile {
+    return self.item;
+}
+
+pub fn setItem(self: *Self, to: Tile) void {
+    if ((to != .none) and (self.item != .none)) {
         @panic("Place.setItem: already in use\n");
     }
-    self.item = .fromOther(to);
-}
-
-pub fn getItem(self: *Self) MapTile {
-    return .fromTile(self.item);
-}
-
-pub fn removeItem(self: *Self) void {
-    self.item = .none;
+    self.item = to;
 }
 
 // Floor
@@ -143,6 +138,12 @@ test "basic tests" {
     try expect(place.isPassable() == false);
     place.setPassable(true);
     try expect(place.isPassable() == true);
+
+    const t: Tile = @enumFromInt(5);
+    place.setItem(t);
+    try expect(place.getItem() == t);
+    place.setItem(.none); // Must be allowed; any other set will panic
+    place.setItem(t);
 }
 
 // EOF

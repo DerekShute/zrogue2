@@ -12,6 +12,7 @@ const Region = @import("Region.zig");
 const Room = @import("map/Room.zig");
 const Tileset = @import("Tileset.zig");
 const MapTile = Tileset.MapTile;
+const Tile = @import("common").Tile;
 
 const PlaceGrid = Grid(Place);
 
@@ -111,17 +112,17 @@ pub fn removeEntity(self: *Self, p: Pos) void {
     self.toPlace(p).removeEntity();
 }
 
-pub fn addItem(self: *Self, p: Pos, i: MapTile) void {
-    self.toPlace(p).setItem(i);
-}
+// Items
 
-pub fn getItem(self: *Self, p: Pos) MapTile {
+pub fn getItem(self: *Self, p: Pos) Tile {
     return self.toPlace(p).getItem();
 }
 
-pub fn removeItem(self: *Self, p: Pos) void {
-    self.toPlace(p).removeItem();
+pub fn setItem(self: *Self, p: Pos, t: Tile) void {
+    self.toPlace(p).setItem(t);
 }
+
+// Queries
 
 pub fn getHeight(self: *Self) Pos.Dim {
     return self.height;

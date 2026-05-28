@@ -34,7 +34,7 @@ const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
 const game = @import("../root.zig");
-const mapgen = @import("roguelib").mapgen;
+const mapgen = @import("../mapgen.zig");
 
 //
 // Fixed things at fixed locations for deterministic behavior
@@ -58,7 +58,7 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10, .corridor);
     // TODO: makeDoor not exposed and requires std.Random
 
-    mapgen.addItemToMap(map, .init(7, 5), .gold);
+    mapgen.addItem(map, .init(7, 5), .gold);
 
     map.setFloorTile(.init(8, 4), .stairs_down);
     map.setFloorTile(.init(8, 3), .stairs_up);
