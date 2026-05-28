@@ -9,7 +9,6 @@ pub const FOVMap = @import("FOVMap.zig");
 pub const Grid = @import("grid.zig").Grid;
 pub const Map = @import("Map.zig");
 pub const mapgen = @import("mapgen.zig");
-pub const Player = @import("Player.zig");
 pub const Pos = @import("Pos.zig");
 pub const Region = @import("Region.zig");
 pub const Room = @import("map/Room.zig");

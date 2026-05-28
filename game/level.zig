@@ -8,7 +8,7 @@ const features = @import("features.zig");
 const Map = @import("roguelib").Map;
 const mapgen = @import("roguelib").mapgen;
 const MapTile = @import("rogueui").MapTile;
-const Player = @import("roguelib").Player;
+const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 
@@ -268,10 +268,12 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
 //
 
 pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
-    mapgen.addEntityToMap(map, player.getEntity(), findAnyFloor(rand, map));
+    const entity = player.getEntity();
+
+    mapgen.addEntityToMap(map, entity, findAnyFloor(rand, map));
     player.setDepth(@intCast(map.level));
-    actions.enterRoom(&player.entity, map);
-    player.entity.notifyDisplay(map);
+    actions.enterRoom(entity, map);
+    entity.notifyDisplay(map);
 }
 
 //
