@@ -51,7 +51,7 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
 
     mapgen.addRoom(map, Room.config(.init(27, 5), .init(35, 10)), .floor);
     mapgen.addEastCorridor(map, .init(9, 5), .init(27, 8), 13, .corridor);
-    map.setFloorTile(.init(27, 8), .door); // FOV requires
+    mapgen.setFloor(map, .init(27, 8), .door); // FOV requires
 
     mapgen.addRoom(map, Room.config(.init(4, 12), .init(20, 19)), .floor);
 
@@ -60,9 +60,10 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
 
     mapgen.addItem(map, .init(7, 5), .gold);
 
-    map.setFloorTile(.init(8, 4), .stairs_down);
-    map.setFloorTile(.init(8, 3), .stairs_up);
+    mapgen.setFloor(map, .init(8, 4), .stairs_down);
+    mapgen.setFloor(map, .init(8, 3), .stairs_up);
 
+    // REFACTOR: consolidate namespace
     game.addSecretDoor(map, .init(9, 5));
     game.addTrap(map, .init(8, 5));
 

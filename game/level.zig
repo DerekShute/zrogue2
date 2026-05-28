@@ -119,10 +119,10 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) void {
     //
     //     if (rnd(10) + 1 < level && rnd(5) == 0) then secret door
 
-    map.setFloorTile(p, .door);
-    map.setPassable(p, true);
     if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
         features.addSecretDoor(map, p);
+    } else {
+        mapgen.setFloor(map, p, .door);
     }
 }
 
@@ -383,9 +383,9 @@ pub fn create(config: Config, allocator: std.mem.Allocator) !*Map {
         const pos = findAnyFloor(rand, map);
 
         if (config.going_down) {
-            map.setFloorTile(pos, .stairs_down);
+            mapgen.setFloor(map, pos, .stairs_down);
         } else {
-            map.setFloorTile(pos, .stairs_up);
+            mapgen.setFloor(map, pos, .stairs_up);
         }
     }
 

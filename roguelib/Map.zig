@@ -11,7 +11,6 @@ const Place = @import("map/Place.zig");
 const Region = @import("Region.zig");
 const Room = @import("map/Room.zig");
 const Tileset = @import("Tileset.zig");
-const MapTile = Tileset.MapTile;
 const Tile = @import("common").Tile;
 
 const PlaceGrid = Grid(Place);
@@ -152,13 +151,12 @@ pub fn setFeature(self: *Self, p: Pos, f: ?u8) void {
 
 // Floor tiles
 
-pub fn getFloorTile(self: *Self, p: Pos) MapTile {
-    const ts = self.toPlace(p).getTileset();
-    return ts.floor;
+pub fn getFloor(self: *Self, p: Pos) Tile {
+    return self.toPlace(p).getFloor();
 }
 
-pub fn setFloorTile(self: *Self, p: Pos, tile: MapTile) void {
-    self.toPlace(p).setFloorTile(tile);
+pub fn setFloor(self: *Self, p: Pos, tile: Tile) void {
+    self.toPlace(p).setFloor(tile);
 }
 
 // Passable
@@ -300,11 +298,10 @@ test "map smoke test" {
     var map = try init(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit(std.testing.allocator);
 
+    const stair: Tile = @enumFromInt(45); // Fakery
     map.addRoom(.config(.init(10, 10), .init(20, 20)));
-    map.setFloorTile(.init(15, 15), .stairs_down);
-    try expect(map.getFloorTile(.init(15, 15)) == .stairs_down);
-    map.setFloorTile(.init(16, 16), .stairs_up);
-    try expect(map.getFloorTile(.init(16, 16)) == .stairs_up);
+    map.setFloor(.init(15, 15), stair);
+    try expect(map.getFloor(.init(15, 15)) == stair);
 
     try expect(map.getHeight() == 50);
     try expect(map.getWidth() == 100);
@@ -347,7 +344,7 @@ test "Map Iterator" {
         try expect(pos.getY() >= 0);
         try expect(pos.getY() < ARRAYDIM);
         a[f] = 1;
-        _ = map.getFloorTile(pos); // Doesn't panic?  Good for you!
+        _ = map.getFloor(pos); // Doesn't panic?  Good for you!
     }
 
     // Everything should have been touched

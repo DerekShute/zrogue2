@@ -82,8 +82,12 @@ pub fn setItem(self: *Self, to: Tile) void {
 
 // Floor
 
-pub fn setFloorTile(self: *Self, to: MapTile) void {
-    self.floor = .fromOther(to);
+pub fn getFloor(self: *Self) Tile {
+    return self.floor;
+}
+
+pub fn setFloor(self: *Self, to: Tile) void {
+    self.floor = to;
 }
 
 // Features
@@ -123,9 +127,10 @@ const expect = @import("std").testing.expect;
 test "basic tests" {
     var place: Self = .init;
 
-    place.setFloorTile(.wall);
+    const wall: Tile = @enumFromInt(@intFromEnum(Tileset.MapTile.wall));
+    place.setFloor(wall);
     const ts = place.getTileset();
-    try expect(ts.floor == .wall);
+    try expect(ts.floor == Tileset.MapTile.wall);
     try expect(ts.entity == .unknown);
     try expect(ts.item == .unknown);
     try expect(place.isPassable() == false);

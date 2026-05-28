@@ -21,8 +21,7 @@ fn drawHorizLine(m: *Map, start: Pos, end_x: Pos.Dim, tile: MapTile) void {
     const maxx = @max(start.getX(), end_x + 1);
     for (@intCast(minx)..@intCast(maxx)) |x| {
         const p = Pos.init(@intCast(x), start.getY());
-        m.setFloorTile(p, tile);
-        m.setPassable(p, true);
+        setFloor(m, p, tile);
     }
 }
 
@@ -31,8 +30,7 @@ fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) void {
     const maxy = @max(start.getY(), end_y + 1);
     for (@intCast(miny)..@intCast(maxy)) |y| {
         const p = Pos.init(start.getX(), @intCast(y));
-        m.setFloorTile(p, tile);
-        m.setPassable(p, true);
+        setFloor(m, p, tile);
     }
 }
 
@@ -41,8 +39,7 @@ fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) void {
     var r = Region.config(start, limit);
     var ri = r.iterator();
     while (ri.next()) |pos| {
-        m.setFloorTile(pos, tile);
-        m.setPassable(pos, (tile == .floor)); // Tests use .wall for reset
+        setFloor(m, pos, tile);
     }
 }
 
@@ -61,6 +58,19 @@ fn setLit(m: *Map, region: Region, lit: bool) void {
 pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
     e.setPos(p);
     m.addEntity(e, p);
+}
+
+// Floor
+
+pub fn getFloor(map: *Map, pos: Pos) MapTile {
+    const t = map.getFloor(pos);
+    return @enumFromInt(@intFromEnum(t));
+}
+
+pub fn setFloor(map: *Map, pos: Pos, floor: MapTile) void {
+    // NOTE: assumes only wall is nonpassable
+    map.setFloor(pos, @enumFromInt(@intFromEnum(floor)));
+    map.setPassable(pos, (floor != .wall));
 }
 
 //
@@ -141,15 +151,17 @@ test "mapgen smoke test" {
     try expect(m.isLit(.init(15, 15)) == true);
     try expect(m.isPassable(.init(15, 15)) == true);
 
-    try expect(m.getFloorTile(.init(0, 0)) == .wall);
-    try expect(m.getFloorTile(.init(10, 10)) == .wall);
+    try expect(getFloor(m, .init(0, 0)) == .wall);
+    try expect(getFloor(m, .init(10, 10)) == .wall);
+    try expect(m.isPassable(.init(10, 10)) == false);
 
     // Explicit set tile inside a known room
-    m.setFloorTile(.init(17, 17), .wall);
-    try expect(m.getFloorTile(.init(17, 17)) == .wall);
+    setFloor(m, .init(17, 17), .wall);
+    try expect(getFloor(m, .init(17, 17)) == .wall);
 
-    m.setFloorTile(.init(18, 18), .door);
-    try expect(m.getFloorTile(.init(18, 18)) == .door);
+    setFloor(m, .init(18, 18), .door);
+    try expect(getFloor(m, .init(18, 18)) == .door);
+    try expect(m.isPassable(.init(18, 18)) == true);
 }
 
 // Corridors
@@ -163,50 +175,50 @@ test "dig corridors" {
 
     // Eastward dig, southgoing vertical
     addEastCorridor(m, .init(4, 4), .init(20, 10), 12, .floor);
-    try expect(m.getFloorTile(.init(12, 7)) == .floor); // halfway
+    try expect(getFloor(m, .init(12, 7)) == .floor); // halfway
     try expect(m.isLit(.init(12, 7)) == false);
     try expect(m.isPassable(.init(12, 7)) == true);
-    try expect(m.getFloorTile(.init(12, 4)) == .floor);
-    try expect(m.getFloorTile(.init(12, 10)) == .floor);
-    try expect(m.getFloorTile(.init(4, 4)) == .floor);
-    try expect(m.getFloorTile(.init(20, 10)) == .floor);
+    try expect(getFloor(m, .init(12, 4)) == .floor);
+    try expect(getFloor(m, .init(12, 10)) == .floor);
+    try expect(getFloor(m, .init(4, 4)) == .floor);
+    try expect(getFloor(m, .init(20, 10)) == .floor);
 
     drawField(m, .init(4, 4), .init(20, 10), .wall); // reset
 
     // Eastward dig, northgoing vertical
     addEastCorridor(m, .init(4, 10), .init(20, 4), 12, .floor);
-    try expect(m.getFloorTile(.init(12, 7)) == .floor); // halfway
+    try expect(getFloor(m, .init(12, 7)) == .floor); // halfway
     try expect(m.isLit(.init(12, 7)) == false);
     try expect(m.isPassable(.init(12, 7)) == true);
 
-    try expect(m.getFloorTile(.init(12, 4)) == .floor);
-    try expect(m.getFloorTile(.init(12, 10)) == .floor);
-    try expect(m.getFloorTile(.init(4, 10)) == .floor);
-    try expect(m.getFloorTile(.init(20, 4)) == .floor);
+    try expect(getFloor(m, .init(12, 4)) == .floor);
+    try expect(getFloor(m, .init(12, 10)) == .floor);
+    try expect(getFloor(m, .init(4, 10)) == .floor);
+    try expect(getFloor(m, .init(20, 4)) == .floor);
 
     drawField(m, .init(4, 4), .init(20, 10), .wall); // reset
 
     // Southward dig, westgoing horizontal
     addSouthCorridor(m, .init(10, 8), .init(3, 14), 11, .floor);
-    try expect(m.getFloorTile(.init(6, 11)) == .floor); // halfway
+    try expect(getFloor(m, .init(6, 11)) == .floor); // halfway
     try expect(m.isPassable(.init(6, 11)) == true);
 
-    try expect(m.getFloorTile(.init(3, 11)) == .floor);
-    try expect(m.getFloorTile(.init(10, 11)) == .floor);
-    try expect(m.getFloorTile(.init(10, 8)) == .floor);
-    try expect(m.getFloorTile(.init(3, 14)) == .floor);
+    try expect(getFloor(m, .init(3, 11)) == .floor);
+    try expect(getFloor(m, .init(10, 11)) == .floor);
+    try expect(getFloor(m, .init(10, 8)) == .floor);
+    try expect(getFloor(m, .init(3, 14)) == .floor);
 
     drawField(m, .init(3, 8), .init(10, 14), .wall); // reset
 
     // Southward dig, eastgoing horizontal
     addSouthCorridor(m, .init(3, 8), .init(10, 14), 11, .floor);
-    try expect(m.getFloorTile(.init(6, 11)) == .floor); // halfway
+    try expect(getFloor(m, .init(6, 11)) == .floor); // halfway
     try expect(m.isPassable(.init(6, 11)) == true);
 
-    try expect(m.getFloorTile(.init(3, 11)) == .floor);
-    try expect(m.getFloorTile(.init(10, 11)) == .floor);
-    try expect(m.getFloorTile(.init(3, 8)) == .floor);
-    try expect(m.getFloorTile(.init(10, 14)) == .floor);
+    try expect(getFloor(m, .init(3, 11)) == .floor);
+    try expect(getFloor(m, .init(10, 11)) == .floor);
+    try expect(getFloor(m, .init(3, 8)) == .floor);
+    try expect(getFloor(m, .init(10, 14)) == .floor);
 
     drawField(m, .init(3, 8), .init(10, 14), .wall); // reset
 }
@@ -217,19 +229,19 @@ test "dig unusual corridors" {
 
     // One tile
     addSouthCorridor(m, .init(5, 10), .init(5, 12), 11, .floor);
-    try expect(m.getFloorTile(.init(5, 11)) == .floor);
+    try expect(getFloor(m, .init(5, 11)) == .floor);
 
     // straight East
     addEastCorridor(m, .init(10, 5), .init(15, 5), 12, .floor);
-    try expect(m.getFloorTile(.init(11, 5)) == .floor);
-    try expect(m.getFloorTile(.init(13, 5)) == .floor);
-    try expect(m.getFloorTile(.init(14, 5)) == .floor);
+    try expect(getFloor(m, .init(11, 5)) == .floor);
+    try expect(getFloor(m, .init(13, 5)) == .floor);
+    try expect(getFloor(m, .init(14, 5)) == .floor);
 
     // straight South
     addSouthCorridor(m, .init(16, 8), .init(16, 13), 10, .floor);
-    try expect(m.getFloorTile(.init(16, 9)) == .floor);
-    try expect(m.getFloorTile(.init(16, 10)) == .floor);
-    try expect(m.getFloorTile(.init(16, 12)) == .floor);
+    try expect(getFloor(m, .init(16, 9)) == .floor);
+    try expect(getFloor(m, .init(16, 10)) == .floor);
+    try expect(getFloor(m, .init(16, 12)) == .floor);
 }
 
 // EOF
