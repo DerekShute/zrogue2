@@ -80,7 +80,7 @@ const expect = std.testing.expect;
 const test_allocator = std.testing.allocator;
 
 test "lit rooms, dark rooms, passability" {
-    var entity = Entity.init(.{ .tile = .player, .vtable = &.{} });
+    var entity = Entity.init(.{ .tile = @enumFromInt(4), .vtable = &.{} });
     var map = try create(test_allocator, &entity);
     defer map.deinit(test_allocator);
 
