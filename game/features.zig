@@ -7,31 +7,7 @@ const Entity = @import("roguelib").Entity;
 const Pos = @import("roguelib").Pos;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
-
-//
-// Enum to guide switches
-//
-
-pub const Feature = enum {
-    trap,
-    secret_door,
-    // FUTURE: stairs down, stairs up
-    // FUTURE: illusionary wall, hidden treasure
-};
-
-//
-// mapgen
-//
-
-pub fn addSecretDoor(m: *Map, p: Pos) void {
-    mapgen.setFloor(m, p, .wall);
-    m.setFeature(p, @intFromEnum(Feature.secret_door));
-}
-
-pub fn addTrap(m: *Map, p: Pos) void {
-    mapgen.setFloor(m, p, .floor);
-    m.setFeature(p, @intFromEnum(Feature.trap));
-}
+const Feature = mapgen.Feature;
 
 //
 // Secret Door
