@@ -3,9 +3,9 @@
 //!
 
 const Entity = @import("../Entity.zig");
+const MapTile = @import("common").MapTile; // TODO for now
 const Tile = @import("common").Tile;
-const Tileset = @import("../Tileset.zig");
-const MapTile = Tileset.MapTile;
+const Tileset = @import("Tileset.zig");
 
 const Self = @This();
 

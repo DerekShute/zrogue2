@@ -4,7 +4,7 @@
 //!
 //! FUTURE: lighting, feature
 //!
-pub const MapTile = @import("common").MapTile;
+pub const MapTile = @import("common").MapTile; // TODO: still yuck
 
 const Self = @This();
 
@@ -25,12 +25,5 @@ pub const init: Self = .{
     .entity = .init,
     .item = .init,
 };
-
-//
-// Visualization
-//
-
-const genFields = @import("utils/visual.zig").genFields;
-pub var fields = genFields(Self);
 
 // EOF

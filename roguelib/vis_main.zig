@@ -18,7 +18,6 @@ const FOVMap = @import("FOVMap.zig");
 const Map = @import("Map.zig");
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
-const Tileset = @import("Tileset.zig"); // Slightly a lie
 
 fn printer(array: []const []const u8) void {
     for (array) |name| {
@@ -38,7 +37,6 @@ pub fn main() !void {
     printer(Map.room_fields);
     printer(Pos.fields);
     printer(Region.fields);
-    printer(Tileset.fields);
 }
 
 // EOF
