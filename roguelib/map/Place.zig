@@ -3,14 +3,10 @@
 //!
 
 const Entity = @import("../Entity.zig");
-const MapTile = @import("common").MapTile; // TODO for now
 const Tile = @import("common").Tile;
 const Tileset = @import("Tileset.zig");
 
 const Self = @This();
-
-// TODO: shameful
-const WALL: Tile = .fromOther(MapTile.wall);
 
 //
 // Members
@@ -30,7 +26,7 @@ passable: bool = undefined,
 pub const init: Self = .{
     .entity = null,
     .feature = null,
-    .floor = WALL,
+    .floor = .init,
     .item = .init,
 
     // FUTURE: packed u8, Game-controlled fields and state
