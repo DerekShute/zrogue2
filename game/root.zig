@@ -11,7 +11,7 @@ const Entity = @import("roguelib").Entity;
 const features = @import("features.zig");
 const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
-const mapgen = @import("mapgen");
+const mapgen = @import("mapgen.zig");
 pub const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 
@@ -28,8 +28,8 @@ pub const addTrap = features.addTrap;
 // Configuration
 //
 
-pub const XSIZE = 80; // Traditional dimensions
-pub const YSIZE = 24;
+pub const XSIZE = mapgen.XSIZE;
+pub const YSIZE = mapgen.YSIZE;
 
 const MAX_DEPTH = 3;
 
@@ -59,7 +59,7 @@ const State = enum {
 // Utilities
 //
 
-fn play(config: *level.Config, map: *Map, queue: *Entity.Queue) State {
+fn play(config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
     var result: Action.Result = undefined;
     var state: State = .run;
 
@@ -110,12 +110,7 @@ pub fn run(config: Config) !void {
 
     var prng = std.Random.DefaultPrng.init(@intCast(config.seed));
     var r = prng.random();
-
-    var level_config: level.Config = .{
-        .rand = &r,
-        .xsize = XSIZE,
-        .ysize = YSIZE,
-    };
+    var level_config = mapgen.Config.init;
 
     player.addMessage("Welcome to the Dungeon of Doom!");
 
@@ -127,7 +122,7 @@ pub fn run(config: Config) !void {
     var state: State = .run;
 
     while (state != .end) {
-        var map = try level.create(level_config, allocator);
+        var map = try level.create(level_config, allocator, &r);
         defer map.deinit(allocator);
 
         level.addPlayer(map, player, &r);

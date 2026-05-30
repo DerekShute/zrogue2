@@ -42,7 +42,7 @@ const mapgen = @import("../mapgen.zig");
 // REFACTOR: remove player-entity from this
 //
 pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
-    var map = try Map.init(allocator, game.XSIZE, game.YSIZE, 3, 2);
+    var map = try mapgen.create(allocator, 3, 2);
     errdefer map.deinit(allocator);
 
     var room = Room.config(.init(2, 2), .init(9, 9));
