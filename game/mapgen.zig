@@ -63,13 +63,12 @@ pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
 // Floor
 
 pub fn getFloor(map: *Map, pos: Pos) MapTile {
-    const t = map.getFloor(pos);
-    return @enumFromInt(@intFromEnum(t));
+    return .fromTile(map.getFloor(pos));
 }
 
 pub fn setFloor(map: *Map, pos: Pos, floor: MapTile) void {
     // NOTE: assumes only wall is nonpassable
-    map.setFloor(pos, @enumFromInt(@intFromEnum(floor)));
+    map.setFloor(pos, .fromOther(floor));
     map.setPassable(pos, (floor != .wall));
 }
 
@@ -79,11 +78,11 @@ pub fn setFloor(map: *Map, pos: Pos, floor: MapTile) void {
 // TODO: MapTile becomes identifier
 
 pub fn addItem(m: *Map, p: Pos, t: MapTile) void {
-    m.setItem(p, @enumFromInt(@intFromEnum(t)));
+    m.setItem(p, .fromOther(t));
 }
 
 pub fn getItem(m: *Map, p: Pos) MapTile {
-    return @enumFromInt(@intFromEnum(m.getItem(p)));
+    return .fromTile(m.getItem(p));
 }
 
 //

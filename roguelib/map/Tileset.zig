@@ -1,10 +1,10 @@
 //!
-//! Tileset - tiles at a location (floor, entity, feature).  This represents
-//!    the actual, rather than what is presented to a player.
+//! Tileset - tiles at a location (floor, entity, item).
 //!
-//! FUTURE: lighting, feature
+//! This is an API convenience for queries into the map
 //!
-pub const MapTile = @import("common").MapTile; // TODO: still yuck
+
+const Tile = @import("common").Tile;
 
 const Self = @This();
 
@@ -12,18 +12,18 @@ const Self = @This();
 // Members
 //
 
-floor: MapTile,
-entity: MapTile,
-item: MapTile,
+floor: Tile = undefined,
+entity: Tile = undefined,
+item: Tile = undefined,
 
 //
 // Lifecycle
 //
 
 pub const init: Self = .{
-    .floor = .init,
-    .entity = .init,
-    .item = .init,
+    .floor = .none,
+    .entity = .none,
+    .item = .none,
 };
 
 // EOF
