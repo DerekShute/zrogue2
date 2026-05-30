@@ -10,7 +10,7 @@ const Pos = @import("Pos.zig");
 const Place = @import("map/Place.zig");
 const Region = @import("Region.zig");
 const Room = @import("map/Room.zig");
-const Tileset = @import("Tileset.zig");
+const Tileset = @import("map/Tileset.zig");
 const Tile = @import("common").Tile;
 
 const PlaceGrid = Grid(Place);
