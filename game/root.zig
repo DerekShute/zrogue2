@@ -20,11 +20,6 @@ const level = @import("level.zig");
 
 const actions = @import("actions.zig");
 
-// TODO: this is suboptimal
-
-pub const addSecretDoor = features.addSecretDoor;
-pub const addTrap = features.addTrap;
-
 //
 // Configuration
 //

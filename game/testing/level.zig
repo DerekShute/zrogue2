@@ -63,9 +63,8 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     mapgen.setFloor(map, .init(8, 4), .stairs_down);
     mapgen.setFloor(map, .init(8, 3), .stairs_up);
 
-    // REFACTOR: consolidate namespace
-    game.addSecretDoor(map, .init(9, 5));
-    game.addTrap(map, .init(8, 5));
+    mapgen.addSecretDoor(map, .init(9, 5));
+    mapgen.addTrap(map, .init(8, 5));
 
     mapgen.addEntityToMap(map, player, .init(6, 6));
 
