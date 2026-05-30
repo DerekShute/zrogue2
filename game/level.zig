@@ -21,20 +21,6 @@ const actions = @import("actions.zig");
 const min_room_dim = 4; // min non-gone room size: 2x2 not including walls
 const rooms_dim = 3; // 3x3 grid of room 'spots'
 const max_rooms = rooms_dim * rooms_dim;
-const map_xsize = 80;
-const map_ysize = 24;
-
-//
-// Types
-//
-
-pub const Config = struct {
-    rand: *std.Random = undefined,
-    level: u16 = 1,
-    going_down: bool = true,
-    xsize: i16 = undefined,
-    ysize: i16 = undefined,
-};
 
 //
 // Utilities
@@ -280,17 +266,10 @@ pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
 // Create a level using the traditional Rogue algorithms
 //
 
-pub fn create(config: Config, allocator: std.mem.Allocator) !*Map {
-    var rand = config.rand;
+pub fn create(config: mapgen.Config, allocator: std.mem.Allocator, rand: *std.Random) !*Map {
     var ingraph = [_]bool{false} ** max_rooms; // Rooms connected to graph
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
-    var map = try Map.init(
-        allocator,
-        config.xsize,
-        config.ysize,
-        rooms_dim,
-        rooms_dim,
-    );
+    var map = try mapgen.create(allocator, rooms_dim, rooms_dim);
     errdefer map.deinit(allocator);
 
     map.level = config.level;

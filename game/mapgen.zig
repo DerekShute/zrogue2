@@ -13,6 +13,33 @@ const Region = @import("roguelib").Region;
 const Room = @import("roguelib").Room;
 
 //
+// Configuration
+//
+
+pub const XSIZE = 80; // Traditional dimensions
+pub const YSIZE = 24;
+
+//
+// Lifecycle
+//
+
+pub const Config = struct {
+    level: u16 = undefined,
+    going_down: bool = undefined,
+
+    pub const init = Config{
+        .level = 1,
+        .going_down = true,
+    };
+};
+
+pub fn create(allocator: std.mem.Allocator, xrooms: i16, yrooms: i16) !*Map {
+    const map = try Map.init(allocator, XSIZE, YSIZE, xrooms, yrooms);
+    drawField(map, .init(0, 0), .init(XSIZE - 1, YSIZE - 1), .wall);
+    return map;
+}
+
+//
 // Utility Functions
 //
 // NOTE: assumes a corridor: dark and passable
@@ -145,7 +172,7 @@ pub fn addEastCorridor(
 const expect = std.testing.expect;
 
 test "mapgen smoke test" {
-    var m = try Map.init(std.testing.allocator, 100, 50, 1, 1);
+    var m = try create(std.testing.allocator, 1, 1);
     defer m.deinit(std.testing.allocator);
 
     const r = Room.config(.init(10, 10), .init(20, 20));
@@ -175,7 +202,7 @@ test "mapgen smoke test" {
 // Corridors
 
 test "dig corridors" {
-    var m = try Map.init(std.testing.allocator, 40, 40, 2, 2);
+    var m = try create(std.testing.allocator, 2, 2);
     defer m.deinit(std.testing.allocator);
 
     // These don't have to make sense as part of actual rooms
@@ -232,7 +259,7 @@ test "dig corridors" {
 }
 
 test "dig unusual corridors" {
-    var m = try Map.init(std.testing.allocator, 20, 20, 2, 2);
+    var m = try create(std.testing.allocator, 2, 2);
     defer m.deinit(std.testing.allocator);
 
     // One tile
