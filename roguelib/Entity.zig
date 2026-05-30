@@ -27,7 +27,7 @@ pub const VTable = struct {
     addMessage: ?*const fn (self: *Self, msg: []const u8) void = null,
     getAction: ?*const fn (self: *Self) Error!Action = null,
     setMapTile: ?*const fn (self: *Self, pos: Pos, count: u8, tile: DisplayTile) void = null,
-    takeItem: ?*const fn (self: *Self, i: MapTile) void = null,
+    takeItem: ?*const fn (self: *Self, map: *Map, pos: Pos) void = null,
 };
 
 pub const Config = struct {
@@ -102,10 +102,9 @@ pub fn getAction(self: *Self) !Action {
     return Action.config(.none);
 }
 
-pub fn takeItem(self: *Self, i: MapTile) void {
-    // FUTURE this is a terrible idea, need an Item reference
+pub fn takeItem(self: *Self, map: *Map, pos: Pos) void {
     if (self.vtable.takeItem) |cb| {
-        cb(self, i);
+        cb(self, map, pos);
     }
 }
 

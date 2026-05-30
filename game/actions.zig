@@ -116,14 +116,7 @@ fn doSearch(entity: *Entity, action: *Action, map: *Map) Action.Result {
 }
 
 fn doTake(entity: *Entity, action: *Action, map: *Map) Action.Result {
-    const p = action.getPos();
-    const i = map.getItem(p);
-    if (i == .none) {
-        entity.addMessage("Nothing here to take!");
-    } else {
-        map.setItem(p, .none);
-        entity.takeItem(@enumFromInt(@intFromEnum(i)));
-    }
+    entity.takeItem(map, action.getPos());
     return .continue_game;
 }
 
