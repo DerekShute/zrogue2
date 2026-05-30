@@ -10,11 +10,11 @@ const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
-const MapTile = @import("common").MapTile;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 
 const mapgen = @import("mapgen.zig");
+const MapTile = mapgen.MapTile;
 
 //
 // Types

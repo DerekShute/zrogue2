@@ -7,8 +7,6 @@
 const std = @import("std");
 const game = @import("game");
 const Pos = @import("roguelib").Pos;
-const MapTile = @import("roguelib").MapTile;
-
 const State = @import("State.zig");
 
 const expect = std.testing.expect;

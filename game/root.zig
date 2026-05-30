@@ -12,6 +12,7 @@ const features = @import("features.zig");
 const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
+pub const MapTile = mapgen.MapTile;
 pub const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 

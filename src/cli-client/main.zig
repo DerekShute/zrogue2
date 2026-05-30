@@ -13,19 +13,14 @@ const std = @import("std");
 const Command = @import("common").Command;
 const Connector = @import("connector");
 const DisplayTile = @import("common").DisplayTile;
-const MapTile = @import("common").MapTile;
+const game = @import("game");
+const MapTile = game.MapTile;
 
 const Allocator = std.mem.Allocator;
 const log = std.log; // TODO: not thread safe
 const net = std.Io.net;
 const Reader = std.Io.Reader;
 const Writer = std.Io.Writer;
-
-// The traditional limits...
-// FUTURE: from game
-
-const XSIZE = 80;
-const YSIZE = 24;
 
 //
 // Globals
@@ -41,12 +36,12 @@ var purse: i32 = 0;
 var depth: i32 = 0;
 
 // Message
-var messagebuf: [XSIZE]u8 = undefined;
+var messagebuf: [game.XSIZE]u8 = undefined;
 var message: []u8 = &.{};
 
 // Map Display
 // TODO: modified/reported bits
-var map: [XSIZE * (YSIZE - 2)]u8 = undefined;
+var map: [game.XSIZE * (game.YSIZE - 2)]u8 = undefined;
 
 // Counts of things
 var mapcount: u32 = 0;
@@ -107,8 +102,8 @@ fn renderChar(tile: DisplayTile) u8 {
 fn setMapTile(x: u16, y: u16, count: u8, tile: DisplayTile) void {
     for (0..count) |i| {
         const xidx: usize = @intCast(x);
-        if ((xidx + i < XSIZE) and (y < YSIZE - 2)) {
-            map[(xidx + i) + y * XSIZE] = renderChar(tile);
+        if ((xidx + i < game.XSIZE) and (y < game.YSIZE - 2)) {
+            map[(xidx + i) + y * game.XSIZE] = renderChar(tile);
         }
     }
     mapcount = mapcount + 1;
@@ -116,7 +111,7 @@ fn setMapTile(x: u16, y: u16, count: u8, tile: DisplayTile) void {
 }
 
 pub fn setMessage(text: []const u8) void {
-    @memset(messagebuf[0..XSIZE], ' ');
+    @memset(messagebuf[0..game.XSIZE], ' ');
     message = &messagebuf;
     @memcpy(message[0..text.len], text);
     message = message[0..text.len]; // Fix up the slice for length
@@ -199,9 +194,9 @@ fn gameLoop(connector: *Connector) !void {
     while (!ending) {
         try sleep(1); // TODO: too long
         try print("map updates: {}:{}\n", .{ mapcount, tilecount });
-        for (0..YSIZE - 2) |y| {
-            for (0..XSIZE) |x| {
-                const tile = map[x + y * XSIZE];
+        for (0..game.YSIZE - 2) |y| {
+            for (0..game.XSIZE) |x| {
+                const tile = map[x + y * game.XSIZE];
                 try print("{c}", .{tile});
             }
             try print("\n", .{});

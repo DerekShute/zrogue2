@@ -7,7 +7,6 @@ const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
-const MapTile = @import("common").MapTile;
 const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
 const Tile = @import("common").Tile;
@@ -17,6 +16,7 @@ const game = @import("../root.zig");
 const actions = @import("../actions.zig");
 const level = @import("level.zig"); // Test level
 const mapgen = @import("../mapgen.zig");
+const MapTile = mapgen.MapTile;
 
 const expect = std.testing.expect;
 const Self = @This();

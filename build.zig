@@ -46,15 +46,6 @@ pub fn build(b: *std.Build) void {
 
     // The rogue personality on top of curses
 
-    const rogue_ui_mod = b.addModule("rogue-ui", .{
-        .root_source_file = b.path("game/ui.zig"),
-        .target = target,
-        .imports = &.{
-            .{ .name = "ncurses", .module = curses_mod },
-            .{ .name = "common", .module = common_mod },
-        },
-    });
-
     const connector_mod = b.addModule("connector", .{
         .root_source_file = b.path("connector/root.zig"),
         .target = target,
@@ -69,6 +60,16 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "roguelib", .module = roguelib_mod },
             .{ .name = "common", .module = common_mod },
+        },
+    });
+
+    const rogue_ui_mod = b.addModule("rogue-ui", .{
+        .root_source_file = b.path("game/ui.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "common", .module = common_mod },
+            .{ .name = "game", .module = game_mod },
+            .{ .name = "ncurses", .module = curses_mod },
         },
     });
 
@@ -164,6 +165,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "connector", .module = connector_mod },
                 .{ .name = "common", .module = common_mod },
+                .{ .name = "game", .module = game_mod },
             },
             .link_libc = true,
         }),
