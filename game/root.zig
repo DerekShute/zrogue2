@@ -10,6 +10,7 @@ const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
 const features = @import("features.zig");
 const FOVMap = @import("roguelib").FOVMap;
+const Game = @import("Game.zig");
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
 pub const MapTile = mapgen.MapTile;
@@ -135,6 +136,7 @@ pub fn run(config: Config) !void {
 //
 
 comptime {
+    _ = @import("Game.zig");
     _ = @import("level.zig");
     _ = @import("mapgen.zig");
     _ = @import("testing/actions.zig");
