@@ -10,17 +10,13 @@
 const std = @import("std");
 const Command = @import("common").Command;
 const DisplayTile = @import("common").DisplayTile;
-const MapTile = @import("common").MapTile;
+const game = @import("game");
+const MapTile = game.MapTile;
 
 const NCurses = @import("ncurses");
 pub const Keypress = NCurses.Keypress;
 
 const Self = @This();
-
-// The traditional limits...
-
-const XSIZE = 80;
-const YSIZE = 24;
 
 //
 // Members
@@ -34,14 +30,14 @@ purse: i32 = 0,
 depth: i32 = 0,
 
 // Message
-messagebuf: [XSIZE]u8 = undefined, // TODO: size
+messagebuf: [game.XSIZE]u8 = undefined, // TODO: size
 message: []u8 = &.{},
 
 // Map Display
 //
 // Map is short 2 lines for lines of text
 
-map: [XSIZE * (YSIZE - 2)]DisplayTile = undefined,
+map: [game.XSIZE * (game.YSIZE - 2)]DisplayTile = undefined,
 
 //
 // Constructor / Destructor
@@ -53,9 +49,9 @@ pub fn init() !Self {
 
     // FUTURE: for now, must be at least.  This could be dynamic
 
-    if (curses.getMaxX() < XSIZE) {
+    if (curses.getMaxX() < game.XSIZE) {
         return error.DisplayTooSmall;
-    } else if (curses.getMaxY() < YSIZE) {
+    } else if (curses.getMaxY() < game.YSIZE) {
         return error.DisplayTooSmall;
     }
 
@@ -118,9 +114,9 @@ fn renderChar(tile: DisplayTile) u8 {
 
 fn redrawMap(self: *Self) void {
     // TODO: slice iteration probably works better
-    for (0..YSIZE - 2) |y| {
-        for (0..XSIZE) |x| {
-            const tile = self.map[x + y * XSIZE];
+    for (0..game.YSIZE - 2) |y| {
+        for (0..game.XSIZE) |x| {
+            const tile = self.map[x + y * game.XSIZE];
             self.ncurses.setChar(@intCast(x), @intCast(y + 1), renderChar(tile));
         }
     }
@@ -147,9 +143,9 @@ fn getCommand(self: *Self) Command {
 }
 
 fn resetMap(self: *Self) void {
-    for (0..YSIZE - 2) |y| {
-        for (0..XSIZE) |x| {
-            self.map[x + y * XSIZE] = .init;
+    for (0..game.YSIZE - 2) |y| {
+        for (0..game.XSIZE) |x| {
+            self.map[x + y * game.XSIZE] = .init;
         }
     }
 }
@@ -201,18 +197,18 @@ pub fn setMapTile(self: *Self, x: u16, y: u16, tile: DisplayTile) void {
     //
     // TODO: display happens elsewhere
 
-    if ((x < XSIZE) and (y < YSIZE - 2)) {
+    if ((x < game.XSIZE) and (y < game.YSIZE - 2)) {
         if (!tile.visible) {
-            self.map[x + y * XSIZE].visible = false;
+            self.map[x + y * game.XSIZE].visible = false;
         } else {
-            self.map[x + y * XSIZE] = tile;
+            self.map[x + y * game.XSIZE] = tile;
         }
-        self.ncurses.setChar(x, y + 1, renderChar(self.map[x + y * XSIZE]));
+        self.ncurses.setChar(x, y + 1, renderChar(self.map[x + y * game.XSIZE]));
     }
 }
 
 pub fn setMessage(self: *Self, msg: []const u8) void {
-    @memset(self.messagebuf[0..XSIZE], ' '); // TODO slightly wasteful
+    @memset(self.messagebuf[0..game.XSIZE], ' '); // TODO slightly wasteful
     self.message = &self.messagebuf;
     @memcpy(self.message[0..msg.len], msg);
     self.message = self.message[0..msg.len]; // Fix up the slice for length
@@ -260,7 +256,7 @@ fn displayHelp(self: *Self) void {
     var iter = std.mem.splitScalar(u8, help_text, '\n');
     var i: u16 = 0;
 
-    const blank = [_]u8{' '} ** XSIZE;
+    const blank = [_]u8{' '} ** game.XSIZE;
     while (iter.next()) |line| {
         self.setText(0, i, &blank); // TODO: lame!
         self.setText(0, i, line);
@@ -274,7 +270,7 @@ fn displayHelp(self: *Self) void {
 //
 
 pub fn displayMessage(self: *Self) void {
-    var buf: [XSIZE]u8 = undefined;
+    var buf: [game.XSIZE]u8 = undefined;
     @memset(buf[0..], ' '); // TODO: use buffer only?
     @memcpy(buf[0..], self.message);
     self.setText(0, 0, buf[0..]);
@@ -286,7 +282,7 @@ pub fn displayRefresh(self: *Self) void {
 
 // "Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s"
 pub fn displayStatLine(self: *Self) void {
-    var buf: [XSIZE]u8 = undefined;
+    var buf: [game.XSIZE]u8 = undefined;
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
     const u_purse: u32 = @intCast(self.purse);
     const output = .{ self.depth, u_purse };
@@ -294,7 +290,7 @@ pub fn displayStatLine(self: *Self) void {
     @memset(buf[0..], ' ');
     // We know that error.NoSpaceLeft can't happen here
     _ = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
-    self.setText(0, YSIZE - 1, buf[0..]);
+    self.setText(0, game.YSIZE - 1, buf[0..]);
 }
 
 // Fully refresh the display

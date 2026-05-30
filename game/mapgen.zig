@@ -7,7 +7,6 @@
 const std = @import("std");
 const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
-const MapTile = @import("common").MapTile;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 const Room = @import("roguelib").Room;
@@ -18,6 +17,39 @@ const Room = @import("roguelib").Room;
 
 pub const XSIZE = 80; // Traditional dimensions
 pub const YSIZE = 24;
+
+//
+// Types
+//
+
+pub const MapTile = enum(u8) {
+    unknown,
+    floor,
+    corridor,
+    wall, // Start of features
+    trap, // visible trap
+    door,
+    stairs_down,
+    stairs_up, // Last feature
+    gold,
+    player,
+
+    pub const init = .unknown;
+
+    pub fn isFeature(self: MapTile) bool {
+        const s: usize = @intFromEnum(self);
+        const wall = @intFromEnum(MapTile.wall);
+        const stairs_up = @intFromEnum(MapTile.stairs_up);
+        return switch (s) {
+            wall...stairs_up => true,
+            else => false,
+        };
+    }
+
+    pub fn fromTile(self: Tile) MapTile {
+        return @enumFromInt(@intFromEnum(self));
+    }
+};
 
 //
 // Lifecycle
@@ -170,6 +202,29 @@ pub fn addEastCorridor(
 //
 
 const expect = std.testing.expect;
+const Tile = @import("common").Tile;
+
+test "lock MapTile and Tile assumptions" {
+    // Just a base assumption
+
+    try expect(@intFromEnum(MapTile.unknown) == @intFromEnum(Tile.none));
+}
+
+test "lock MapTile behavior" {
+    for (0..@typeInfo(MapTile).@"enum".fields.len) |i| {
+        const tile: MapTile = @enumFromInt(i);
+
+        // Floors and unknown are not features.  Otherwise everything below
+        // gold is.
+
+        switch (tile) {
+            .unknown, .floor, .corridor => try expect(tile.isFeature() == false),
+            else => {
+                try expect(tile.isFeature() == (i < @intFromEnum(MapTile.gold)));
+            },
+        }
+    }
+}
 
 test "mapgen smoke test" {
     var m = try create(std.testing.allocator, 1, 1);
