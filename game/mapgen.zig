@@ -82,6 +82,10 @@ pub fn addItem(m: *Map, p: Pos, t: MapTile) void {
     m.setItem(p, @enumFromInt(@intFromEnum(t)));
 }
 
+pub fn getItem(m: *Map, p: Pos) MapTile {
+    return @enumFromInt(@intFromEnum(m.getItem(p)));
+}
+
 //
 // Rooms
 //
@@ -162,6 +166,11 @@ test "mapgen smoke test" {
     setFloor(m, .init(18, 18), .door);
     try expect(getFloor(m, .init(18, 18)) == .door);
     try expect(m.isPassable(.init(18, 18)) == true);
+
+    addItem(m, .init(16, 16), .gold);
+    try expect(getItem(m, .init(16, 16)) == .gold);
+    addItem(m, .init(16, 16), .unknown);
+    try expect(getItem(m, .init(16, 16)) == .unknown);
 }
 
 // Corridors

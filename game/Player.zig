@@ -5,7 +5,6 @@
 const std = @import("std");
 
 const DisplayTile = @import("common").DisplayTile;
-const MapTile = @import("common").MapTile;
 
 const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
@@ -13,6 +12,8 @@ const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
+
+const mapgen = @import("mapgen.zig");
 
 //
 // Types
@@ -75,9 +76,9 @@ fn playerSetMapTile(ptr: *Entity, pos: Pos, count: u8, dt: DisplayTile) void {
     self.client.setMapTile(pos, count, dt);
 }
 
-fn playerTakeItem(ptr: *Entity, i: MapTile) void {
+fn playerTakeItem(ptr: *Entity, map: *Map, pos: Pos) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
-    self.takeItem(i);
+    self.takeItem(map, pos);
 }
 
 //
@@ -142,11 +143,11 @@ pub fn setDepth(self: *Self, depth: u16) void {
 
 // Misc
 
-fn takeItem(self: *Self, i: MapTile) void {
-    // FUTURE: no that maptile is an awful idea.  Item reference ID?
-    if (i == .gold) {
+fn takeItem(self: *Self, map: *Map, pos: Pos) void {
+    if (mapgen.getItem(map, pos) == .gold) {
         self.addMessage("You pick up the gold!");
         self.incrementPurse();
+        mapgen.addItem(map, pos, .unknown);
     } else { // should not happen
         self.addMessage("Nothing here to take!");
     }
