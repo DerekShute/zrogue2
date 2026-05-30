@@ -9,14 +9,17 @@ const Tileset = @import("Tileset.zig");
 
 const Self = @This();
 
+// TODO: shameful
+const WALL: Tile = .fromOther(MapTile.wall);
+
 //
 // Members
 //
 
-entity: ?*Entity = undefined,
+entity: ?*Entity = undefined, // FUTURE: reference
 feature: ?u8 = undefined,
 floor: Tile = undefined,
-item: Tile = undefined, // FUTURE: Item type
+item: Tile = undefined, // FUTURE: Item reference
 lit: bool = undefined,
 passable: bool = undefined,
 
@@ -27,7 +30,7 @@ passable: bool = undefined,
 pub const init: Self = .{
     .entity = null,
     .feature = null,
-    .floor = .fromOther(MapTile.wall), // TODO: Map default, should be explicit
+    .floor = WALL,
     .item = .init,
 
     // FUTURE: packed u8, Game-controlled fields and state
@@ -41,17 +44,11 @@ pub const init: Self = .{
 //
 
 pub fn getTileset(self: *Self) Tileset {
-    var ts: Tileset = .{
-        .floor = .fromTile(self.floor),
-        .entity = .unknown,
-        .item = .fromTile(self.item),
+    return .{
+        .floor = self.floor,
+        .entity = self.getEntityTile(),
+        .item = self.item,
     };
-
-    if (self.entity) |e| {
-        ts.entity = .fromTile(e.getTile());
-    }
-
-    return ts;
 }
 
 // FUTURE: an index that is Game controlled
@@ -65,6 +62,13 @@ pub fn setEntity(self: *Self, to: *Entity) void {
 
 pub fn removeEntity(self: *Self) void {
     self.entity = null;
+}
+
+fn getEntityTile(self: *Self) Tile {
+    if (self.entity) |e| {
+        return e.getTile();
+    }
+    return .none;
 }
 
 // Items
@@ -127,12 +131,11 @@ const expect = @import("std").testing.expect;
 test "basic tests" {
     var place: Self = .init;
 
-    const wall: Tile = @enumFromInt(@intFromEnum(Tileset.MapTile.wall));
-    place.setFloor(wall);
+    place.setFloor(@enumFromInt(4));
     const ts = place.getTileset();
-    try expect(ts.floor == Tileset.MapTile.wall);
-    try expect(ts.entity == .unknown);
-    try expect(ts.item == .unknown);
+    try expect(@intFromEnum(ts.floor) == 4);
+    try expect(ts.entity == .none);
+    try expect(ts.item == .none);
     try expect(place.isPassable() == false);
     try expect(place.feature == null);
 
