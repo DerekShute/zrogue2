@@ -10,6 +10,7 @@ const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
+const MapTile = @import("common").MapTile;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 
@@ -47,7 +48,7 @@ purse: u16 = 0,
 
 pub fn init(config: Config) Self {
     const c = Entity.Config{
-        .tile = .player,
+        .tile = @enumFromInt(@intFromEnum(MapTile.player)),
         .vtable = &player_vtable,
     };
 

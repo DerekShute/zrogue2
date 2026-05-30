@@ -8,10 +8,10 @@ const Action = @import("Action.zig");
 const DisplayTile = @import("common").DisplayTile;
 const FOVMap = @import("FOVMap.zig");
 const Map = @import("Map.zig");
-const MapTile = @import("Tileset.zig").MapTile;
 const Pos = @import("Pos.zig");
 const queue = @import("queue.zig");
 const Region = @import("Region.zig");
+const Tile = @import("common").Tile;
 
 const Self = @This();
 
@@ -31,7 +31,7 @@ pub const VTable = struct {
 };
 
 pub const Config = struct {
-    tile: MapTile,
+    tile: Tile,
     vtable: *const VTable,
 };
 
@@ -41,7 +41,7 @@ pub const Config = struct {
 
 // FUTURE: timer, action queue
 p: Pos = undefined,
-tile: MapTile = undefined,
+tile: Tile = undefined,
 vtable: *const VTable = undefined,
 moves: i32 = 0,
 node: queue.Node = .{},
@@ -67,7 +67,7 @@ pub fn setFOV(self: *Self, fov: *FOVMap) void {
 // Methods
 //
 
-pub fn getTile(self: *Self) MapTile {
+pub fn getTile(self: *Self) Tile {
     return self.tile;
 }
 
@@ -230,12 +230,13 @@ test "entity queue" {
     defer fov.deinit(std.testing.allocator);
 
     const config = Config{
-        .tile = .player,
+        .tile = @enumFromInt(4),
         .vtable = &vt,
     };
     var e = Self.init(config);
 
     e.setFOV(&fov);
+    try expect(@intFromEnum(e.getTile()) == 4);
 
     eq.enqueue(&e);
     try expect(eq.next() == &e);

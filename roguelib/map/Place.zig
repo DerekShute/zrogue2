@@ -48,7 +48,7 @@ pub fn getTileset(self: *Self) Tileset {
     };
 
     if (self.entity) |e| {
-        ts.entity = e.getTile();
+        ts.entity = .fromTile(e.getTile());
     }
 
     return ts;
