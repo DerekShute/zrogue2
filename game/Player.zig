@@ -48,7 +48,7 @@ purse: u16 = 0,
 
 pub fn init(config: Config) Self {
     const c = Entity.Config{
-        .tile = @enumFromInt(@intFromEnum(MapTile.player)),
+        .tile = .fromOther(MapTile.player),
         .vtable = &player_vtable,
     };
 
