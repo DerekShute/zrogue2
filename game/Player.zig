@@ -9,6 +9,7 @@ const DisplayTile = @import("common").DisplayTile;
 const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Entity = @import("roguelib").Entity;
+const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
@@ -39,11 +40,13 @@ const Self = @This();
 
 entity: Entity = undefined, // Must be first for vtable magic
 client: *Client = undefined,
+fov: FOVMap = undefined,
+
 purse: u16 = 0,
 // FUTURE: name, connection abstraction, account information
 
 //
-// Constructor
+// Lifecycle
 //
 
 pub fn init(config: Config) Self {
@@ -56,6 +59,23 @@ pub fn init(config: Config) Self {
         .entity = Entity.init(c),
         .client = config.client,
     };
+}
+
+// REFACTOR is there a better way?
+pub fn initFOV(self: *Self, allocator: std.mem.Allocator, width: usize, height: usize) !void {
+    self.fov = try .init(allocator, width, height);
+}
+
+pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+    self.fov.deinit(allocator);
+}
+
+pub fn getFOV(self: *Self) *FOVMap {
+    return &self.fov;
+}
+
+pub fn resetFOV(self: *Self) void {
+    self.fov.reset();
 }
 
 //

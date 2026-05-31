@@ -93,11 +93,12 @@ pub fn main(init: std.process.Init) !void {
     // REFACTOR: this isn't great.  The game-ui should dictate constraints and
     // should probably give the opportunity to resize the display
 
-    const max_xy = game.getMaxXY();
-
     var c = Curses.init() catch |err| switch (err) {
         error.DisplayTooSmall => {
-            std.debug.print("Zrogue requires an {}x{} display\n", .{ max_xy[0], max_xy[1] });
+            std.debug.print(
+                "Zrogue requires an {}x{} display\n",
+                .{ game.XSIZE, game.YSIZE },
+            );
             std.process.exit(1);
         },
     };

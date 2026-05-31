@@ -10,7 +10,7 @@ const Action = @import("roguelib").Action;
 const Entity = @import("roguelib").Entity;
 const features = @import("features.zig");
 const FOVMap = @import("roguelib").FOVMap;
-const Game = @import("Game.zig");
+pub const Game = @import("Game.zig");
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
 pub const MapTile = mapgen.MapTile;
@@ -96,10 +96,6 @@ fn play(config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
 // Run the game
 //
 
-pub fn getMaxXY() [2]i16 {
-    return [2]i16{ XSIZE, YSIZE };
-}
-
 pub fn run(config: Config) !void {
     const player = config.player;
     const entity = player.getEntity();
@@ -126,6 +122,32 @@ pub fn run(config: Config) !void {
         queue.enqueue(entity);
         state = play(&level_config, map, &queue);
         fov.reset();
+    } // Game run loop
+
+    // FUTURE: game endings go here
+}
+
+// TODO: this goes in Game
+pub fn new_run(game: *Game, player: *Player) !void { // WIP server
+    const entity = player.getEntity(); // TODO: ugh
+    var level_config = mapgen.Config.init;
+
+    player.addMessage("Welcome to the Dungeon of Doom!");
+
+    // REFACTOR: this is awful -- into Game.initPlayer ?
+    try player.initFOV(game.allocator, XSIZE, YSIZE);
+    defer player.deinit(game.allocator);
+    entity.setFOV(player.getFOV());
+
+    var state: State = .run;
+    while (state != .end) {
+        var map = try level.create(level_config, game.allocator, game.r);
+        defer map.deinit(game.allocator);
+
+        level.addPlayer(map, player, game.r);
+        game.action_queue.enqueue(entity);
+        state = play(&level_config, map, &game.action_queue);
+        player.resetFOV();
     } // Game run loop
 
     // FUTURE: game endings go here
