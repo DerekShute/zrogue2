@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const game = @import("game");
+const Game = game.Game;
 const RemoteClient = @import("RemoteClient.zig");
 
 const Allocator = std.mem.Allocator;
@@ -15,28 +16,28 @@ const net = std.Io.net;
 // Client connection
 //
 
-fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
-    const name = try std.fmt.allocPrint(allocator, "{f}", .{conn.socket.address});
-    defer allocator.free(name);
+fn handleClient(g: *Game, conn: *net.Stream) !void {
+    const name = try std.fmt.allocPrint(g.allocator, "{f}", .{conn.socket.address});
+    defer g.allocator.free(name);
 
-    log.info("[{s}] Accepted connection", .{name});
+    log.info("[{s}] Accepted connection", .{name}); // FUTURE into Player
 
-    const rbuf = try allocator.alloc(u8, 1024);
-    defer allocator.free(rbuf);
-    var reader = conn.reader(io, rbuf);
-    var writer = conn.writer(io, &.{});
+    const rbuf = try g.allocator.alloc(u8, 1024);
+    defer g.allocator.free(rbuf);
+    var reader = conn.reader(g.io, rbuf);
+    var writer = conn.writer(g.io, &.{});
 
     const config = RemoteClient.Config{
         .reader = &reader.interface,
         .writer = &writer.interface,
         .name = name,
     };
-    var rc = try RemoteClient.init(allocator, config);
-    defer rc.deinit(allocator);
+    var rc = try RemoteClient.init(g.allocator, config);
+    defer rc.deinit(g.allocator);
 
     // Create a limited allocator here for catching incoming messages
-    const buffer = try allocator.alloc(u8, 2000);
-    defer allocator.free(buffer);
+    const buffer = try g.allocator.alloc(u8, 2000);
+    defer g.allocator.free(buffer);
     var fb = std.heap.FixedBufferAllocator.init(buffer);
 
     var arena = std.heap.ArenaAllocator.init(fb.allocator());
@@ -52,16 +53,12 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
     if (rc.getState() == .starting) {
         rc.setState(.connected);
 
-        var player = game.Player.init(.{
-            .client = rc.client(),
-        });
+        const id = try g.initPlayer(.{ .client = rc.client() });
+        defer g.deinitPlayer(id);
 
-        const seed = std.Io.Timestamp.now(io, .real).toMicroseconds();
-        game.run(.{
-            .player = &player,
-            .allocator = allocator,
-            .seed = seed,
-        }) catch |err| {
+        // TODO: this doesn't go here.  Goes inside a spawned thread
+
+        g.run(g.getPlayer(id)) catch |err| {
             log.info("[{s}] game.run : {}", .{ name, err });
         };
 
@@ -77,17 +74,31 @@ fn handleClient(io: std.Io, conn: *net.Stream, allocator: Allocator) !void {
 
 pub fn main(init: std.process.Init) !void {
     const allocator = init.gpa;
+    const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
+    var prng = std.Random.DefaultPrng.init(@intCast(seed));
+    var random = prng.random();
+
+    var config = Game.Config.init;
+    config.setAllocator(allocator);
+    config.setRandom(&random);
+    config.setIo(init.io);
+
+    var g = Game.init(config);
+    defer g.deinit();
 
     const addr = try net.IpAddress.parse("127.0.0.1", 0);
     var service = try addr.listen(init.io, .{ .reuse_address = true });
     defer service.deinit(init.io);
+
+    // Listener becomes a thread and spawns connection threads.  Main thread
+    // runs the game
 
     log.info("[{}] Listening", .{service.socket.address.ip4.port});
     while (true) {
         var connection = try service.accept(init.io);
         defer connection.close(init.io);
 
-        try handleClient(init.io, &connection, allocator);
+        try handleClient(&g, &connection);
     }
 }
 
