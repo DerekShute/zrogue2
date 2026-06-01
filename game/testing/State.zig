@@ -8,10 +8,9 @@ const Client = @import("roguelib").Client;
 const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
 const MockClient = @import("roguelib").MockClient;
+const Player = @import("../Player.zig");
 const Pos = @import("roguelib").Pos;
 const Tile = @import("common").Tile;
-
-const game = @import("../root.zig");
 
 const actions = @import("../actions.zig");
 const level = @import("level.zig"); // Test level
@@ -23,7 +22,7 @@ const Self = @This();
 
 client: *MockClient,
 map: *Map,
-player: *game.Player,
+player: *Player,
 f: *FOVMap,
 
 //
@@ -33,17 +32,19 @@ f: *FOVMap,
 pub fn init(allocator: std.mem.Allocator) !*Self {
     var mc = try allocator.create(MockClient);
     errdefer allocator.destroy(mc);
-    mc.* = try MockClient.init(allocator, game.XSIZE, game.YSIZE);
+    mc.* = try MockClient.init(allocator, mapgen.XSIZE, mapgen.YSIZE);
     errdefer mc.deinit(allocator);
 
-    var player = try allocator.create(game.Player);
+    // REFACTOR: use Game with its conveniences
+
+    var player = try allocator.create(Player);
     errdefer allocator.destroy(player);
-    player.* = game.Player.init(.{ .client = mc.client() });
+    player.* = Player.init(.{ .client = mc.client() });
 
     const entity = player.getEntity();
     var f = try allocator.create(FOVMap);
     errdefer allocator.destroy(f);
-    f.* = try FOVMap.init(allocator, game.XSIZE, game.YSIZE);
+    f.* = try FOVMap.init(allocator, mapgen.XSIZE, mapgen.YSIZE);
     errdefer f.deinit(allocator);
     entity.setFOV(f);
 
@@ -137,7 +138,7 @@ pub fn expectVisible(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
 
 pub fn step(self: *Self, cmd: Client.Command) !Action.Result {
     self.client.setCommand(cmd);
-    return try game.doAction(self.player.getEntity(), self.map);
+    return try actions.doAction(self.player.getEntity(), self.map);
 }
 
 pub fn atXY(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {

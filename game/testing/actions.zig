@@ -3,7 +3,6 @@
 //!
 
 const std = @import("std");
-const game = @import("../root.zig");
 const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;

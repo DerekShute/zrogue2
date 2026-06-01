@@ -3,8 +3,7 @@
 //!
 
 const std = @import("std");
-const game = @import("game");
-const Game = game.Game;
+const Game = @import("game");
 const RemoteClient = @import("RemoteClient.zig");
 
 const Allocator = std.mem.Allocator;
@@ -59,7 +58,7 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
         // TODO: this doesn't go here.  Goes inside a spawned thread
 
         g.run(g.getPlayer(id)) catch |err| {
-            log.info("[{s}] game.run : {}", .{ name, err });
+            log.info("[{s}] Game.run : {}", .{ name, err });
         };
 
         rc.writeDepart("Game Ending") catch {}; // Not much to do here
