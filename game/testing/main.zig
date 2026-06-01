@@ -3,7 +3,8 @@
 //!
 
 const std = @import("std");
-const game = @import("../root.zig");
+const mapgen = @import("../mapgen.zig");
+const Game = @import("../Game.zig");
 const MockClient = @import("roguelib").MockClient;
 const Client = @import("roguelib").Client;
 
@@ -39,18 +40,27 @@ var testlist = [_]Client.Command{
 };
 
 test "run the game" {
-    var m = try MockClient.init(std.testing.allocator, game.XSIZE, game.YSIZE);
+    var m = try MockClient.init(std.testing.allocator, mapgen.XSIZE, mapgen.YSIZE);
     defer m.deinit(std.testing.allocator);
     m.setCommandList(&testlist);
 
-    var player = game.Player.init(.{
-        .client = m.client(),
-    });
+    var config = Game.Config.init;
+    config.setAllocator(std.testing.allocator);
+    config.setIo(std.testing.io);
 
-    try game.run(.{
-        .player = &player,
-        .allocator = std.testing.allocator,
-    });
+    // TODO is this mockable?
+    const seed = std.Io.Timestamp.now(std.testing.io, .real).toMicroseconds();
+    var prng = std.Random.DefaultPrng.init(@intCast(seed));
+    var random = prng.random();
+    config.setRandom(&random);
+
+    var g = Game.init(config);
+    defer g.deinit();
+
+    const id = try g.initPlayer(.{ .client = m.client() });
+    defer g.deinitPlayer(id);
+
+    try g.run(g.getPlayer(id));
 }
 
 // EOF
