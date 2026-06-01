@@ -1,25 +1,19 @@
 //!
-//! The game itself as a module to import from the various interfaces
+//! The game itself as a module/object to import from the various interfaces
 //!
 //! Mostly a primitive original Rogue
 //!
 
 const std = @import("std");
 
-const Action = @import("roguelib").Action;
-const Entity = @import("roguelib").Entity;
-const features = @import("features.zig");
-const FOVMap = @import("roguelib").FOVMap;
-pub const Game = @import("Game.zig");
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
-pub const MapTile = mapgen.MapTile;
 pub const Player = @import("Player.zig");
-const Pos = @import("roguelib").Pos;
+const Entity = @import("roguelib").Entity;
 
-const level = @import("level.zig");
+const Self = @This();
 
-const actions = @import("actions.zig");
+pub const MapTile = mapgen.MapTile;
 
 //
 // Configuration
@@ -28,23 +22,145 @@ const actions = @import("actions.zig");
 pub const XSIZE = mapgen.XSIZE;
 pub const YSIZE = mapgen.YSIZE;
 
-const MAX_DEPTH = 3;
+//
+// Types
+//
+
+// TODO: name is key, need StringHashMapUnmanaged
+pub const PlayerUID = u8; // TODO: not very U
+
+//
+// Members
+//
+
+allocator: std.mem.Allocator = undefined,
+io: std.Io = undefined,
+
+// REFACTOR: make this a std.Random.DefaultPrng and localize here
+r: *std.Random = undefined,
+level_config: mapgen.Config = undefined, // FUTURE: game state
+map: *Map = undefined,
+players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
+next_player_id: PlayerUID = 0,
+
+action_queue: Entity.Queue = undefined,
+
+// TODO: entities?, items, work queue
+
+//
+// Lifecycle
+//
 
 pub const Config = struct {
-    player: *Player,
-    allocator: std.mem.Allocator,
-    seed: i64 = undefined,
+    allocator: ?std.mem.Allocator = null,
+    r: ?*std.Random = null,
+    io: ?std.Io = null,
+
+    pub const init: @This() = .{};
+
+    pub fn setAllocator(self: *@This(), allocator: std.mem.Allocator) void {
+        self.allocator = allocator;
+    }
+
+    pub fn setIo(self: *@This(), io: std.Io) void {
+        self.io = io;
+    }
+
+    pub fn setRandom(self: *@This(), r: *std.Random) void {
+        self.r = r;
+    }
 };
 
+pub fn init(config: Config) Self {
+    var s: Self = .{
+        .level_config = .init,
+        .players = .empty,
+        .action_queue = .config(),
+    };
+
+    if (config.allocator) |a| {
+        s.allocator = a;
+    }
+
+    if (config.io) |io| {
+        s.io = io;
+    }
+
+    if (config.r) |r| {
+        s.r = r;
+    }
+
+    return s;
+}
+
+pub fn deinit(self: *Self) void {
+    var it = self.players.iterator();
+    while (it.next()) |kv| {
+        kv.value_ptr.deinit(self.allocator);
+    }
+
+    self.players.deinit(self.allocator);
+
+    // TODO: squash map(s);
+}
+
 //
-// Testing Conveniences
+// API
 //
 
-pub const doAction = actions.doAction;
+pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
+    // The Player is parcel of the player map (part of the node) and is
+    // owned by self.allocator
+
+    const id = self.next_player_id;
+    const gop = try self.players.getOrPut(self.allocator, self.next_player_id);
+    errdefer _ = self.players.remove(id);
+
+    if (gop.found_existing) {
+        @panic("initPlayer: already that id");
+    }
+    const player = gop.value_ptr;
+
+    player.* = .init(config);
+
+    // TODO: Stuffing the FOV structure into the Player is indeed gross
+
+    try player.initFOV(self.allocator, mapgen.XSIZE, mapgen.YSIZE);
+    errdefer player.deinit(self.allocator);
+    player.getEntity().setFOV(player.getFOV());
+
+    self.next_player_id += 1;
+    return id;
+}
+
+pub fn deinitPlayer(self: *Self, uid: PlayerUID) void {
+    const p = self.players.getPtr(uid);
+    if (p == null) {
+        @panic("deinitPlayer: no such uid");
+    }
+    p.?.deinit(self.allocator);
+    if (self.players.remove(uid) == false) {
+        @panic("deinitPlayer: no such uid");
+    }
+}
+
+pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
+    const p = self.players.getPtr(uid);
+    if (p == null) {
+        @panic("getPlayer: no such uid");
+    }
+    return p.?;
+}
 
 //
-// Internals
+// Game Run
 //
+
+const MAX_DEPTH = 3;
+const Action = @import("roguelib").Action;
+
+const level = @import("level.zig");
+const actions = @import("actions.zig");
 
 // Simple state machine: intro -> run -> end
 const State = enum {
@@ -52,25 +168,21 @@ const State = enum {
     end,
 };
 
-//
-// Utilities
-//
-
-fn play(config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
+fn play(self: *Self, config: *mapgen.Config, map: *Map) State {
     var result: Action.Result = undefined;
     var state: State = .run;
 
     // FUTURE: Other Entities means having a .depart result
 
-    while (queue.next()) |entity| {
-        result = doAction(entity, map) catch {
+    while (self.action_queue.next()) |entity| {
+        result = actions.doAction(entity, map) catch {
             return .end;
         };
         if (result != .continue_game) {
             break;
         }
-        entity.notifyDisplay(map);
-        queue.enqueue(entity); // Continues
+        entity.notifyDisplay(map); // FUTURE: back to Player?
+        self.action_queue.enqueue(entity); // Continues
     }
 
     switch (result) {
@@ -92,61 +204,20 @@ fn play(config: *mapgen.Config, map: *Map, queue: *Entity.Queue) State {
     return state;
 }
 
-//
-// Run the game
-//
-
-pub fn run(config: Config) !void {
-    const player = config.player;
-    const entity = player.getEntity();
-    const allocator = config.allocator;
-
-    var prng = std.Random.DefaultPrng.init(@intCast(config.seed));
-    var r = prng.random();
-    var level_config = mapgen.Config.init;
-
-    player.addMessage("Welcome to the Dungeon of Doom!");
-
-    var fov = try FOVMap.init(allocator, XSIZE, YSIZE);
-    defer fov.deinit(allocator);
-    entity.setFOV(&fov);
-
-    var queue = Entity.Queue.config();
-    var state: State = .run;
-
-    while (state != .end) {
-        var map = try level.create(level_config, allocator, &r);
-        defer map.deinit(allocator);
-
-        level.addPlayer(map, player, &r);
-        queue.enqueue(entity);
-        state = play(&level_config, map, &queue);
-        fov.reset();
-    } // Game run loop
-
-    // FUTURE: game endings go here
-}
-
-// TODO: this goes in Game
-pub fn new_run(game: *Game, player: *Player) !void { // WIP server
+pub fn run(self: *Self, player: *Player) !void { // WIP server
     const entity = player.getEntity(); // TODO: ugh
     var level_config = mapgen.Config.init;
 
     player.addMessage("Welcome to the Dungeon of Doom!");
 
-    // REFACTOR: this is awful -- into Game.initPlayer ?
-    try player.initFOV(game.allocator, XSIZE, YSIZE);
-    defer player.deinit(game.allocator);
-    entity.setFOV(player.getFOV());
-
     var state: State = .run;
     while (state != .end) {
-        var map = try level.create(level_config, game.allocator, game.r);
-        defer map.deinit(game.allocator);
+        var map = try level.create(level_config, self.allocator, self.r);
+        defer map.deinit(self.allocator);
 
-        level.addPlayer(map, player, game.r);
-        game.action_queue.enqueue(entity);
-        state = play(&level_config, map, &game.action_queue);
+        level.addPlayer(map, player, self.r);
+        self.action_queue.enqueue(entity);
+        state = self.play(&level_config, map);
         player.resetFOV();
     } // Game run loop
 
@@ -154,11 +225,63 @@ pub fn new_run(game: *Game, player: *Player) !void { // WIP server
 }
 
 //
-// Unit Tests
+// Unit tests
 //
 
+const expect = std.testing.expect;
+const expectError = std.testing.expectError;
+const tallocator = std.testing.allocator;
+const MockClient = @import("roguelib").MockClient;
+const FailingAllocator = std.testing.FailingAllocator;
+
+test "basic use" { // If this fails then something has changed
+    var f = FailingAllocator.init(tallocator, .{ .fail_index = 3 });
+    var config = Config.init;
+    config.setAllocator(f.allocator());
+
+    var self = init(config);
+    defer self.deinit();
+
+    var m = try MockClient.init(tallocator, 50, 50);
+    defer m.deinit(tallocator);
+
+    const id = try self.initPlayer(.{ .client = m.client() });
+    defer self.deinitPlayer(id);
+    const id2 = try self.initPlayer(.{ .client = m.client() });
+    defer self.deinitPlayer(id2);
+
+    _ = self.getPlayer(id);
+}
+
+test "alloc failure 0" {
+    var f = FailingAllocator.init(tallocator, .{ .fail_index = 0 });
+    var config = Config.init;
+    config.setAllocator(f.allocator());
+
+    var self = init(config);
+    defer self.deinit();
+
+    var m = try MockClient.init(tallocator, 50, 50);
+    defer m.deinit(tallocator);
+
+    try expectError(error.OutOfMemory, self.initPlayer(.{ .client = m.client() }));
+}
+
+test "alloc failure 1" {
+    var f = FailingAllocator.init(tallocator, .{ .fail_index = 1 });
+    var config = Config.init;
+    config.setAllocator(f.allocator());
+
+    var self = init(config);
+    defer self.deinit();
+
+    var m = try MockClient.init(tallocator, 50, 50);
+    defer m.deinit(tallocator);
+
+    try expectError(error.OutOfMemory, self.initPlayer(.{ .client = m.client() }));
+}
+
 comptime {
-    _ = @import("Game.zig");
     _ = @import("level.zig");
     _ = @import("mapgen.zig");
     _ = @import("testing/actions.zig");

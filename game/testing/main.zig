@@ -4,7 +4,7 @@
 
 const std = @import("std");
 const mapgen = @import("../mapgen.zig");
-const Game = @import("../Game.zig");
+const Game = @import("../root.zig");
 const MockClient = @import("roguelib").MockClient;
 const Client = @import("roguelib").Client;
 

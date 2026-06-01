@@ -3,8 +3,7 @@
 //!
 
 const std = @import("std");
-const game = @import("game");
-const Game = game.Game;
+const Game = @import("game");
 const Curses = @import("Curses.zig");
 const options = @import("build");
 
@@ -98,7 +97,7 @@ pub fn main(init: std.process.Init) !void {
         error.DisplayTooSmall => {
             std.debug.print(
                 "Zrogue requires an {}x{} display\n",
-                .{ game.XSIZE, game.YSIZE },
+                .{ Game.XSIZE, Game.YSIZE },
             );
             std.process.exit(1);
         },
