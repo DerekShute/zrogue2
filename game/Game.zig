@@ -23,6 +23,8 @@ pub const PlayerUID = u8; // TODO: not very U
 
 allocator: std.mem.Allocator = undefined,
 io: std.Io = undefined,
+
+// REFACTOR: make this a std.Random.DefaultPrng and localize here
 r: *std.Random = undefined,
 level_config: mapgen.Config = undefined, // FUTURE: game state
 map: *Map = undefined,

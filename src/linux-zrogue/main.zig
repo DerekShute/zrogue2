@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const game = @import("game");
+const Game = game.Game;
 const Curses = @import("Curses.zig");
 const options = @import("build");
 
@@ -104,16 +105,22 @@ pub fn main(init: std.process.Init) !void {
     };
     defer c.deinit();
 
-    var player = game.Player.init(.{
-        .client = c.client(),
-    });
+    var config = Game.Config.init;
+    config.setAllocator(allocator);
+    config.setIo(init.io);
 
     const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
-    try game.run(.{
-        .player = &player,
-        .allocator = allocator,
-        .seed = seed,
-    });
+    var prng = std.Random.DefaultPrng.init(@intCast(seed));
+    var random = prng.random();
+    config.setRandom(&random);
+
+    var g = Game.init(config);
+    defer g.deinit();
+
+    const id = try g.initPlayer(.{ .client = c.client() });
+    defer g.deinitPlayer(id);
+
+    try g.run(g.getPlayer(id));
 }
 
 //
