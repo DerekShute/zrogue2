@@ -253,12 +253,10 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
 //
 
 pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
-    const entity = player.getEntity();
-
-    mapgen.addEntityToMap(map, entity, findAnyFloor(rand, map));
+    mapgen.addEntityToMap(map, player.getEntity(), findAnyFloor(rand, map));
     player.setDepth(@intCast(map.level));
-    actions.enterRoom(entity, map);
-    entity.notifyDisplay(map);
+    actions.enterRoom(player, map);
+    player.notifyDisplay(map);
 }
 
 //

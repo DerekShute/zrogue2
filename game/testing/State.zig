@@ -23,7 +23,6 @@ const Self = @This();
 client: *MockClient,
 map: *Map,
 player: *Player,
-f: *FOVMap,
 
 //
 // Lifecycle
@@ -40,15 +39,11 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     var player = try allocator.create(Player);
     errdefer allocator.destroy(player);
     player.* = Player.init(.{ .client = mc.client() });
+    try player.initFOV(allocator, mapgen.XSIZE, mapgen.YSIZE);
+    errdefer player.deinit(allocator);
 
-    const entity = player.getEntity();
-    var f = try allocator.create(FOVMap);
-    errdefer allocator.destroy(f);
-    f.* = try FOVMap.init(allocator, mapgen.XSIZE, mapgen.YSIZE);
-    errdefer f.deinit(allocator);
-    entity.setFOV(f);
-
-    const map = try level.create(allocator, entity);
+    // REFACTOR: fix level.create to act more naturally
+    const map = try level.create(allocator, player.getEntity());
     errdefer allocator.destroy(map);
 
     const self = try allocator.create(Self);
@@ -56,22 +51,20 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 
     self.* = .{
         .client = mc,
-        .f = f,
         .map = map,
         .player = player,
     };
 
-    actions.moveEntity(entity, map, player.getPos());
-    entity.notifyDisplay(map);
+    actions.move(player, map, player.getPos());
+    player.notifyDisplay(map);
 
     return self;
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.map.deinit(allocator);
+    self.player.deinit(allocator);
     allocator.destroy(self.player);
-    self.f.deinit(allocator);
-    allocator.destroy(self.f);
     self.client.deinit(allocator);
     allocator.destroy(self.client);
     allocator.destroy(self);
@@ -87,11 +80,10 @@ pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
 }
 
 pub fn moveTo(self: *Self, pos: Pos) void {
-    const entity = self.player.getEntity();
     _ = self.client.getMapUpdates();
     _ = self.client.getTileUpdates();
-    actions.moveEntity(entity, self.map, pos);
-    entity.notifyDisplay(self.map);
+    actions.move(self.player, self.map, pos);
+    self.player.notifyDisplay(self.map);
 }
 
 pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {

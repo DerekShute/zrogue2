@@ -123,11 +123,9 @@ pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
 
     player.* = .init(config);
 
-    // TODO: Stuffing the FOV structure into the Player is indeed gross
-
+    // TODO: separate FOV init is gross
     try player.initFOV(self.allocator, mapgen.XSIZE, mapgen.YSIZE);
     errdefer player.deinit(self.allocator);
-    player.getEntity().setFOV(player.getFOV());
 
     self.next_player_id += 1;
     return id;
@@ -181,7 +179,6 @@ fn play(self: *Self, config: *mapgen.Config, map: *Map) State {
         if (result != .continue_game) {
             break;
         }
-        entity.notifyDisplay(map); // FUTURE: back to Player?
         self.action_queue.enqueue(entity); // Continues
     }
 
