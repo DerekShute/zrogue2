@@ -14,6 +14,7 @@ const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
 
+const actions = @import("actions.zig");
 const mapgen = @import("mapgen.zig");
 const MapTile = mapgen.MapTile;
 
@@ -26,10 +27,7 @@ pub const Config = struct {
 };
 
 const player_vtable = Entity.VTable{
-    .addMessage = playerAddMessage,
-    .getAction = playerGetAction,
-    .setMapTile = playerSetMapTile,
-    .takeItem = playerTakeItem,
+    .doAction = actions.doAction,
 };
 
 const Self = @This();
@@ -82,24 +80,9 @@ pub fn resetFOV(self: *Self) void {
 // Vtable methods
 //
 
-fn playerAddMessage(ptr: *Entity, msg: []const u8) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.addMessage(msg);
-}
-
 fn playerGetAction(ptr: *Entity) !Action {
     const self: *Self = @ptrCast(@alignCast(ptr));
     return self.getAction();
-}
-
-fn playerSetMapTile(ptr: *Entity, pos: Pos, count: u8, dt: DisplayTile) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.client.setMapTile(pos, count, dt);
-}
-
-fn playerTakeItem(ptr: *Entity, map: *Map, pos: Pos) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.takeItem(map, pos);
 }
 
 //
@@ -114,7 +97,7 @@ fn setStatInt(self: *Self, name: []const u8, value: i32) void {
     self.client.setStatInt(name, value);
 }
 
-fn incrementPurse(self: *Self) void {
+pub fn incrementPurse(self: *Self) void {
     self.purse += 1;
     self.setStatInt("purse", self.purse);
 }
@@ -148,6 +131,10 @@ pub fn getEntity(self: *Self) *Entity {
     return &self.entity;
 }
 
+fn setMapTile(self: *Self, pos: Pos, count: u8, dt: DisplayTile) void {
+    self.client.setMapTile(pos, count, dt);
+}
+
 // Position
 
 pub fn getPos(self: *Self) Pos {
@@ -155,16 +142,110 @@ pub fn getPos(self: *Self) Pos {
 }
 
 pub fn setPos(self: *Self, p: Pos) void {
+    self.setPosChanged(self.getPos());
     self.entity.setPos(p);
+    self.setPosChanged(p);
 }
 
 pub fn setDepth(self: *Self, depth: u16) void {
     self.setStatInt("depth", depth);
 }
 
+//
+// Field of Vision
+//
+
+// It's up to the client and end UI to decide what to do with map areas that
+// are no longer visible.  It could remove them from the display, or dim them,
+// or only retain known-persistent features.
+//
+// This could be done piecemeal but that reduces opportunity for consolidation
+//
+// TODO: still not really cool with this
+// FUTURE: slice of DisplayTile
+//
+pub fn notifyDisplay(self: *Self, map: *Map) void {
+    var dt: DisplayTile = undefined;
+    var pos: Pos = undefined;
+    var count: u8 = 0;
+
+    var i = self.fov.iterator();
+    while (i.next_changed()) |change| {
+        if (count == 0) {
+            pos = change.pos;
+            count = 1;
+            dt = .init;
+            if (change.visible) {
+                const tile = map.getTileset(change.pos);
+                dt = DisplayTile{
+                    .entity = @intFromEnum(tile.entity),
+                    .floor = @intFromEnum(tile.floor),
+                    .item = @intFromEnum(tile.item),
+                    .visible = true,
+                };
+            }
+            continue;
+        }
+        // One in the tank; can it be combined?
+
+        const tile = map.getTileset(change.pos);
+        if ((change.pos.getY() == pos.getY()) and
+            (change.pos.getX() == pos.getX() + count))
+        {
+            if (!change.visible and !dt.visible) {
+                // Equally invisible; can combine
+                count = count + 1;
+                continue;
+            }
+
+            if ((change.visible == dt.visible) and // implies both visible
+                (dt.entity == @intFromEnum(tile.entity)) and
+                (dt.floor == @intFromEnum(tile.floor)) and
+                (dt.item == @intFromEnum(tile.item)))
+            {
+                // The same and both visible; combine
+                count = count + 1;
+                continue;
+            }
+        }
+
+        // Can't graft it, so flush the existing and keep going
+        self.setMapTile(pos, count, dt);
+        pos = change.pos;
+        count = 1;
+        dt = .init;
+        if (change.visible) {
+            dt = DisplayTile{
+                .entity = @intFromEnum(tile.entity),
+                .floor = @intFromEnum(tile.floor),
+                .item = @intFromEnum(tile.item),
+                .visible = true,
+            };
+        }
+    } // While
+    if (count > 0) {
+        // Flush anything trailing
+        self.setMapTile(pos, count, dt);
+    }
+}
+
+pub fn setPosChanged(self: *Self, loc: Pos) void {
+    if (loc.getX() != -1) {
+        self.fov.setChanged(loc, true);
+    }
+}
+
+pub fn setRegionVisible(self: *Self, region: Region, visible: bool) void {
+    var _r = region; // Flip to var
+    var ri = _r.iterator();
+    while (ri.next()) |p| {
+        self.fov.setVisible(p, visible);
+    }
+}
+
 // Misc
 
-fn takeItem(self: *Self, map: *Map, pos: Pos) void {
+pub fn takeItem(self: *Self, map: *Map, pos: Pos) void {
     if (mapgen.getItem(map, pos) == .gold) {
         self.addMessage("You pick up the gold!");
         self.incrementPurse();
