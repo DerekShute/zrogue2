@@ -148,6 +148,8 @@ fn resetMap(self: *Self) void {
             self.map[x + y * game.XSIZE] = .init;
         }
     }
+    self.redrawMap();
+    self.flushDisplay();
 }
 
 //
