@@ -63,6 +63,12 @@ fn sleep(duration: i64) !void {
     try io.sleep(std.Io.Duration.fromSeconds(duration), .real);
 }
 
+fn resetMap() void {
+    for (0..map.len) |i| {
+        map[i] = ' ';
+    }
+}
+
 //
 // Content Updates
 //
@@ -124,6 +130,7 @@ pub fn setStat(name: []const u8, value: i32) void {
         purse = value;
     } else if (std.mem.eql(u8, "depth", name)) {
         depth = value;
+        resetMap();
     }
 
     statcount = statcount + 1;
@@ -263,6 +270,8 @@ fn run_game(peer: net.IpAddress, allocator: Allocator) !void {
 
     // TODO: explicit command
     try connector.writeEntryRequest("cli-client");
+
+    resetMap();
 
     const thread = try std.Thread.spawn(
         .{},

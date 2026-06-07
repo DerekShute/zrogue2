@@ -21,7 +21,7 @@ const Tile = struct {
 
     const init: Tile = .{
         .visible = false,
-        .changed = true,
+        .changed = false,
     };
 };
 
@@ -162,10 +162,11 @@ test "basic use" {
     var map = try init(std.testing.allocator, 50, 50);
     defer map.deinit(std.testing.allocator);
 
-    try expect(map.getChanged(.init(10, 10)) == true); // Condition of init
-    map.setChanged(.init(10, 10), false); // Pretend this has been reported
+    try expect(map.getChanged(.init(10, 10)) == false); // Condition of init
 
-    try expect(map.getChanged(.init(10, 10)) == false);
+    map.setChanged(.init(10, 10), true);
+    try expect(map.getChanged(.init(10, 10)) == true);
+    map.setChanged(.init(10, 10), false); // Pretend it was sampled
 
     map.setVisible(.init(10, 10), true);
     try expect(map.getVisible(.init(10, 10)) == true);
@@ -184,7 +185,7 @@ test "basic use" {
 
     map.reset();
     try expect(map.getVisible(.init(10, 10)) == false);
-    try expect(map.getChanged(.init(10, 10)) == true);
+    try expect(map.getChanged(.init(10, 10)) == false);
 }
 
 test "iterator" {
@@ -214,25 +215,27 @@ test "changed iterator" {
     var map = try init(std.testing.allocator, 5, 5);
     defer map.deinit(std.testing.allocator);
 
+    // Created with no changed bits set
+
     var it = map.iterator();
+    if (it.next_changed()) |_| {
+        try expect(false);
+    }
+
+    map.setChanged(.init(1, 0), true); // Skip index 1
+
+    it = map.iterator();
     if (it.next_changed()) |i| {
-        try expect(i.pos.getX() == 0);
-        try expect(map.getChanged(i.pos) == false);
+        try expect(i.pos.getX() == 1);
     } else {
         try expect(false);
     }
 
-    map.setChanged(.init(1, 0), false); // Skip index 1
-
-    if (it.next_changed()) |i| {
-        try expect(i.pos.getX() == 2);
-    } else {
-        try expect(false);
-    }
+    map.setChanged(.init(4, 4), true);
 
     while (it.next_changed()) |i| { // Finish the series
-        try expect(i.pos.getX() < 5);
-        try expect(i.pos.getY() < 5);
+        try expect(i.pos.getX() == 4);
+        try expect(i.pos.getY() == 4);
     }
 
     it = map.iterator(); // Changed bits reset, so no more
