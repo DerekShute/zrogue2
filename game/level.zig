@@ -200,7 +200,6 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
             .init(start_x, r1_y),
             .init(end_x, r2_y),
             mid_x,
-            .corridor,
         );
         d1 = Pos.init(start_x, r1_y);
         d2 = Pos.init(end_x, r2_y);
@@ -215,7 +214,6 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
             .init(r1_x, start_y),
             .init(r2_x, end_y),
             mid_y,
-            .corridor,
         );
         d1 = Pos.init(r1_x, start_y);
         d2 = Pos.init(r2_x, end_y);
@@ -278,12 +276,12 @@ pub fn create(config: mapgen.Config, allocator: std.mem.Allocator, rand: *std.Ra
         // config and submits that to mapgen for construction?
         const r = map.roomFromNum(i);
         if (r.flags.gone) { // TODO: interface
-            mapgen.addRoom(map, makeGoneRoom(@intCast(i), map, rand), .floor);
+            mapgen.addRoom(map, makeGoneRoom(@intCast(i), map, rand));
             continue;
         }
 
         var room = makeRoom(@intCast(i), map, rand);
-        mapgen.addRoom(map, room, .floor);
+        mapgen.addRoom(map, room);
         makeGold(map, rand, &room);
 
         // FUTURE: Place monster
@@ -415,7 +413,7 @@ test "fuzz test room generation" {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
             const room = makeRoom(i, map, &r);
-            mapgen.addRoom(map, room, .floor);
+            mapgen.addRoom(map, room);
         }
     }
 }
@@ -431,7 +429,7 @@ test "fuzz test gone room generation" {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
             const room = makeGoneRoom(i, map, &r);
-            mapgen.addRoom(map, room, .floor);
+            mapgen.addRoom(map, room);
 
             // TODO test boundaries
         }
