@@ -16,6 +16,8 @@ const net = std.Io.net;
 //
 
 fn handleClient(g: *Game, conn: *net.Stream) !void {
+    defer conn.close(g.io);
+
     const name = try std.fmt.allocPrint(g.allocator, "{f}", .{conn.socket.address});
     defer g.allocator.free(name);
 
@@ -56,6 +58,7 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
         defer g.deinitPlayer(id);
 
         // TODO: this doesn't go here.  Goes inside a spawned thread
+        // outside of player context
 
         g.run(g.getPlayer(id)) catch |err| {
             log.info("[{s}] Game.run : {}", .{ name, err });
@@ -84,15 +87,22 @@ pub fn main(init: std.process.Init) !void {
     var service = try addr.listen(init.io, .{ .reuse_address = true });
     defer service.deinit(init.io);
 
-    // Listener becomes a thread and spawns connection threads.  Main thread
-    // runs the game
-
     log.info("[{}] Listening", .{service.socket.address.ip4.port});
     while (true) {
         var connection = try service.accept(init.io);
-        defer connection.close(init.io);
+        errdefer connection.close(init.io);
 
-        try handleClient(&g, &connection);
+        // FUTURE: thread pool, to throttle?  Async?
+
+        const thread = try std.Thread.spawn(
+            .{},
+            handleClient,
+            .{ &g, &connection },
+        );
+        defer thread.join();
+
+        // FUTURE: thread.detach() here to accept the next connector, but
+        // this requires a multithreaded, multiuser Game
     }
 }
 
