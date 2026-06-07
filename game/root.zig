@@ -36,8 +36,9 @@ pub const PlayerUID = u8; // TODO: not very U
 allocator: std.mem.Allocator = undefined,
 io: std.Io = undefined,
 
-// REFACTOR: make this a std.Random.DefaultPrng and localize here
-r: *std.Random = undefined,
+prng: std.Random.DefaultPrng = undefined,
+r: std.Random = undefined,
+
 level_config: mapgen.Config = undefined, // FUTURE: game state
 map: *Map = undefined,
 players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
@@ -53,7 +54,6 @@ action_queue: Entity.Queue = undefined,
 
 pub const Config = struct {
     allocator: ?std.mem.Allocator = null,
-    r: ?*std.Random = null,
     io: ?std.Io = null,
 
     pub const init: @This() = .{};
@@ -65,32 +65,24 @@ pub const Config = struct {
     pub fn setIo(self: *@This(), io: std.Io) void {
         self.io = io;
     }
-
-    pub fn setRandom(self: *@This(), r: *std.Random) void {
-        self.r = r;
-    }
 };
 
-pub fn init(config: Config) Self {
-    var s: Self = .{
-        .level_config = .init,
-        .players = .empty,
-        .action_queue = .config(),
-    };
+// Nonstandard but this is setting a pointer member so just easier this way
+pub fn init(self: *Self, config: Config) void {
+    self.level_config = .init;
+    self.players = .empty;
+    self.action_queue = .config();
 
     if (config.allocator) |a| {
-        s.allocator = a;
+        self.allocator = a;
     }
 
     if (config.io) |io| {
-        s.io = io;
+        self.io = io;
+        const seed = std.Io.Timestamp.now(io, .real).toMicroseconds();
+        self.prng = .init(@intCast(seed));
+        self.r = self.prng.random();
     }
-
-    if (config.r) |r| {
-        s.r = r;
-    }
-
-    return s;
 }
 
 pub fn deinit(self: *Self) void {
@@ -209,10 +201,10 @@ pub fn run(self: *Self, player: *Player) !void { // WIP server
 
     var state: State = .run;
     while (state != .end) {
-        var map = try level.create(level_config, self.allocator, self.r);
+        var map = try level.create(level_config, self.allocator, &self.r);
         defer map.deinit(self.allocator);
 
-        level.addPlayer(map, player, self.r);
+        level.addPlayer(map, player, &self.r);
         self.action_queue.enqueue(entity);
         state = self.play(&level_config, map);
         player.resetFOV();
@@ -236,7 +228,8 @@ test "basic use" { // If this fails then something has changed
     var config = Config.init;
     config.setAllocator(f.allocator());
 
-    var self = init(config);
+    var self: Self = undefined;
+    self.init(config);
     defer self.deinit();
 
     var m = try MockClient.init(tallocator, 50, 50);
@@ -255,7 +248,8 @@ test "alloc failure 0" {
     var config = Config.init;
     config.setAllocator(f.allocator());
 
-    var self = init(config);
+    var self: Self = undefined;
+    self.init(config);
     defer self.deinit();
 
     var m = try MockClient.init(tallocator, 50, 50);
@@ -269,7 +263,8 @@ test "alloc failure 1" {
     var config = Config.init;
     config.setAllocator(f.allocator());
 
-    var self = init(config);
+    var self: Self = undefined;
+    self.init(config);
     defer self.deinit();
 
     var m = try MockClient.init(tallocator, 50, 50);

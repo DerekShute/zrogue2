@@ -93,7 +93,7 @@ pub fn main(init: std.process.Init) !void {
     // REFACTOR: this isn't great.  The game-ui should dictate constraints and
     // should probably give the opportunity to resize the display
 
-    var c = Curses.init() catch |err| switch (err) {
+    var curses = Curses.init() catch |err| switch (err) {
         error.DisplayTooSmall => {
             std.debug.print(
                 "Zrogue requires an {}x{} display\n",
@@ -102,21 +102,17 @@ pub fn main(init: std.process.Init) !void {
             std.process.exit(1);
         },
     };
-    defer c.deinit();
+    defer curses.deinit();
 
-    var config = Game.Config.init;
-    config.setAllocator(allocator);
-    config.setIo(init.io);
+    var c = Game.Config.init;
+    c.setAllocator(allocator);
+    c.setIo(init.io);
 
-    const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
-    var prng = std.Random.DefaultPrng.init(@intCast(seed));
-    var random = prng.random();
-    config.setRandom(&random);
-
-    var g = Game.init(config);
+    var g: Game = undefined;
+    g.init(c);
     defer g.deinit();
 
-    const id = try g.initPlayer(.{ .client = c.client() });
+    const id = try g.initPlayer(.{ .client = curses.client() });
     defer g.deinitPlayer(id);
 
     try g.run(g.getPlayer(id));

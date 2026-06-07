@@ -48,13 +48,8 @@ test "run the game" {
     config.setAllocator(std.testing.allocator);
     config.setIo(std.testing.io);
 
-    // TODO is this mockable?
-    const seed = std.Io.Timestamp.now(std.testing.io, .real).toMicroseconds();
-    var prng = std.Random.DefaultPrng.init(@intCast(seed));
-    var random = prng.random();
-    config.setRandom(&random);
-
-    var g = Game.init(config);
+    var g: Game = undefined;
+    g.init(config);
     defer g.deinit();
 
     const id = try g.initPlayer(.{ .client = m.client() });
