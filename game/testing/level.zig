@@ -46,15 +46,15 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
 
     var room = Room.config(.init(2, 2), .init(9, 9));
     room.setDark();
-    mapgen.addRoom(map, room, .floor);
+    mapgen.addRoom(map, room);
 
-    mapgen.addRoom(map, Room.config(.init(27, 5), .init(35, 10)), .floor);
-    mapgen.addEastCorridor(map, .init(9, 5), .init(27, 8), 13, .corridor);
+    mapgen.addRoom(map, Room.config(.init(27, 5), .init(35, 10)));
+    mapgen.addEastCorridor(map, .init(9, 5), .init(27, 8), 13);
     mapgen.setFloor(map, .init(27, 8), .door); // FOV requires
 
-    mapgen.addRoom(map, Room.config(.init(4, 12), .init(20, 19)), .floor);
+    mapgen.addRoom(map, Room.config(.init(4, 12), .init(20, 19)));
 
-    mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10, .corridor);
+    mapgen.addSouthCorridor(map, .init(4, 9), .init(18, 12), 10);
     // TODO: makeDoor not exposed and requires std.Random
 
     mapgen.addItem(map, .init(7, 5), .gold);
