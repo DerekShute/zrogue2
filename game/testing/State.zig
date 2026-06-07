@@ -38,8 +38,12 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 
     var player = try allocator.create(Player);
     errdefer allocator.destroy(player);
-    player.* = Player.init(.{ .client = mc.client() });
-    try player.initFOV(allocator, mapgen.XSIZE, mapgen.YSIZE);
+    player.* = try Player.init(
+        allocator,
+        .{ .client = mc.client() },
+        mapgen.XSIZE,
+        mapgen.YSIZE,
+    );
     errdefer player.deinit(allocator);
 
     // REFACTOR: fix level.create to act more naturally

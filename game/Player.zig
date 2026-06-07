@@ -18,6 +18,8 @@ const actions = @import("actions.zig");
 const mapgen = @import("mapgen.zig");
 const MapTile = mapgen.MapTile;
 
+const Allocator = std.mem.Allocator;
+
 //
 // Types
 //
@@ -47,7 +49,7 @@ purse: u16 = 0,
 // Lifecycle
 //
 
-pub fn init(config: Config) Self {
+pub fn init(allocator: Allocator, config: Config, width: usize, height: usize) !Self {
     const c = Entity.Config{
         .tile = .fromOther(MapTile.player),
         .vtable = &player_vtable,
@@ -56,15 +58,11 @@ pub fn init(config: Config) Self {
     return .{
         .entity = Entity.init(c),
         .client = config.client,
+        .fov = try .init(allocator, width, height),
     };
 }
 
-// REFACTOR is there a better way?
-pub fn initFOV(self: *Self, allocator: std.mem.Allocator, width: usize, height: usize) !void {
-    self.fov = try .init(allocator, width, height);
-}
-
-pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+pub fn deinit(self: *Self, allocator: Allocator) void {
     self.fov.deinit(allocator);
 }
 

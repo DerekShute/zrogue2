@@ -113,10 +113,7 @@ pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
     }
     const player = gop.value_ptr;
 
-    player.* = .init(config);
-
-    // TODO: separate FOV init is gross
-    try player.initFOV(self.allocator, mapgen.XSIZE, mapgen.YSIZE);
+    player.* = try .init(self.allocator, config, mapgen.XSIZE, mapgen.YSIZE);
     errdefer player.deinit(self.allocator);
 
     self.next_player_id += 1;
