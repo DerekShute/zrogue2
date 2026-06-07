@@ -72,17 +72,12 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
 //
 
 pub fn main(init: std.process.Init) !void {
-    const allocator = init.gpa;
-    const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
-    var prng = std.Random.DefaultPrng.init(@intCast(seed));
-    var random = prng.random();
-
     var config = Game.Config.init;
-    config.setAllocator(allocator);
-    config.setRandom(&random);
+    config.setAllocator(init.gpa);
     config.setIo(init.io);
 
-    var g = Game.init(config);
+    var g: Game = undefined;
+    g.init(config);
     defer g.deinit();
 
     const addr = try net.IpAddress.parse("127.0.0.1", 0);
