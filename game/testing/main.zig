@@ -55,7 +55,15 @@ test "run the game" {
     const id = try g.initPlayer(.{ .client = m.client() });
     defer g.deinitPlayer(id);
 
-    try g.run(g.getPlayer(id));
+    try g.initLevel();
+    defer g.deinitLevel();
+
+    g.addPlayer(g.getPlayer(id)); // TODO: ugh
+
+    var state: Game.State = .run;
+    while (state != .end) {
+        state = g.play();
+    } // Game run loop
 }
 
 // EOF
