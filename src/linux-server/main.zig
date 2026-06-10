@@ -60,9 +60,20 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
         // TODO: this doesn't go here.  Goes inside a spawned thread
         // outside of player context
 
-        g.run(g.getPlayer(id)) catch |err| {
-            log.info("[{s}] Game.run : {}", .{ name, err });
-        };
+        var player = g.getPlayer(id); // TODO: ugh
+
+        player.addMessage("Welcome to the Dungeon of Doom!");
+
+        var state: Game.State = .run;
+        while (state != .end) {
+            player.resetFOV();
+            try g.initLevel();
+            defer g.deinitLevel();
+
+            g.addPlayer(player);
+
+            state = g.play();
+        } // Game run loop
 
         rc.writeDepart("Game Ending") catch {}; // Not much to do here
     }

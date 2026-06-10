@@ -115,7 +115,22 @@ pub fn main(init: std.process.Init) !void {
     const id = try g.initPlayer(.{ .client = curses.client() });
     defer g.deinitPlayer(id);
 
-    try g.run(g.getPlayer(id));
+    var player = g.getPlayer(id); // TODO: ugh
+
+    player.addMessage("Welcome to the Dungeon of Doom!");
+
+    var state: Game.State = .run;
+    while (state != .end) {
+        player.resetFOV();
+        try g.initLevel();
+        defer g.deinitLevel();
+
+        g.addPlayer(player);
+
+        state = g.play();
+    } // Game run loop
+
+    // FUTURE: game endings go here
 }
 
 //

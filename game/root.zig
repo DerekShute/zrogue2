@@ -139,6 +139,25 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
     return p.?;
 }
 
+// TODO: parcel with initPlayer?
+pub fn addPlayer(self: *Self, player: *Player) void {
+    level.addPlayer(self.map, player, &self.r);
+    self.action_queue.enqueue(player.getEntity());
+}
+
+//
+// Mapgen
+//
+
+pub fn initLevel(self: *Self) !void {
+    self.map = try level.create(self.level_config, self.allocator, &self.r);
+}
+
+pub fn deinitLevel(self: *Self) void {
+    self.map.deinit(self.allocator);
+    self.map = undefined;
+}
+
 //
 // Game Run
 //
@@ -150,19 +169,19 @@ const level = @import("level.zig");
 const actions = @import("actions.zig");
 
 // Simple state machine: intro -> run -> end
-const State = enum {
+pub const State = enum {
     run,
     end,
 };
 
-fn play(self: *Self, config: *mapgen.Config, map: *Map) State {
+pub fn play(self: *Self) State {
     var result: Action.Result = undefined;
     var state: State = .run;
 
     // FUTURE: Other Entities means having a .depart result
 
     while (self.action_queue.next()) |entity| {
-        result = actions.doAction(entity, map) catch {
+        result = actions.doAction(entity, self.map) catch {
             return .end;
         };
         if (result != .continue_game) {
@@ -171,43 +190,25 @@ fn play(self: *Self, config: *mapgen.Config, map: *Map) State {
         self.action_queue.enqueue(entity); // Continues
     }
 
+    // TODO: this breaks single-user versus server
+
     switch (result) {
         .continue_game => unreachable,
         .end_game => state = .end,
         .descend => {
-            config.level += 1;
-            if (config.level >= MAX_DEPTH) {
-                config.going_down = false;
+            self.level_config.level += 1;
+            if (self.level_config.level >= MAX_DEPTH) {
+                self.level_config.going_down = false;
             }
         },
         .ascend => {
-            config.level -= 1;
-            if (config.level < 1) {
+            self.level_config.level -= 1;
+            if (self.level_config.level < 1) {
                 state = .end;
             }
         },
     }
     return state;
-}
-
-pub fn run(self: *Self, player: *Player) !void { // WIP server
-    const entity = player.getEntity(); // TODO: ugh
-    var level_config = mapgen.Config.init;
-
-    player.addMessage("Welcome to the Dungeon of Doom!");
-
-    var state: State = .run;
-    while (state != .end) {
-        var map = try level.create(level_config, self.allocator, &self.r);
-        defer map.deinit(self.allocator);
-
-        level.addPlayer(map, player, &self.r);
-        self.action_queue.enqueue(entity);
-        state = self.play(&level_config, map);
-        player.resetFOV();
-    } // Game run loop
-
-    // FUTURE: game endings go here
 }
 
 //
