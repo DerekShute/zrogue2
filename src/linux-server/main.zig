@@ -56,10 +56,6 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
 
         const id = try g.initPlayer(.{ .client = rc.client() });
         defer g.deinitPlayer(id);
-
-        // TODO: this doesn't go here.  Goes inside a spawned thread
-        // outside of player context
-
         var player = g.getPlayer(id); // TODO: ugh
 
         player.addMessage("Welcome to the Dungeon of Doom!");
@@ -67,8 +63,6 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
         var state: Game.State = .run;
         while (state != .end) {
             player.resetFOV();
-            try g.initLevel();
-            defer g.deinitLevel();
 
             g.addPlayer(player);
 
@@ -94,6 +88,9 @@ pub fn main(init: std.process.Init) !void {
     g.init(config);
     defer g.deinit();
 
+    try g.initLevel();
+    defer g.deinitLevel();
+
     const addr = try net.IpAddress.parse("127.0.0.1", 0);
     var service = try addr.listen(init.io, .{ .reuse_address = true });
     defer service.deinit(init.io);
@@ -110,10 +107,7 @@ pub fn main(init: std.process.Init) !void {
             handleClient,
             .{ &g, &connection },
         );
-        defer thread.join();
-
-        // FUTURE: thread.detach() here to accept the next connector, but
-        // this requires a multithreaded, multiuser Game
+        thread.detach();
     }
 }
 
