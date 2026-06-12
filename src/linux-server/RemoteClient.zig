@@ -74,6 +74,7 @@ pub fn init(allocator: Allocator, config: Config) !*Self {
     };
     rc.connector.ctx = rc;
     rc.state = .init;
+    rc.next_command = null;
 
     return rc;
 }
