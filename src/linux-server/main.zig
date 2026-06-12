@@ -59,20 +59,24 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
         var player = g.getPlayer(id); // TODO: ugh
 
         player.addMessage("Welcome to the Dungeon of Doom!");
+        g.addPlayer(player);
 
-        var state: Game.State = .run;
-        while (state != .end) {
-            player.resetFOV();
-
-            g.addPlayer(player);
-
-            state = g.play();
-        } // Game run loop
+        // Feeds command gathering
+        while (rc.getState() == .connected) {
+            rc.run(arena.allocator()) catch |err| {
+                log.info("[{s}] error: {}", .{ name, err });
+                return;
+            };
+        }
 
         rc.writeDepart("Game Ending") catch {}; // Not much to do here
     }
 
     log.info("[{s}] End session", .{name});
+}
+
+fn server(g: *Game) void {
+    while (g.play() != .end) {}
 }
 
 //
@@ -90,6 +94,9 @@ pub fn main(init: std.process.Init) !void {
 
     try g.initLevel();
     defer g.deinitLevel();
+
+    const s_thread = try std.Thread.spawn(.{}, server, .{&g});
+    s_thread.detach();
 
     const addr = try net.IpAddress.parse("127.0.0.1", 0);
     var service = try addr.listen(init.io, .{ .reuse_address = true });

@@ -175,7 +175,7 @@ pub const State = enum {
 };
 
 pub fn play(self: *Self) State {
-    var result: Action.Result = undefined;
+    var result: Action.Result = .continue_game;
     var state: State = .run;
 
     // FUTURE: Other Entities means having a .depart result
@@ -193,7 +193,7 @@ pub fn play(self: *Self) State {
     // TODO: this breaks single-user versus server
 
     switch (result) {
-        .continue_game => unreachable,
+        .continue_game => {},
         .end_game => state = .end,
         .descend => {
             self.level_config.level += 1;

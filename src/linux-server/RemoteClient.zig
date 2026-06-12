@@ -145,8 +145,6 @@ fn remoteGetCommand(ptr: *anyopaque) !Client.Command {
         return .wait; // TODO: no error path here
     }
 
-    self.run(self.allocator) catch return error.ProviderError;
-
     if (self.next_command) |cmd| {
         self.next_command = null;
         return cmd;
