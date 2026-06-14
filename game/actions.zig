@@ -86,6 +86,11 @@ fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
         return .continue_game;
     }
 
+    if (map.getEntity(new_pos) != null) {
+        player.addMessage("Somebody is there!"); // FUTURE: bump or combat
+        return .continue_game;
+    }
+
     move(player, map, new_pos);
 
     return .continue_game;
