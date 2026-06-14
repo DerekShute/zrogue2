@@ -49,6 +49,10 @@ pub fn getTileset(self: *Self) Tileset {
 
 // FUTURE: an index that is Game controlled
 
+pub fn getEntity(self: *Self) ?*Entity {
+    return self.entity;
+}
+
 pub fn setEntity(self: *Self, to: *Entity) void {
     if (self.entity) |_| {
         @panic("Place.setEntity: already in use\n");

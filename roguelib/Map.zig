@@ -107,6 +107,10 @@ pub fn addEntity(self: *Self, e: *Entity, p: Pos) void {
     self.toPlace(p).setEntity(e);
 }
 
+pub fn getEntity(self: *Self, p: Pos) ?*Entity {
+    return self.toPlace(p).getEntity();
+}
+
 pub fn removeEntity(self: *Self, p: Pos) void {
     self.toPlace(p).removeEntity();
 }
