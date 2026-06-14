@@ -193,8 +193,10 @@ pub fn play(self: *Self) State {
                 self.action_queue.enqueue(entity); // Continues
                 continue;
             },
-            .end_game => return .end,
-
+            .end_game => {
+                self.map.removeEntity(entity.getPos());
+                return .end;
+            },
             // TODO: ascend/descend needs real map management and this breaks
             // the current 'rogue' model of new maps on the way back up
 

@@ -78,11 +78,13 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
 fn server(g: *Game) void {
     var state: Game.State = .run;
 
-    while (state != .end) {
+    // TODO: the return value is based on the player result in the queue.
+
+    while (true) {
         state = g.play();
 
         // TODO: ascend/descend requires proper map management within
-        // the player context
+        // the player action context or something
     }
 }
 
