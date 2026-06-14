@@ -76,7 +76,14 @@ fn handleClient(g: *Game, conn: *net.Stream) !void {
 }
 
 fn server(g: *Game) void {
-    while (g.play() != .end) {}
+    var state: Game.State = .run;
+
+    while (state != .end) {
+        state = g.play();
+
+        // TODO: ascend/descend requires proper map management within
+        // the player context
+    }
 }
 
 //
