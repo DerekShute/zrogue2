@@ -8,6 +8,12 @@ const Curses = @import("Curses.zig");
 const options = @import("build");
 
 //
+// Constants
+//
+
+const MAX_DEPTH = 3;
+
+//
 // Command arguments
 //
 
@@ -119,8 +125,10 @@ pub fn main(init: std.process.Init) !void {
 
     player.addMessage("Welcome to the Dungeon of Doom!");
 
+    var level: u16 = 1;
     var state: Game.State = .run;
     while (state != .end) {
+        g.setLevel(level);
         player.resetFOV();
         try g.initLevel();
         defer g.deinitLevel();
@@ -128,6 +136,19 @@ pub fn main(init: std.process.Init) !void {
         g.addPlayer(player);
 
         state = g.play();
+
+        // Simple map management: only one, and we replace it at change
+        if (state == .descend) {
+            level += 1;
+            if (level >= MAX_DEPTH) {
+                g.setGoingDown(false); // TODO this is a stupid hack
+            }
+        } else if (state == .ascend) {
+            level -= 1;
+            if (level < 1) {
+                break;
+            }
+        }
     } // Game run loop
 
     // FUTURE: game endings go here

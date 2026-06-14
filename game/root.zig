@@ -149,6 +149,14 @@ pub fn addPlayer(self: *Self, player: *Player) void {
 // Mapgen
 //
 
+pub fn setLevel(self: *Self, lvl: u16) void {
+    self.level_config.level = lvl;
+}
+
+pub fn setGoingDown(self: *Self, going_down: bool) void {
+    self.level_config.going_down = going_down;
+}
+
 pub fn initLevel(self: *Self) !void {
     self.map = try level.create(self.level_config, self.allocator, &self.r);
 }
@@ -162,7 +170,6 @@ pub fn deinitLevel(self: *Self) void {
 // Game Run
 //
 
-const MAX_DEPTH = 3;
 const Action = @import("roguelib").Action;
 
 const level = @import("level.zig");
@@ -171,44 +178,33 @@ const actions = @import("actions.zig");
 // Simple state machine: intro -> run -> end
 pub const State = enum {
     run,
+    descend, // hacky - let wrapper determine what this entails
+    ascend,
     end,
 };
 
 pub fn play(self: *Self) State {
-    var result: Action.Result = .continue_game;
-    var state: State = .run;
-
-    // FUTURE: Other Entities means having a .depart result
-
     while (self.action_queue.next()) |entity| {
-        result = actions.doAction(entity, self.map) catch {
+        const result = actions.doAction(entity, self.map) catch {
             return .end;
         };
-        if (result != .continue_game) {
-            break;
+        switch (result) {
+            .continue_game => {
+                self.action_queue.enqueue(entity); // Continues
+                continue;
+            },
+            .end_game => return .end,
+
+            // TODO: ascend/descend needs real map management and this breaks
+            // the current 'rogue' model of new maps on the way back up
+
+            .ascend => return .ascend,
+            .descend => return .descend,
         }
-        self.action_queue.enqueue(entity); // Continues
     }
 
-    // TODO: this breaks single-user versus server
-
-    switch (result) {
-        .continue_game => {},
-        .end_game => state = .end,
-        .descend => {
-            self.level_config.level += 1;
-            if (self.level_config.level >= MAX_DEPTH) {
-                self.level_config.going_down = false;
-            }
-        },
-        .ascend => {
-            self.level_config.level -= 1;
-            if (self.level_config.level < 1) {
-                state = .end;
-            }
-        },
-    }
-    return state;
+    // No entity left on queue
+    return .run;
 }
 
 //
