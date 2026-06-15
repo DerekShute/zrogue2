@@ -152,17 +152,23 @@ fn isRoomAdjacent(i: usize, j: usize) bool {
 }
 
 fn findFloor(r: *std.Random, room: *Room) Pos {
-    // FIXME: want a spot without anything else
     const row = r.intRangeAtMost(Pos.Dim, room.getMinX() + 1, room.getMaxX() - 1);
     const col = r.intRangeAtMost(Pos.Dim, room.getMinY() + 1, room.getMaxY() - 1);
     return .init(row, col);
 }
 
 fn findAnyFloor(r: *std.Random, map: *Map) Pos {
-    const i = r.intRangeAtMost(usize, 0, max_rooms - 1);
-    const room = map.roomFromNum(i);
+    // Keep attempting until an empty position in some room is found
+    while (true) {
+        const i = r.intRangeAtMost(usize, 0, max_rooms - 1);
+        const pos = findFloor(r, map.roomFromNum(i));
 
-    return findFloor(r, room);
+        if (map.getEntity(pos) != null) {
+            continue; // Try again
+        }
+
+        return pos;
+    }
 }
 
 // Connection graph between rooms
