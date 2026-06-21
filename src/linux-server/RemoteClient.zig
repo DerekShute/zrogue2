@@ -199,6 +199,10 @@ fn command(ctx: *anyopaque, cmd: u16) !void {
     }
 
     self.next_command = @enumFromInt(cmd);
+    if (self.next_command == .quit) {
+        log.info("[{f}] requesting depart", .{self});
+        self.connector.writeDepart("ACK depart") catch {}; // nothing to do
+    }
 }
 
 fn depart(ctx: *anyopaque, text: []const u8) !void {

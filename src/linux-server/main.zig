@@ -15,7 +15,7 @@ const net = std.Io.net;
 // Client connection
 //
 
-fn handleClient(g: *Game, conn: *net.Stream) !void {
+fn handleClient(g: *Game, conn: net.Stream) !void {
     defer conn.close(g.io);
 
     const name = try std.fmt.allocPrint(g.allocator, "{f}", .{conn.socket.address});
@@ -113,7 +113,7 @@ pub fn main(init: std.process.Init) !void {
 
     log.info("[{}] Listening", .{service.socket.address.ip4.port});
     while (true) {
-        var connection = try service.accept(init.io);
+        const connection = try service.accept(init.io);
         errdefer connection.close(init.io);
 
         // FUTURE: thread pool, to throttle?  Async?
@@ -121,7 +121,7 @@ pub fn main(init: std.process.Init) !void {
         const thread = try std.Thread.spawn(
             .{},
             handleClient,
-            .{ &g, &connection },
+            .{ &g, connection },
         );
         thread.detach();
     }
