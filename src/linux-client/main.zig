@@ -101,6 +101,14 @@ fn unsupported(ctx: *anyopaque) !void {
 
 fn readCommand(connector: *Connector) !void {
     const cmd = ui.readCommand();
+    if (cmd == .quit) {
+        // FUTURE: are you sure?
+        setMessage("Quitting...");
+        displayMessage();
+        refresh();
+        connector.writeCommandMsg(@intFromEnum(cmd)) catch {}; // Nothing to do here
+        return error.Ending;
+    }
     try connector.writeCommandMsg(@intFromEnum(cmd));
 }
 
@@ -165,7 +173,9 @@ fn run_game(peer: net.IpAddress, allocator: Allocator, io: std.Io) !void {
     refresh();
 
     while (!ending) {
-        try readCommand(&connector);
+        readCommand(&connector) catch {
+            ending = true;
+        };
         setMessage(" ");
         displayMessage();
         refresh();
