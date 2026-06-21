@@ -33,20 +33,25 @@ pub const PlayerUID = u8; // TODO: not very U
 // Members
 //
 
-allocator: std.mem.Allocator = undefined,
-io: std.Io = undefined,
+allocator: std.mem.Allocator = undefined, // FUTURE: World
+io: std.Io = undefined, // FUTURE: World
 
-prng: std.Random.DefaultPrng = undefined,
+prng: std.Random.DefaultPrng = undefined, // FUTURE: World
 r: std.Random = undefined,
 
 level_config: mapgen.Config = undefined, // FUTURE: game state
-map: *Map = undefined,
+map: *Map = undefined, // FUTURE: World, and a hashmap(?)
 players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
 next_player_id: PlayerUID = 0,
 
-action_queue: Entity.Queue = undefined,
+// FUTURE: to World, with Entity list, Items, timer
+queue: Entity.Queue = undefined,
+mutex: std.Io.Mutex = undefined,
+condition: std.Io.Condition = undefined,
 
-// TODO: entities?, items, work queue
+// TODO
+//  * if no command in queue and single-player, then you have a problem
+//  * so probably a single-player flag here
 
 //
 // Lifecycle
@@ -71,7 +76,9 @@ pub const Config = struct {
 pub fn init(self: *Self, config: Config) void {
     self.level_config = .init;
     self.players = .empty;
-    self.action_queue = .config();
+    self.queue = .config();
+    self.mutex = .init;
+    self.condition = .init;
 
     if (config.allocator) |a| {
         self.allocator = a;
@@ -139,10 +146,17 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
     return p.?;
 }
 
+fn enqueueEntity(self: *Self, entity: *Entity) void {
+    self.mutex.lock(self.io) catch unreachable; // TODO async
+    defer self.mutex.unlock(self.io);
+    self.queue.enqueue(entity);
+    self.condition.signal(self.io);
+}
+
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
     level.addPlayer(self.map, player, &self.r);
-    self.action_queue.enqueue(player.getEntity());
+    self.enqueueEntity(player.getEntity());
 }
 
 //
@@ -183,14 +197,30 @@ pub const State = enum {
     end,
 };
 
+// Blocks awaiting an entity
+// TODO: stop condition? Returns error?
+pub fn next_entity(self: *Self) ?*Entity {
+    self.mutex.lock(self.io) catch unreachable; // TODO: not sure about async
+    defer self.mutex.unlock(self.io);
+
+    var entity: ?*Entity = self.queue.next();
+    while (entity == null) {
+        self.condition.wait(self.io, &self.mutex) catch unreachable; // TODO async
+        entity = self.queue.next();
+    }
+    return entity;
+}
+
 pub fn play(self: *Self) State {
-    while (self.action_queue.next()) |entity| {
+    while (self.next_entity()) |entity| {
         const result = actions.doAction(entity, self.map) catch {
             return .end;
         };
         switch (result) {
             .continue_game => {
-                self.action_queue.enqueue(entity); // Continues
+                // FUTURE: do not requeue - figure out how to do so from
+                // an incoming command (via Client?).  Else server spins
+                self.enqueueEntity(entity);
                 continue;
             },
             .end_game => {
