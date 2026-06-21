@@ -41,12 +41,40 @@ Which started from the very instructive v2 TCOD tutorial:
 
 ## Releases
 
-### Beyond 0.3
-
 Make this game hang together better.  Truly multiplayer, and a real RESTful
 interface that advertises itself properly and does some kind of WebSocket for
 game transactions after authentication.  And authentication because people
 seem to think that is important.
+
+### 0.5 (roadmap)
+
+Smash the Game abstraction and a library-level World throughout the mechanism,
+invading mapgen and actions and so forth.  Game or World owns prng and a
+friendlier randomization interface (with mock)
+
+Rewrite FOV yet again so that the sum of them can be traversed.  A player moves
+and all who have that spot visible receive an update.
+
+Possibly invent a command-completion-reply that would stabilize the client
+interface.  Maybe a half-blocking ncurses interface, though that may not be
+portable.
+
+Interactions and broadcasts and notifications
+
+Multiple multiplayer maps
+
+### 0.4 primitive multiplayer
+
+The server is multithreaded and accepts multiple connections, depositing
+players into a shared map (do not attempt to use the stairs)
+
+Players can see each other, but movement does not percolate to the FOV of
+everyone involved.  Collisions are detected on the actor side
+
+Disconnection is crude but seems stable.
+
+There's a beginning "Game" structure concept which needs to thread throughout
+and probably be a Game versus World in the library.
 
 ### 0.3 client and server
 

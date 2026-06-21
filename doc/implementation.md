@@ -5,8 +5,6 @@ A work in progress.  There is:
 * roguelib : generic map-and-mechanics
   * vis_main.zig : the thing that builds the visualization graph
   * testing : apparatus
-* common : a bunch of stuff put here for dependency resolution
-  * Probably belongs in game/
 * connector : the network (Reader/Writer) protocol
 * doc : you are here
 * game : the game that would be implemented, that wields the mapgen and roguelib
@@ -27,7 +25,8 @@ A work in progress.  There is:
 
 ### game
 
-The game, in whatever form it currently exists
+The game, in whatever form it currently exists, supporting both client-server
+and single-player (badly).
 
 ### roguelib
 
@@ -36,8 +35,9 @@ Entities, and so forth.  These are the substrate.
 
 ### ui (rogueui, for lack of better)
 
-Chum bucket of ui elements, from the ncurses low-level utilities to the presentation layer for rogue that
-sits on that (and is used by both the standalone and the network client)
+Chum bucket of ui elements, from the ncurses low-level utilities to the
+presentation layer for rogue that sits on that (and is used by both the
+standalone and the network client)
 
 ## Test scaffolding
 
@@ -93,11 +93,19 @@ opt: zrogue.ll:802:74: error: expected ')' at end of argument list
 define internal fastcc i16 @main.print_help(ptr nonnull readonly align 8 captures(none) %0) unnamed_addr #0 align 1 !dbg !5897 {
 ```
 
-This might be a tool version problem between what Ubuntu is providing my system and what Zig uses internally.
+This might be a tool version problem between what Ubuntu is providing my
+system and what Zig uses internally.
 
 ## Network Protocol
 
-Sits on top of Messagepack, because that seemed like a good idea at the time.
-Message receipt is always done into a very limited allocator to prevent
-malfeasance through some data bomb.  If it doesn't fit into 300 bytes then we
-don't want it or whoever sent it.
+Originally sat on top of Messagepack, because that was expedient at the time.
+But the package being used did not make it to 0.16 and as it turns out these
+needs are so simple that it is just as easy to handcraft the same.
+
+### Disconnection
+
+Crude.  Client sends a 'quit' command and this starts the collapse on both
+the client and server sides, demolishing connections and threads.  This works
+around problems where a thread awaiting network data can't be easily signaled,
+so it's at least expedient to have it pack up early.  I am not proud of this
+but more sophisticated changes require a better state machine and lobby.
