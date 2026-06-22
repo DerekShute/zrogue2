@@ -5,6 +5,7 @@
 pub const Action = @import("Action.zig");
 pub const Client = @import("Client.zig");
 pub const Entity = @import("Entity.zig");
+pub const EventQueue = @import("EventQueue.zig");
 pub const FOVMap = @import("FOVMap.zig");
 pub const Grid = @import("grid.zig").Grid;
 pub const Map = @import("Map.zig");

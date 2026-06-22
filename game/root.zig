@@ -6,6 +6,7 @@
 
 const std = @import("std");
 
+const EventQueue = @import("roguelib").EventQueue;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
 pub const Player = @import("Player.zig");
@@ -44,14 +45,7 @@ map: *Map = undefined, // FUTURE: World, and a hashmap(?)
 players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
 next_player_id: PlayerUID = 0,
 
-// FUTURE: to World, with Entity list, Items, timer
-queue: Entity.Queue = undefined,
-mutex: std.Io.Mutex = undefined,
-condition: std.Io.Condition = undefined,
-
-// TODO
-//  * if no command in queue and single-player, then you have a problem
-//  * so probably a single-player flag here
+queue: EventQueue = undefined, // FUTURE: World
 
 //
 // Lifecycle
@@ -76,9 +70,7 @@ pub const Config = struct {
 pub fn init(self: *Self, config: Config) void {
     self.level_config = .init;
     self.players = .empty;
-    self.queue = .config();
-    self.mutex = .init;
-    self.condition = .init;
+    self.queue = .init;
 
     if (config.allocator) |a| {
         self.allocator = a;
@@ -99,6 +91,8 @@ pub fn deinit(self: *Self) void {
     }
 
     self.players.deinit(self.allocator);
+
+    // TODO: event queue cleanup
 
     // TODO: squash map(s);
 }
@@ -147,10 +141,7 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
 }
 
 fn enqueueEntity(self: *Self, entity: *Entity) void {
-    self.mutex.lock(self.io) catch unreachable; // TODO async
-    defer self.mutex.unlock(self.io);
-    self.queue.enqueue(entity);
-    self.condition.signal(self.io);
+    self.queue.enqueue(self.io, EventQueue.Event{ .entity = entity });
 }
 
 // TODO: parcel with initPlayer?
@@ -197,22 +188,9 @@ pub const State = enum {
     end,
 };
 
-// Blocks awaiting an entity
-// TODO: stop condition? Returns error?
-pub fn next_entity(self: *Self) ?*Entity {
-    self.mutex.lock(self.io) catch unreachable; // TODO: not sure about async
-    defer self.mutex.unlock(self.io);
-
-    var entity: ?*Entity = self.queue.next();
-    while (entity == null) {
-        self.condition.wait(self.io, &self.mutex) catch unreachable; // TODO async
-        entity = self.queue.next();
-    }
-    return entity;
-}
-
 pub fn play(self: *Self) State {
-    while (self.next_entity()) |entity| {
+    while (self.queue.next(self.io)) |event| {
+        const entity = event.entity; // FUTURE: other event types
         const result = actions.doAction(entity, self.map) catch {
             return .end;
         };

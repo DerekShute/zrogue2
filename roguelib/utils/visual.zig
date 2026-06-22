@@ -15,7 +15,21 @@ pub fn genFields(comptime T: type) []const []const u8 {
             var names: [field_count + 1][]const u8 = undefined;
             names[0] = comptimePrint("{s}:", .{@typeName(T)});
             for (structInfo.fields, 1..) |field, i| {
-                names[i] = comptimePrint("  {s}: \"{}\"", .{ field.name, field.type });
+                const type_string = comptimePrint("{}", .{field.type});
+                // Remove internal double quotes to not confuse YAML
+                const edited_type = comptime blk: {
+                    const size = std.mem.replacementSize(u8, type_string, "\"", "'");
+                    var buffer: [128]u8 = undefined;
+                    _ = std.mem.replace(
+                        u8,
+                        type_string,
+                        "\"",
+                        "'",
+                        &buffer,
+                    );
+                    break :blk buffer[0..size];
+                };
+                names[i] = comptimePrint("  {s}: \"{s}\"", .{ field.name, edited_type });
             }
             // for (structInfo.decls, field_count + 1..) |decl, i| {
             //     names[i] = comptimePrint("  {s}: \"(decl)\"", .{decl.name});
