@@ -12,6 +12,7 @@ pub const Map = @import("Map.zig");
 pub const Pos = @import("Pos.zig");
 pub const Region = @import("Region.zig");
 pub const Room = @import("map/Room.zig");
+pub const World = @import("World.zig");
 
 // Testing mockups
 
