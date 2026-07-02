@@ -15,32 +15,33 @@ const net = std.Io.net;
 // Client connection
 //
 
+// NOCOMMIT: need better Io and Allocator access
 fn handleClient(g: *Game, conn: net.Stream) !void {
-    defer conn.close(g.io);
+    defer conn.close(g.world.io);
 
-    const name = try std.fmt.allocPrint(g.allocator, "{f}", .{conn.socket.address});
-    defer g.allocator.free(name);
+    const name = try std.fmt.allocPrint(g.world.allocator, "{f}", .{conn.socket.address});
+    defer g.world.allocator.free(name);
 
     log.info("[{s}] Accepted connection", .{name}); // FUTURE into Player
 
-    const rbuf = try g.allocator.alloc(u8, 1024);
-    defer g.allocator.free(rbuf);
-    var reader = conn.reader(g.io, rbuf);
-    var writer = conn.writer(g.io, &.{});
+    const rbuf = try g.world.allocator.alloc(u8, 1024);
+    defer g.world.allocator.free(rbuf);
+    var reader = conn.reader(g.world.io, rbuf);
+    var writer = conn.writer(g.world.io, &.{});
 
     const config = RemoteClient.Config{
         .reader = &reader.interface,
         .writer = &writer.interface,
         .name = name,
     };
-    var rc = try RemoteClient.init(g.allocator, config);
-    defer rc.deinit(g.allocator);
+    var rc = try RemoteClient.init(g.world.allocator, config);
+    defer rc.deinit(g.world.allocator);
 
     // Create a limited allocator here for catching incoming messages
-    const buffer = try g.allocator.alloc(u8, 2000);
-    defer g.allocator.free(buffer);
-    var fb = std.heap.FixedBufferAllocator.init(buffer);
+    const buffer = try g.world.allocator.alloc(u8, 2000);
+    defer g.world.allocator.free(buffer);
 
+    var fb = std.heap.FixedBufferAllocator.init(buffer);
     var arena = std.heap.ArenaAllocator.init(fb.allocator());
     defer arena.deinit();
 
@@ -93,12 +94,13 @@ fn server(g: *Game) void {
 //
 
 pub fn main(init: std.process.Init) !void {
-    var config = Game.Config.init;
-    config.setAllocator(init.gpa);
-    config.setIo(init.io);
+    const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
+    var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
-    var g: Game = undefined;
-    g.init(config);
+    var g: Game = .init;
+    g.configAllocator(init.gpa);
+    g.configIo(init.io);
+    g.configRandom(prng.random());
     defer g.deinit();
 
     try g.initLevel();
