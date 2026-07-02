@@ -54,7 +54,17 @@ pub fn configRandom(self: *Self, random: std.Random) void {
 
 // TODO: mapgen, map lookup
 
-// TODO: event queue processing
+// Event queue
+
+pub fn enqueueEvent(self: *Self, event: EventQueue.Event) void {
+    self.queue.enqueue(self.io, event);
+}
+
+pub fn nextEvent(self: *Self) ?EventQueue.Event {
+    return self.queue.next(self.io);
+}
+
+// FUTURE: dequeue by Entity pointer?
 
 //
 // Unit tests

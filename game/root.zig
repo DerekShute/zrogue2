@@ -46,8 +46,6 @@ map: *Map = undefined, // FUTURE: World, and a hashmap(?)
 players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
 next_player_id: PlayerUID = 0,
 
-queue: EventQueue = undefined, // FUTURE: World
-
 //
 // Lifecycle
 //
@@ -55,7 +53,6 @@ queue: EventQueue = undefined, // FUTURE: World
 pub const init: Self = .{
     .level_config = .init,
     .players = .empty,
-    .queue = .init,
 };
 
 // Builder pattern
@@ -139,12 +136,12 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
 }
 
 fn enqueueEntity(self: *Self, entity: *Entity) void {
-    self.queue.enqueue(self.world.io, EventQueue.Event{ .entity = entity });
+    self.world.enqueueEvent(EventQueue.Event{ .entity = entity });
 }
 
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
-    level.addPlayer(self.map, player, &self.world.random);
+    level.addPlayer(self.map, player, &self.world.random); // NOCOMMIT
     self.enqueueEntity(player.getEntity());
 }
 
@@ -188,7 +185,7 @@ pub const State = enum {
 
 // TODO: pull this into World
 pub fn play(self: *Self) State {
-    while (self.queue.next(self.world.io)) |event| {
+    while (self.world.nextEvent()) |event| {
         const entity = event.entity; // FUTURE: other event types
         const result = actions.doAction(entity, self.map) catch {
             return .end;
