@@ -6,11 +6,13 @@
 
 const std = @import("std");
 
+const Entity = @import("roguelib").Entity;
 const EventQueue = @import("roguelib").EventQueue;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
 pub const Player = @import("Player.zig");
-const Entity = @import("roguelib").Entity;
+
+const World = @import("roguelib").World;
 
 const Self = @This();
 
@@ -34,67 +36,59 @@ pub const PlayerUID = u8; // TODO: not very U
 // Members
 //
 
-allocator: std.mem.Allocator = undefined, // FUTURE: World
-io: std.Io = undefined, // FUTURE: World
+world: World = undefined, // MUST BE FIRST
 
-prng: std.Random.DefaultPrng = undefined, // FUTURE: World
-r: std.Random = undefined,
+allocator: std.mem.Allocator = undefined,
+arena: std.heap.ArenaAllocator = undefined,
 
 level_config: mapgen.Config = undefined, // FUTURE: game state
 map: *Map = undefined, // FUTURE: World, and a hashmap(?)
 players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
 next_player_id: PlayerUID = 0,
 
-queue: EventQueue = undefined, // FUTURE: World
-
 //
 // Lifecycle
 //
 
-pub const Config = struct {
-    allocator: ?std.mem.Allocator = null,
-    io: ?std.Io = null,
-
-    pub const init: @This() = .{};
-
-    pub fn setAllocator(self: *@This(), allocator: std.mem.Allocator) void {
-        self.allocator = allocator;
-    }
-
-    pub fn setIo(self: *@This(), io: std.Io) void {
-        self.io = io;
-    }
+pub const init: Self = .{
+    .level_config = .init,
+    .players = .empty,
+    .world = .init,
 };
 
-// Nonstandard but this is setting a pointer member so just easier this way
-pub fn init(self: *Self, config: Config) void {
-    self.level_config = .init;
-    self.players = .empty;
-    self.queue = .init;
+// Builder pattern
 
-    if (config.allocator) |a| {
-        self.allocator = a;
-    }
+pub fn configAllocator(self: *Self, allocator: std.mem.Allocator) void {
+    self.allocator = allocator;
 
-    if (config.io) |io| {
-        self.io = io;
-        const seed = std.Io.Timestamp.now(io, .real).toMicroseconds();
-        self.prng = .init(@intCast(seed));
-        self.r = self.prng.random();
-    }
+    // World gets sandboxed into an arena allocator
+    self.arena = .init(allocator);
+    self.world.configAllocator(self.arena.allocator());
+}
+
+pub fn configIo(self: *Self, io: std.Io) void {
+    self.world.configIo(io);
+}
+
+pub fn configRandom(self: *Self, random: std.Random) void {
+    self.world.configRandom(random);
 }
 
 pub fn deinit(self: *Self) void {
+    const allocator = self.allocator;
+
     var it = self.players.iterator();
     while (it.next()) |kv| {
-        kv.value_ptr.deinit(self.allocator);
+        kv.value_ptr.deinit(allocator);
     }
 
-    self.players.deinit(self.allocator);
+    self.players.deinit(allocator);
 
     // TODO: event queue cleanup
 
     // TODO: squash map(s);
+
+    self.arena.deinit();
 }
 
 //
@@ -103,10 +97,11 @@ pub fn deinit(self: *Self) void {
 
 pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
     // The Player is parcel of the player map (part of the node) and is
-    // owned by self.allocator
+    // owned by the Game, not the World
+    const allocator = self.allocator;
 
     const id = self.next_player_id;
-    const gop = try self.players.getOrPut(self.allocator, self.next_player_id);
+    const gop = try self.players.getOrPut(allocator, self.next_player_id);
     errdefer _ = self.players.remove(id);
 
     if (gop.found_existing) {
@@ -114,19 +109,20 @@ pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
     }
     const player = gop.value_ptr;
 
-    player.* = try .init(self.allocator, config, mapgen.XSIZE, mapgen.YSIZE);
-    errdefer player.deinit(self.allocator);
+    player.* = try .init(allocator, config, mapgen.XSIZE, mapgen.YSIZE);
+    errdefer player.deinit(allocator);
 
     self.next_player_id += 1;
     return id;
 }
 
 pub fn deinitPlayer(self: *Self, uid: PlayerUID) void {
+    const allocator = self.allocator;
     const p = self.players.getPtr(uid);
     if (p == null) {
         @panic("deinitPlayer: no such uid");
     }
-    p.?.deinit(self.allocator);
+    p.?.deinit(allocator);
     if (self.players.remove(uid) == false) {
         @panic("deinitPlayer: no such uid");
     }
@@ -141,12 +137,12 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
 }
 
 fn enqueueEntity(self: *Self, entity: *Entity) void {
-    self.queue.enqueue(self.io, EventQueue.Event{ .entity = entity });
+    self.world.enqueueEvent(EventQueue.Event{ .entity = entity });
 }
 
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
-    level.addPlayer(self.map, player, &self.r);
+    level.addPlayer(self.map, player, &self.world.random); // NOCOMMIT
     self.enqueueEntity(player.getEntity());
 }
 
@@ -163,11 +159,11 @@ pub fn setGoingDown(self: *Self, going_down: bool) void {
 }
 
 pub fn initLevel(self: *Self) !void {
-    self.map = try level.create(self.level_config, self.allocator, &self.r);
+    self.map = try level.create(self.level_config, self.world.allocator, &self.world.random);
 }
 
 pub fn deinitLevel(self: *Self) void {
-    self.map.deinit(self.allocator);
+    self.map.deinit(self.world.allocator);
     self.map = undefined;
 }
 
@@ -188,8 +184,9 @@ pub const State = enum {
     end,
 };
 
+// TODO: pull this into World
 pub fn play(self: *Self) State {
-    while (self.queue.next(self.io)) |event| {
+    while (self.world.nextEvent()) |event| {
         const entity = event.entity; // FUTURE: other event types
         const result = actions.doAction(entity, self.map) catch {
             return .end;
@@ -229,11 +226,11 @@ const FailingAllocator = std.testing.FailingAllocator;
 
 test "basic use" { // If this fails then something has changed
     var f = FailingAllocator.init(tallocator, .{ .fail_index = 3 });
-    var config = Config.init;
-    config.setAllocator(f.allocator());
 
-    var self: Self = undefined;
-    self.init(config);
+    var self: Self = .init;
+    self.configAllocator(f.allocator());
+    self.configIo(std.testing.io);
+    // TODO: random
     defer self.deinit();
 
     var m = try MockClient.init(tallocator, 50, 50);
@@ -249,11 +246,11 @@ test "basic use" { // If this fails then something has changed
 
 test "alloc failure 0" {
     var f = FailingAllocator.init(tallocator, .{ .fail_index = 0 });
-    var config = Config.init;
-    config.setAllocator(f.allocator());
 
-    var self: Self = undefined;
-    self.init(config);
+    var self: Self = .init;
+    self.configAllocator(f.allocator());
+    self.configIo(std.testing.io);
+    // TODO: random
     defer self.deinit();
 
     var m = try MockClient.init(tallocator, 50, 50);
@@ -264,11 +261,11 @@ test "alloc failure 0" {
 
 test "alloc failure 1" {
     var f = FailingAllocator.init(tallocator, .{ .fail_index = 1 });
-    var config = Config.init;
-    config.setAllocator(f.allocator());
 
-    var self: Self = undefined;
-    self.init(config);
+    var self: Self = .init;
+    self.configAllocator(f.allocator());
+    self.configIo(std.testing.io);
+    // TODO: random
     defer self.deinit();
 
     var m = try MockClient.init(tallocator, 50, 50);

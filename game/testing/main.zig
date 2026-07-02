@@ -44,12 +44,13 @@ test "run the game" {
     defer m.deinit(std.testing.allocator);
     m.setCommandList(&testlist);
 
-    var config = Game.Config.init;
-    config.setAllocator(std.testing.allocator);
-    config.setIo(std.testing.io);
+    const seed = std.Io.Timestamp.now(std.testing.io, .real).toMicroseconds();
+    var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
-    var g: Game = undefined;
-    g.init(config);
+    var g: Game = .init;
+    g.configAllocator(std.testing.allocator);
+    g.configIo(std.testing.io);
+    g.configRandom(prng.random());
     defer g.deinit();
 
     const id = try g.initPlayer(.{ .client = m.client() });

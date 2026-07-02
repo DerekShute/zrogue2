@@ -110,12 +110,13 @@ pub fn main(init: std.process.Init) !void {
     };
     defer curses.deinit();
 
-    var c = Game.Config.init;
-    c.setAllocator(allocator);
-    c.setIo(init.io);
+    const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
+    var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
-    var g: Game = undefined;
-    g.init(c);
+    var g: Game = .init;
+    g.configAllocator(allocator);
+    g.configIo(init.io);
+    g.configRandom(prng.random());
     defer g.deinit();
 
     const id = try g.initPlayer(.{ .client = curses.client() });
