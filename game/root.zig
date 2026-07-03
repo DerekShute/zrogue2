@@ -171,10 +171,7 @@ pub fn deinitLevel(self: *Self) void {
 // Game Run
 //
 
-const Action = @import("roguelib").Action;
-
 const level = @import("level.zig");
-const actions = @import("actions.zig");
 
 // Simple state machine: intro -> run -> end
 pub const State = enum {
@@ -188,7 +185,7 @@ pub const State = enum {
 pub fn play(self: *Self) State {
     while (self.world.nextEvent()) |event| {
         const entity = event.entity; // FUTURE: other event types
-        const result = actions.doAction(entity, self.map) catch {
+        const result = entity.doAction(self.map) catch {
             return .end;
         };
         switch (result) {
