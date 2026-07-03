@@ -142,7 +142,7 @@ fn enqueueEntity(self: *Self, entity: *Entity) void {
 
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
-    level.addPlayer(self.map, player, &self.world.random); // NOCOMMIT
+    level.addPlayer(self.map, player, &self.world);
     self.enqueueEntity(player.getEntity());
 }
 
@@ -159,7 +159,8 @@ pub fn setGoingDown(self: *Self, going_down: bool) void {
 }
 
 pub fn initLevel(self: *Self) !void {
-    self.map = try level.create(self.level_config, self.world.allocator, &self.world.random);
+    // FUTURE: world.makeLevel()
+    self.map = try level.create(self.level_config, &self.world);
 }
 
 pub fn deinitLevel(self: *Self) void {

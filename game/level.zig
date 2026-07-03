@@ -10,6 +10,7 @@ const MapTile = mapgen.MapTile;
 const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
+const World = @import("roguelib").World;
 
 const actions = @import("actions.zig");
 
@@ -25,7 +26,7 @@ const max_rooms = rooms_dim * rooms_dim;
 // Utilities
 //
 
-fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) Room {
+fn makeGoneRoom(roomno: i16, map: *Map, r: std.Random) Room {
     // Calling it a 3x3 box
     const max_xsize = @divTrunc(map.getWidth(), rooms_dim);
     const max_ysize = @divTrunc(map.getHeight(), rooms_dim);
@@ -57,7 +58,7 @@ fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) Room {
     return room;
 }
 
-fn makeRoom(roomno: i16, map: *Map, r: *std.Random) Room {
+fn makeRoom(roomno: i16, map: *Map, r: std.Random) Room {
     // Size of bounding box and its upper left corner
     const max_xsize = @divTrunc(map.getWidth(), rooms_dim);
     const max_ysize = @divTrunc(map.getHeight(), rooms_dim);
@@ -99,7 +100,7 @@ fn makeRoom(roomno: i16, map: *Map, r: *std.Random) Room {
     return room;
 }
 
-fn makeDoor(map: *Map, r: *std.Random, p: Pos) void {
+fn makeDoor(map: *Map, r: std.Random, p: Pos) void {
     // Original goes
     //
     //     if (rnd(10) + 1 < level && rnd(5) == 0) then secret door
@@ -111,7 +112,7 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) void {
     }
 }
 
-fn makeGold(map: *Map, r: *std.Random, room: *Room) void {
+fn makeGold(map: *Map, r: std.Random, room: *Room) void {
     // FUTURE : if !amulet and if level < max_level
     if (r.intRangeAtMost(usize, 0, 1) == 0) { // 50%
         const pos = findFloor(r, room);
@@ -119,7 +120,7 @@ fn makeGold(map: *Map, r: *std.Random, room: *Room) void {
     }
 }
 
-fn makeTraps(map: *Map, r: *std.Random, level: usize) void {
+fn makeTraps(map: *Map, r: std.Random, level: usize) void {
     // This is from the original sources
 
     if (r.intRangeAtMost(usize, 0, 9) >= level) {
@@ -151,13 +152,13 @@ fn isRoomAdjacent(i: usize, j: usize) bool {
     return false;
 }
 
-fn findFloor(r: *std.Random, room: *Room) Pos {
+fn findFloor(r: std.Random, room: *Room) Pos {
     const row = r.intRangeAtMost(Pos.Dim, room.getMinX() + 1, room.getMaxX() - 1);
     const col = r.intRangeAtMost(Pos.Dim, room.getMinY() + 1, room.getMaxY() - 1);
     return .init(row, col);
 }
 
-fn findAnyFloor(r: *std.Random, map: *Map) Pos {
+fn findAnyFloor(r: std.Random, map: *Map) Pos {
     // Keep attempting until an empty position in some room is found
     while (true) {
         const i = r.intRangeAtMost(usize, 0, max_rooms - 1);
@@ -184,7 +185,7 @@ fn notConnected(graph: []bool, r1: usize, r2: usize) bool {
 
 // Dig a passage
 
-fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
+fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: std.Random) void {
     const i = @min(rn1, rn2); // Western or Northern
     const j = @max(rn1, rn2); // Eastern or Southern
     var r1 = map.roomFromNum(i);
@@ -232,7 +233,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) void {
     }
 }
 
-fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
+fn reserveGoneRooms(map: *Map, rand: std.Random) void {
     // Set aside some rooms as being 'gone'
 
     var i: usize = rand.intRangeAtMost(usize, 0, 3);
@@ -256,8 +257,9 @@ fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
 // Add a player to a good place on the map
 //
 
-pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
-    mapgen.addEntityToMap(map, player.getEntity(), findAnyFloor(rand, map));
+pub fn addPlayer(map: *Map, player: *Player, world: *World) void {
+    const floor = findAnyFloor(world.random, map);
+    mapgen.addEntityToMap(map, player.getEntity(), floor);
     player.setDepth(@intCast(map.level));
     actions.enterRoom(player, map);
     player.notifyDisplay(map);
@@ -267,11 +269,12 @@ pub fn addPlayer(map: *Map, player: *Player, rand: *std.Random) void {
 // Create a level using the traditional Rogue algorithms
 //
 
-pub fn create(config: mapgen.Config, allocator: std.mem.Allocator, rand: *std.Random) !*Map {
+pub fn create(config: mapgen.Config, world: *World) !*Map {
+    const rand = world.random;
     var ingraph = [_]bool{false} ** max_rooms; // Rooms connected to graph
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
-    var map = try mapgen.create(allocator, rooms_dim, rooms_dim);
-    errdefer map.deinit(allocator);
+    var map = try mapgen.create(world.allocator, rooms_dim, rooms_dim);
+    errdefer map.deinit(world.allocator);
 
     map.level = config.level;
 
@@ -411,14 +414,14 @@ const testing_io = std.testing.io;
 test "fuzz test room generation" {
     const seed = std.Io.Timestamp.now(testing_io, .real).toMicroseconds();
     var prng = std.Random.DefaultPrng.init(@intCast(seed));
-    var r = prng.random();
+    const r = prng.random();
     var map = try Map.init(tallocator, 80, 24, 3, 3);
     defer map.deinit(tallocator);
 
     for (0..rooms_dim) |y| {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
-            const room = makeRoom(i, map, &r);
+            const room = makeRoom(i, map, r);
             mapgen.addRoom(map, room);
         }
     }
@@ -427,14 +430,14 @@ test "fuzz test room generation" {
 test "fuzz test gone room generation" {
     const seed = std.Io.Timestamp.now(testing_io, .real).toMicroseconds();
     var prng = std.Random.DefaultPrng.init(@intCast(seed));
-    var r = prng.random();
+    const r = prng.random();
     var map = try Map.init(tallocator, 80, 24, 3, 3);
     defer map.deinit(tallocator);
 
     for (0..rooms_dim) |y| {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
-            const room = makeGoneRoom(i, map, &r);
+            const room = makeGoneRoom(i, map, r);
             mapgen.addRoom(map, room);
 
             // TODO test boundaries
