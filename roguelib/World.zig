@@ -32,6 +32,7 @@ queue: EventQueue = undefined,
 
 pub const init: Self = .{
     .queue = .init,
+    .map = undefined,
 };
 
 pub fn configIo(self: *Self, io: std.Io) void {
