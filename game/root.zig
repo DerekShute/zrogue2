@@ -42,7 +42,6 @@ allocator: std.mem.Allocator = undefined,
 arena: std.heap.ArenaAllocator = undefined,
 
 level_config: mapgen.Config = undefined, // FUTURE: game state
-map: *Map = undefined, // FUTURE: World, and a hashmap(?)
 players: std.AutoHashMapUnmanaged(PlayerUID, Player) = undefined,
 next_player_id: PlayerUID = 0,
 
@@ -142,7 +141,7 @@ fn enqueueEntity(self: *Self, entity: *Entity) void {
 
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
-    level.addPlayer(self.map, player, &self.world);
+    level.addPlayer(self.world.map, player, &self.world);
     self.enqueueEntity(player.getEntity());
 }
 
@@ -159,13 +158,13 @@ pub fn setGoingDown(self: *Self, going_down: bool) void {
 }
 
 pub fn initLevel(self: *Self) !void {
-    // FUTURE: world.makeLevel()
-    self.map = try level.create(self.level_config, &self.world);
+    // FUTURE: world.configLevel()
+    self.world.map = try level.create(self.level_config, &self.world);
 }
 
 pub fn deinitLevel(self: *Self) void {
-    self.map.deinit(self.world.allocator);
-    self.map = undefined;
+    self.world.map.deinit(self.world.allocator); // NOCOMMIT
+    self.world.map = undefined;
 }
 
 //
@@ -186,7 +185,7 @@ pub const State = enum {
 pub fn play(self: *Self) State {
     while (self.world.nextEvent()) |event| {
         const entity = event.entity; // FUTURE: other event types
-        const result = entity.doAction(self.map) catch {
+        const result = entity.doAction(self.world.map) catch {
             return .end;
         };
         switch (result) {
@@ -197,7 +196,7 @@ pub fn play(self: *Self) State {
                 continue;
             },
             .end_game => {
-                self.map.removeEntity(entity.getPos());
+                self.world.map.removeEntity(entity.getPos());
                 return .end;
             },
             // TODO: ascend/descend needs real map management and this breaks
