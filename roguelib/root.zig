@@ -17,6 +17,7 @@ pub const World = @import("World.zig");
 // Testing mockups
 
 pub const MockClient = @import("testing/MockClient.zig");
+pub const MockEntity = @import("testing/MockEntity.zig");
 
 //
 // Unit Test Breakout
@@ -25,6 +26,7 @@ pub const MockClient = @import("testing/MockClient.zig");
 test {
     @import("std").testing.refAllDecls(@This());
     _ = @import("testing/MockClient.zig");
+    _ = @import("testing/MockEntity.zig");
 }
 
 // EOF
