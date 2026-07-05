@@ -109,10 +109,31 @@ pub fn run(self: *Self) State {
 // Unit tests
 //
 
+const MockEntity = @import("testing/MockEntity.zig");
+const expect = std.testing.expect;
+
 test "basic use" {
+    var m = MockEntity.init();
+    m.setNext(.ascend); // TODO this is a sleaze
+
     var s: Self = .init;
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
+
+    s.enqueueEvent(.{ .entity = m.getEntity() });
+    try expect(s.run() == .ascend);
+}
+
+test "action error" {
+    var m = MockEntity.init();
+    m.setError();
+
+    var s: Self = .init;
+    s.configIo(std.testing.io);
+    s.configAllocator(std.testing.allocator);
+
+    s.enqueueEvent(.{ .entity = m.getEntity() });
+    try expect(s.run() == .end);
 }
 
 //
