@@ -135,14 +135,10 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
     return p.?;
 }
 
-fn enqueueEntity(self: *Self, entity: *Entity) void {
-    self.world.enqueueEvent(EventQueue.Event{ .entity = entity });
-}
-
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
     level.addPlayer(self.world.map, player, &self.world);
-    self.enqueueEntity(player.getEntity());
+    self.world.enqueueEvent(.{ .entity = player.getEntity() });
 }
 
 //
@@ -173,42 +169,11 @@ pub fn deinitLevel(self: *Self) void {
 
 const level = @import("level.zig");
 
-// Simple state machine: intro -> run -> end
-pub const State = enum {
-    run,
-    descend, // hacky - let wrapper determine what this entails
-    ascend,
-    end,
-};
+pub const State = World.State; // TODO: act of convenience
 
-// TODO: pull this into World
-pub fn play(self: *Self) State {
-    while (self.world.nextEvent()) |event| {
-        const entity = event.entity; // FUTURE: other event types
-        const result = entity.doAction(self.world.map) catch {
-            return .end;
-        };
-        switch (result) {
-            .continue_game => {
-                // FUTURE: do not requeue - figure out how to do so from
-                // an incoming command (via Client?).  Else server spins
-                self.enqueueEntity(entity);
-                continue;
-            },
-            .end_game => {
-                self.world.map.removeEntity(entity.getPos());
-                return .end;
-            },
-            // TODO: ascend/descend needs real map management and this breaks
-            // the current 'rogue' model of new maps on the way back up
-
-            .ascend => return .ascend,
-            .descend => return .descend,
-        }
-    }
-
-    // No entity left on queue
-    return .run;
+pub fn run(self: *Self) World.State {
+    // TODO: invoke world run directly?
+    return self.world.run();
 }
 
 //

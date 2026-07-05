@@ -136,7 +136,7 @@ pub fn main(init: std.process.Init) !void {
 
         g.addPlayer(player);
 
-        state = g.play();
+        state = g.run();
 
         // Simple map management: only one, and we replace it at change
         if (state == .descend) {
