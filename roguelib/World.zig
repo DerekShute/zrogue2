@@ -67,6 +67,44 @@ pub fn nextEvent(self: *Self) ?EventQueue.Event {
 
 // FUTURE: dequeue by Entity pointer?
 
+// Play
+
+pub const State = enum { // Simple state machine: intro -> run -> end
+    run,
+    descend, // hacky - let wrapper determine what this entails
+    ascend,
+    end,
+};
+
+pub fn run(self: *Self) State {
+    while (self.nextEvent()) |event| {
+        const entity = event.entity; // FUTURE: other event types
+        const result = entity.doAction(self.map) catch {
+            return .end;
+        };
+        switch (result) {
+            .continue_game => {
+                // FUTURE: do not requeue - figure out how to do so from
+                // an incoming command (via Client?).  Else server spins
+                self.enqueueEvent(.{ .entity = entity });
+                continue;
+            },
+            .end_game => {
+                self.map.removeEntity(entity.getPos());
+                return .end;
+            },
+            // TODO: ascend/descend needs real map management and this breaks
+            // the current 'rogue' model of new maps on the way back up
+
+            .ascend => return .ascend,
+            .descend => return .descend,
+        }
+    }
+
+    // No entity left on queue
+    return .run;
+}
+
 //
 // Unit tests
 //

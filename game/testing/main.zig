@@ -63,7 +63,7 @@ test "run the game" {
 
     var state: Game.State = .run;
     while (state != .end) {
-        state = g.play();
+        state = g.run();
     } // Game run loop
 }
 

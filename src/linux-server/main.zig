@@ -82,7 +82,7 @@ fn server(g: *Game) void {
     // TODO: the return value is based on the player result in the queue.
 
     while (true) {
-        state = g.play();
+        state = g.run();
 
         // TODO: ascend/descend requires proper map management within
         // the player action context or something
