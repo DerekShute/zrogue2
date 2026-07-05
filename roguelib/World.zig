@@ -11,6 +11,13 @@ const Map = @import("Map.zig");
 const Self = @This();
 
 //
+// Types
+//
+
+pub const MapKey = usize;
+const HashedMaps = std.AutoHashMapUnmanaged(MapKey, *Map);
+
+//
 // Members
 //
 
@@ -22,9 +29,9 @@ random: std.Random = undefined,
 
 // Game elements and environment
 
-map: *Map = undefined, // FUTURE: hashmap or something
-// TODO: mapgen?
-queue: EventQueue = undefined,
+map: *Map = undefined, // NOCOMMIT: leaving
+maps: HashedMaps = undefined,
+queue: EventQueue = undefined, // TODO: mapgen?
 
 //
 // Lifecycle
@@ -32,7 +39,8 @@ queue: EventQueue = undefined,
 
 pub const init: Self = .{
     .queue = .init,
-    .map = undefined,
+    .map = undefined, // NOCIMMIT: leaving
+    .maps = .empty,
 };
 
 pub fn configIo(self: *Self, io: std.Io) void {
@@ -45,6 +53,15 @@ pub fn configAllocator(self: *Self, allocator: std.mem.Allocator) void {
 
 pub fn configRandom(self: *Self, random: std.Random) void {
     self.random = random;
+}
+
+pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+    defer self.maps.deinit(allocator);
+
+    var iter = self.maps.valueIterator();
+    while (iter.next()) |value_ptr| {
+        value_ptr.*.deinit(allocator);
+    }
 }
 
 //
@@ -66,6 +83,16 @@ pub fn nextEvent(self: *Self) ?EventQueue.Event {
 }
 
 // FUTURE: dequeue by Entity pointer?
+
+// Map management
+
+pub fn addMap(self: *Self, key: MapKey, map: *Map) !void {
+    try self.maps.put(self.allocator, key, map);
+}
+
+pub fn getMap(self: *Self, key: MapKey) ?*Map {
+    return self.maps.get(key);
+}
 
 // Play
 
@@ -112,13 +139,30 @@ pub fn run(self: *Self) State {
 const MockEntity = @import("testing/MockEntity.zig");
 const expect = std.testing.expect;
 
-test "basic use" {
+test "basic map use" {
+    var s: Self = .init;
+    s.configIo(std.testing.io);
+    s.configAllocator(std.testing.allocator);
+    defer s.deinit(std.testing.allocator);
+
+    const first = try Map.init(std.testing.allocator, 20, 20, 1, 1);
+    try s.addMap(0, first);
+
+    for (1..6) |i| {
+        try s.addMap(i, try Map.init(std.testing.allocator, 20, 20, 1, 1));
+    }
+
+    try expect(s.getMap(0) == first);
+}
+
+test "basic action use" {
     var m = MockEntity.init();
     m.setNext(.ascend); // TODO this is a sleaze
 
     var s: Self = .init;
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
+    defer s.deinit(std.testing.allocator);
 
     s.enqueueEvent(.{ .entity = m.getEntity() });
     try expect(s.run() == .ascend);
@@ -131,6 +175,7 @@ test "action error" {
     var s: Self = .init;
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
+    defer s.deinit(std.testing.allocator);
 
     s.enqueueEvent(.{ .entity = m.getEntity() });
     try expect(s.run() == .end);
