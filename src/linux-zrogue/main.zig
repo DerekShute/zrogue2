@@ -126,6 +126,8 @@ pub fn main(init: std.process.Init) !void {
 
     player.addMessage("Welcome to the Dungeon of Doom!");
 
+    g.setGoingDown();
+
     var level: u16 = 1;
     var state: Game.State = .run;
     while (state != .end) {
@@ -142,7 +144,7 @@ pub fn main(init: std.process.Init) !void {
         if (state == .descend) {
             level += 1;
             if (level >= MAX_DEPTH) {
-                g.setGoingDown(false); // TODO this is a stupid hack
+                g.setGoingUp();
             }
         } else if (state == .ascend) {
             level -= 1;

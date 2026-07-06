@@ -57,11 +57,13 @@ pub const MapTile = enum(u8) {
 
 pub const Config = struct {
     level: u16 = undefined,
-    going_down: bool = undefined,
+    stairs_down: bool = undefined,
+    stairs_up: bool = undefined,
 
     pub const init = Config{
         .level = 1,
-        .going_down = true,
+        .stairs_down = false,
+        .stairs_up = false,
     };
 };
 

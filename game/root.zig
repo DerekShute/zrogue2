@@ -149,8 +149,14 @@ pub fn setLevel(self: *Self, lvl: u16) void {
     self.level_config.level = lvl;
 }
 
-pub fn setGoingDown(self: *Self, going_down: bool) void {
-    self.level_config.going_down = going_down;
+pub fn setGoingDown(self: *Self) void {
+    self.level_config.stairs_down = true;
+    self.level_config.stairs_up = false;
+}
+
+pub fn setGoingUp(self: *Self) void {
+    self.level_config.stairs_down = false;
+    self.level_config.stairs_up = true;
 }
 
 pub fn initLevel(self: *Self) !void {
