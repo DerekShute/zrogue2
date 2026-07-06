@@ -362,14 +362,13 @@ pub fn create(config: mapgen.Config, world: *World) !*Map {
     makeTraps(map, rand, config.level);
 
     // Place the stairs.  In the original they can't go in a gone room, but why not?
-    {
+    if (config.stairs_down) {
         const pos = findAnyFloor(rand, map);
-
-        if (config.going_down) {
-            mapgen.setFloor(map, pos, .stairs_down);
-        } else {
-            mapgen.setFloor(map, pos, .stairs_up);
-        }
+        mapgen.setFloor(map, pos, .stairs_down);
+    }
+    if (config.stairs_up) {
+        const pos = findAnyFloor(rand, map);
+        mapgen.setFloor(map, pos, .stairs_up);
     }
 
     return map;
