@@ -29,7 +29,6 @@ random: std.Random = undefined,
 
 // Game elements and environment
 
-map: *Map = undefined, // NOCOMMIT: leaving
 maps: HashedMaps = undefined,
 queue: EventQueue = undefined, // TODO: mapgen?
 
@@ -39,7 +38,6 @@ queue: EventQueue = undefined, // TODO: mapgen?
 
 pub const init: Self = .{
     .queue = .init,
-    .map = undefined, // NOCIMMIT: leaving
     .maps = .empty,
 };
 
@@ -94,6 +92,12 @@ pub fn getMap(self: *Self, key: MapKey) ?*Map {
     return self.maps.get(key);
 }
 
+pub fn removeMap(self: *Self, key: MapKey) void {
+    if (self.maps.fetchRemove(key)) |kv| {
+        kv.value.deinit(self.allocator);
+    }
+}
+
 // Play
 
 pub const State = enum { // Simple state machine: intro -> run -> end
@@ -104,9 +108,10 @@ pub const State = enum { // Simple state machine: intro -> run -> end
 };
 
 pub fn run(self: *Self) State {
+    const map = self.getMap(0); // NOCOMMIT stupid stupid
     while (self.nextEvent()) |event| {
         const entity = event.entity; // FUTURE: other event types
-        const result = entity.doAction(self.map) catch {
+        const result = entity.doAction(map.?) catch {
             return .end;
         };
         switch (result) {
@@ -117,7 +122,7 @@ pub fn run(self: *Self) State {
                 continue;
             },
             .end_game => {
-                self.map.removeEntity(entity.getPos());
+                map.?.removeEntity(entity.getPos()); // NOCOMMIT appalling
                 return .end;
             },
             // TODO: ascend/descend needs real map management and this breaks
@@ -153,6 +158,10 @@ test "basic map use" {
     }
 
     try expect(s.getMap(0) == first);
+
+    for (1..6) |i| {
+        s.removeMap(i);
+    }
 }
 
 test "basic action use" {
@@ -163,6 +172,7 @@ test "basic action use" {
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);
+    try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
     s.enqueueEvent(.{ .entity = m.getEntity() });
     try expect(s.run() == .ascend);
@@ -176,6 +186,7 @@ test "action error" {
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);
+    try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
     s.enqueueEvent(.{ .entity = m.getEntity() });
     try expect(s.run() == .end);
