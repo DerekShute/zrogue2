@@ -137,8 +137,11 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
 
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player) void {
-    level.addPlayer(self.world.map, player, &self.world);
-    self.world.enqueueEvent(.{ .entity = player.getEntity() });
+    // TODO seriously, refactor this
+    if (self.world.getMap(0)) |map| { // NOCOMMIT disgusting
+        level.addPlayer(map, player, &self.world);
+        self.world.enqueueEvent(.{ .entity = player.getEntity() });
+    }
 }
 
 //
@@ -161,12 +164,12 @@ pub fn setGoingUp(self: *Self) void {
 
 pub fn initLevel(self: *Self) !void {
     // FUTURE: world.configLevel()
-    self.world.map = try level.create(self.level_config, &self.world);
+    const map = try level.create(self.level_config, &self.world);
+    try self.world.addMap(0, map); // NOCOMMIT awful
 }
 
 pub fn deinitLevel(self: *Self) void {
-    self.world.map.deinit(self.world.allocator); // NOCOMMIT
-    self.world.map = undefined;
+    self.world.removeMap(0); // NOCOMMIT awful
 }
 
 //
