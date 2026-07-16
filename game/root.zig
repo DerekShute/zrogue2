@@ -135,18 +135,18 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
     return p.?;
 }
 
+// NOCOMMIT: This races -- need an entry Event
 // TODO: parcel with initPlayer?
-pub fn addPlayer(self: *Self, player: *Player) void {
+pub fn addPlayer(self: *Self, player: *Player, mapno: usize) void {
     // TODO seriously, refactor this
-    if (self.world.getMap(0)) |map| { // NOCOMMIT disgusting
+    if (self.world.getMap(mapno)) |map| {
+        player.setMapId(mapno); // NOCOMMIT wrap into World
         level.addPlayer(map, player, &self.world);
         self.world.enqueueEvent(.{ .entity = player.getEntity() });
     }
 }
 
-//
 // Mapgen
-//
 
 pub fn setLevel(self: *Self, lvl: u16) void {
     self.level_config.level = lvl;

@@ -38,6 +38,7 @@ pub const Config = struct {
 p: Pos = undefined,
 tile: Tile = undefined,
 vtable: *const VTable = undefined,
+map_id: usize = 1, // FUTURE: or pointer, uuid
 moves: i32 = 0,
 node: queue.Node = .{},
 
@@ -69,8 +70,16 @@ pub fn setPos(self: *Self, p: Pos) void {
     self.p = p;
 }
 
-pub fn getMoves(self: *Self) i32 {
+pub fn getMoves(self: *Self) i32 { // REFACTOR: cruft
     return self.moves;
+}
+
+pub fn getMapId(self: *Self) usize {
+    return self.map_id;
+}
+
+pub fn setMapId(self: *Self, id: usize) void {
+    self.map_id = id;
 }
 
 // VTable
@@ -87,19 +96,21 @@ pub fn doAction(self: *Self, map: *Map) !Action.Result {
 //
 
 const expect = std.testing.expect;
+var testing_vt: VTable = .{};
+const testing_config = Config{
+    .tile = @enumFromInt(4),
+    .vtable = &testing_vt,
+};
+
+test "basic use" {
+    var e = Self.init(testing_config);
+    try expect(@intFromEnum(e.getTile()) == 4);
+    e.setMapId(4);
+}
 
 test "entity queue" {
     var eq = Queue.config();
-    var vt: VTable = .{};
-
-    const config = Config{
-        .tile = @enumFromInt(4),
-        .vtable = &vt,
-    };
-    var e = Self.init(config);
-
-    try expect(@intFromEnum(e.getTile()) == 4);
-
+    var e = Self.init(testing_config);
     eq.enqueue(&e);
     try expect(eq.next() == &e);
 }

@@ -60,7 +60,7 @@ fn handleClient(g: *Game, conn: net.Stream) !void {
         var player = g.getPlayer(id); // TODO: ugh
 
         player.addMessage("Welcome to the Dungeon of Doom!");
-        g.addPlayer(player);
+        g.addPlayer(player, 0);
 
         // Feeds command gathering
         while (rc.getState() == .connected) {
