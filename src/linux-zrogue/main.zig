@@ -136,7 +136,7 @@ pub fn main(init: std.process.Init) !void {
         try g.initLevel();
         defer g.deinitLevel();
 
-        g.addPlayer(player);
+        g.addPlayer(player, 0);
 
         state = g.run();
 

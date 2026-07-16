@@ -59,7 +59,7 @@ test "run the game" {
     try g.initLevel();
     defer g.deinitLevel();
 
-    g.addPlayer(g.getPlayer(id)); // TODO: ugh
+    g.addPlayer(g.getPlayer(id), 0);
 
     var state: Game.State = .run;
     while (state != .end) {

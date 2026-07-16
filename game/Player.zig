@@ -74,6 +74,10 @@ pub fn resetFOV(self: *Self) void {
     self.fov.reset();
 }
 
+pub fn setMapId(self: *Self, id: usize) void {
+    self.entity.setMapId(id);
+}
+
 //
 // Vtable methods
 //
