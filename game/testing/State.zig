@@ -11,6 +11,7 @@ const MockClient = @import("roguelib").MockClient;
 const Player = @import("../Player.zig");
 const Pos = @import("roguelib").Pos;
 const Tile = @import("common").Tile;
+const World = @import("roguelib").World;
 
 const actions = @import("../actions.zig");
 const level = @import("level.zig"); // Test level
@@ -20,9 +21,11 @@ const MapTile = mapgen.MapTile;
 const expect = std.testing.expect;
 const Self = @This();
 
+const DEFAULT_MAPID: usize = 0;
+
 client: *MockClient,
-map: *Map,
 player: *Player,
+world: World = undefined,
 
 //
 // Lifecycle
@@ -34,8 +37,6 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     mc.* = try MockClient.init(allocator, mapgen.XSIZE, mapgen.YSIZE);
     errdefer mc.deinit(allocator);
 
-    // REFACTOR: use Game with its conveniences
-
     var player = try allocator.create(Player);
     errdefer allocator.destroy(player);
     player.* = try Player.init(
@@ -45,19 +46,20 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
         mapgen.YSIZE,
     );
     errdefer player.deinit(allocator);
-
-    // REFACTOR: fix level.create to act more naturally
-    const map = try level.create(allocator, player.getEntity());
-    errdefer allocator.destroy(map);
+    player.setMapId(DEFAULT_MAPID);
 
     const self = try allocator.create(Self);
-    errdefer allocator.destroy(self);
-
     self.* = .{
         .client = mc,
-        .map = map,
         .player = player,
+        .world = .init,
     };
+    self.world.configAllocator(allocator);
+    errdefer allocator.destroy(self);
+
+    const map = try level.create(allocator, player.getEntity());
+    try self.world.addMap(DEFAULT_MAPID, map);
+    // map cleaned with world
 
     actions.move(player, map, player.getPos());
     player.notifyDisplay(map);
@@ -66,7 +68,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.map.deinit(allocator);
+    self.world.deinit(allocator);
     self.player.deinit(allocator);
     allocator.destroy(self.player);
     self.client.deinit(allocator);
@@ -83,25 +85,32 @@ pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
     return @enumFromInt(dt.entity);
 }
 
+fn getMap(self: *Self) *Map {
+    return self.world.getMap(DEFAULT_MAPID);
+}
+
 pub fn moveTo(self: *Self, pos: Pos) void {
     _ = self.client.getMapUpdates();
     _ = self.client.getTileUpdates();
-    actions.move(self.player, self.map, pos);
-    self.player.notifyDisplay(self.map);
+    const map = self.getMap();
+    actions.move(self.player, map, pos);
+    self.player.notifyDisplay(map);
 }
 
 pub fn expectFloor(self: *Self, pos: Pos, floor: MapTile) !void {
-    try expect(mapgen.getFloor(self.map, pos) == floor);
+    try expect(mapgen.getFloor(self.getMap(), pos) == floor);
 }
 
 pub fn expectItemAtPlayer(self: *Self, item: MapTile) !void {
     const t: Tile = @enumFromInt(@intFromEnum(item));
-    try expect(self.map.getItem(self.player.getPos()) == t);
+    const map = self.getMap();
+    try expect(map.getItem(self.player.getPos()) == t);
 }
 
 pub fn expectItem(self: *Self, pos: Pos, item: MapTile) !void {
     const t: Tile = @enumFromInt(@intFromEnum(item));
-    try expect(self.map.getItem(pos) == t);
+    const map = self.getMap();
+    try expect(map.getItem(pos) == t);
 }
 
 pub fn expectMapUpdates(self: *Self, count: i32) !void {
@@ -134,7 +143,7 @@ pub fn expectVisible(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
 
 pub fn step(self: *Self, cmd: Client.Command) !Action.Result {
     self.client.setCommand(cmd);
-    return try actions.doAction(self.player.getEntity(), self.map);
+    return try actions.doAction(self.player.getEntity(), self.getMap());
 }
 
 pub fn atXY(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {

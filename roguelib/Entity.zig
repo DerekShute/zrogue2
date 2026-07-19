@@ -38,7 +38,7 @@ pub const Config = struct {
 p: Pos = undefined,
 tile: Tile = undefined,
 vtable: *const VTable = undefined,
-map_id: usize = 1, // FUTURE: or pointer, uuid
+map_id: usize = undefined, // FUTURE: or pointer, uuid
 moves: i32 = 0,
 node: queue.Node = .{},
 
