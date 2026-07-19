@@ -9,10 +9,11 @@ const std = @import("std");
 const Entity = @import("roguelib").Entity;
 const EventQueue = @import("roguelib").EventQueue;
 const Map = @import("roguelib").Map;
+const World = @import("roguelib").World;
+
+const actions = @import("actions.zig");
 const mapgen = @import("mapgen.zig");
 pub const Player = @import("Player.zig");
-
-const World = @import("roguelib").World;
 
 const Self = @This();
 
@@ -49,11 +50,18 @@ next_player_id: PlayerUID = 0,
 // Lifecycle
 //
 
-pub const init: Self = .{
-    .level_config = .init,
-    .players = .empty,
-    .world = .init,
+const world_vtable: World.VTable = .{
+    .addEntity = level.addEntity,
 };
+
+pub fn init() Self {
+    const world = World.init(&world_vtable);
+    return .{
+        .level_config = .init,
+        .players = .empty,
+        .world = world,
+    };
+}
 
 // Builder pattern
 
@@ -136,14 +144,12 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
 }
 
 // NOCOMMIT: This races -- need an entry Event
-// TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player, mapno: usize) void {
-    // TODO seriously, refactor this
-    // NOCOMMIT really fix
+    self.world.addEntity(player.getEntity(), mapno);
     const map = self.world.getMap(mapno);
-    player.setMapId(mapno); // NOCOMMIT wrap into World
-    level.addPlayer(map, player, &self.world);
-    self.world.enqueueEvent(.{ .entity = player.getEntity() });
+    actions.enterRoom(player, map); // FUTURE: entry event
+    player.setDepth(@intCast(map.level)); // TODO: gross - needed while mapno never changes
+    player.notifyDisplay(map); // FUTURE: entry event
 }
 
 // Mapgen
@@ -198,7 +204,7 @@ const FailingAllocator = std.testing.FailingAllocator;
 test "basic use" { // If this fails then something has changed
     var f = FailingAllocator.init(tallocator, .{ .fail_index = 3 });
 
-    var self: Self = .init;
+    var self = init();
     self.configAllocator(f.allocator());
     self.configIo(std.testing.io);
     // TODO: random
@@ -218,7 +224,7 @@ test "basic use" { // If this fails then something has changed
 test "alloc failure 0" {
     var f = FailingAllocator.init(tallocator, .{ .fail_index = 0 });
 
-    var self: Self = .init;
+    var self = init();
     self.configAllocator(f.allocator());
     self.configIo(std.testing.io);
     // TODO: random
@@ -233,7 +239,7 @@ test "alloc failure 0" {
 test "alloc failure 1" {
     var f = FailingAllocator.init(tallocator, .{ .fail_index = 1 });
 
-    var self: Self = .init;
+    var self = init();
     self.configAllocator(f.allocator());
     self.configIo(std.testing.io);
     // TODO: random
