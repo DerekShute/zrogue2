@@ -139,11 +139,11 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
 // TODO: parcel with initPlayer?
 pub fn addPlayer(self: *Self, player: *Player, mapno: usize) void {
     // TODO seriously, refactor this
-    if (self.world.getMap(mapno)) |map| {
-        player.setMapId(mapno); // NOCOMMIT wrap into World
-        level.addPlayer(map, player, &self.world);
-        self.world.enqueueEvent(.{ .entity = player.getEntity() });
-    }
+    // NOCOMMIT really fix
+    const map = self.world.getMap(mapno);
+    player.setMapId(mapno); // NOCOMMIT wrap into World
+    level.addPlayer(map, player, &self.world);
+    self.world.enqueueEvent(.{ .entity = player.getEntity() });
 }
 
 // Mapgen

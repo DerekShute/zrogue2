@@ -8,6 +8,7 @@ const Client = @import("roguelib").Client;
 const Map = @import("roguelib").Map;
 const MockClient = @import("roguelib").MockClient;
 const Pos = @import("roguelib").Pos;
+const World = @import("roguelib").World;
 
 const State = @import("State.zig");
 

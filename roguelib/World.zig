@@ -88,8 +88,11 @@ pub fn addMap(self: *Self, key: MapKey, map: *Map) !void {
     try self.maps.put(self.allocator, key, map);
 }
 
-pub fn getMap(self: *Self, key: MapKey) ?*Map {
-    return self.maps.get(key);
+pub fn getMap(self: *Self, key: MapKey) *Map {
+    if (self.maps.get(key)) |map| {
+        return map;
+    }
+    unreachable; // Assumption for the moment
 }
 
 pub fn removeMap(self: *Self, key: MapKey) void {
@@ -111,7 +114,7 @@ pub fn run(self: *Self) State {
     const map = self.getMap(0); // NOCOMMIT stupid stupid
     while (self.nextEvent()) |event| {
         const entity = event.entity; // FUTURE: other event types
-        const result = entity.doAction(map.?) catch {
+        const result = entity.doAction(map) catch {
             return .end;
         };
         switch (result) {
@@ -122,7 +125,7 @@ pub fn run(self: *Self) State {
                 continue;
             },
             .end_game => {
-                map.?.removeEntity(entity.getPos()); // NOCOMMIT appalling
+                map.removeEntity(entity.getPos()); // NOCOMMIT appalling
                 return .end;
             },
             // TODO: ascend/descend needs real map management and this breaks
