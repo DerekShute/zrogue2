@@ -47,7 +47,7 @@ test "run the game" {
     const seed = std.Io.Timestamp.now(std.testing.io, .real).toMicroseconds();
     var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
-    var g: Game = .init;
+    var g = Game.init();
     g.configAllocator(std.testing.allocator);
     g.configIo(std.testing.io);
     g.configRandom(prng.random());

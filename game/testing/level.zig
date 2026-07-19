@@ -3,7 +3,7 @@
 //!
 //! Someday, this goes under kcov
 //!
-//! NOTE NOTE NOTE: this is of limited use until it becomes an interface
+//! Player starts at 6,6 but this is handled in the State init
 //!
 
 // ################################################
@@ -40,7 +40,7 @@ const mapgen = @import("../mapgen.zig");
 //
 // REFACTOR: remove player-entity from this
 //
-pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
+pub fn create(allocator: std.mem.Allocator) !*Map {
     var map = try mapgen.create(allocator, 3, 2);
     errdefer map.deinit(allocator);
 
@@ -65,8 +65,6 @@ pub fn create(allocator: std.mem.Allocator, player: *Entity) !*Map {
     mapgen.addSecretDoor(map, .init(9, 5));
     mapgen.addTrap(map, .init(8, 5));
 
-    mapgen.addEntityToMap(map, player, .init(6, 6));
-
     return map;
 }
 
@@ -78,8 +76,7 @@ const expect = std.testing.expect;
 const test_allocator = std.testing.allocator;
 
 test "lit rooms, dark rooms, passability" {
-    var entity = Entity.init(.{ .tile = @enumFromInt(4), .vtable = &.{} });
-    var map = try create(test_allocator, &entity);
+    var map = try create(test_allocator);
     defer map.deinit(test_allocator);
 
     try expect(map.isPassable(.init(9, 5)) == false); // unfound secret door

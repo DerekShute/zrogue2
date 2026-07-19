@@ -18,6 +18,14 @@ pub const MapKey = usize;
 const HashedMaps = std.AutoHashMapUnmanaged(MapKey, *Map);
 
 //
+// Vector Table
+//
+
+pub const VTable = struct {
+    addEntity: *const fn (self: *Self, entity: *Entity, map: *Map) void,
+};
+
+//
 // Members
 //
 
@@ -26,6 +34,7 @@ const HashedMaps = std.AutoHashMapUnmanaged(MapKey, *Map);
 allocator: std.mem.Allocator = undefined,
 io: std.Io = undefined,
 random: std.Random = undefined,
+vtable: ?*const VTable = null,
 
 // Game elements and environment
 
@@ -36,10 +45,13 @@ queue: EventQueue = undefined, // TODO: mapgen?
 // Lifecycle
 //
 
-pub const init: Self = .{
-    .queue = .init,
-    .maps = .empty,
-};
+pub fn init(vtable: ?*const VTable) Self {
+    return .{
+        .queue = .init,
+        .maps = .empty,
+        .vtable = vtable,
+    };
+}
 
 pub fn configIo(self: *Self, io: std.Io) void {
     self.io = io;
@@ -65,6 +77,15 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 //
 // Methods
 //
+
+pub fn addEntity(self: *Self, entity: *Entity, map_id: usize) void {
+    if (self.vtable) |vt| {
+        const map = self.getMap(map_id);
+        entity.setMapId(map_id);
+        self.enqueueEvent(.{ .entity = entity }); // FUTURE: entrance event
+        vt.addEntity(self, entity, map);
+    }
+}
 
 // TODO: entropy
 
@@ -148,7 +169,7 @@ const MockEntity = @import("testing/MockEntity.zig");
 const expect = std.testing.expect;
 
 test "basic map use" {
-    var s: Self = .init;
+    var s = Self.init(null);
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);
@@ -171,7 +192,7 @@ test "basic action use" {
     var m = MockEntity.init();
     m.setNext(.ascend); // TODO this is a sleaze
 
-    var s: Self = .init;
+    var s = Self.init(null);
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);
@@ -185,7 +206,7 @@ test "action error" {
     var m = MockEntity.init();
     m.setError();
 
-    var s: Self = .init;
+    var s = Self.init(null);
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);

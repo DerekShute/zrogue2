@@ -5,6 +5,7 @@
 const std = @import("std");
 const Action = @import("roguelib").Action;
 const Client = @import("roguelib").Client;
+const Entity = @import("roguelib").Entity;
 const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
 const MockClient = @import("roguelib").MockClient;
@@ -31,6 +32,10 @@ world: World = undefined,
 // Lifecycle
 //
 
+const world_vtable: World.VTable = .{
+    .addEntity = addEntity,
+};
+
 pub fn init(allocator: std.mem.Allocator) !*Self {
     var mc = try allocator.create(MockClient);
     errdefer allocator.destroy(mc);
@@ -52,18 +57,16 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     self.* = .{
         .client = mc,
         .player = player,
-        .world = .init,
+        .world = .init(&world_vtable),
     };
     self.world.configAllocator(allocator);
     errdefer allocator.destroy(self);
 
-    const map = try level.create(allocator, player.getEntity());
+    const map = try level.create(allocator);
     try self.world.addMap(DEFAULT_MAPID, map);
     // map cleaned with world
 
-    actions.move(player, map, player.getPos());
-    player.notifyDisplay(map);
-
+    self.world.addEntity(player.getEntity(), DEFAULT_MAPID); // To callback
     return self;
 }
 
@@ -74,6 +77,15 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.client.deinit(allocator);
     allocator.destroy(self.client);
     allocator.destroy(self);
+}
+
+// This just proves that the World callback system works
+pub fn addEntity(world: *World, entity: *Entity, map: *Map) void {
+    _ = world;
+    const player: *Player = @ptrCast(@alignCast(entity));
+    mapgen.addEntityToMap(map, entity, .init(6, 6));
+    actions.move(player, map, player.getPos());
+    player.notifyDisplay(map);
 }
 
 //

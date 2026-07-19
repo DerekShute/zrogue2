@@ -97,7 +97,7 @@ pub fn main(init: std.process.Init) !void {
     const seed = std.Io.Timestamp.now(init.io, .real).toMicroseconds();
     var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
-    var g: Game = .init;
+    var g = Game.init();
     g.configAllocator(init.gpa);
     g.configIo(init.io);
     g.configRandom(prng.random());

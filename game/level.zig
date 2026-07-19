@@ -4,15 +4,13 @@
 
 const std = @import("std");
 
+const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
 const mapgen = @import("mapgen.zig");
 const MapTile = mapgen.MapTile;
-const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
 const World = @import("roguelib").World;
-
-const actions = @import("actions.zig");
 
 //
 // Constants that this mapgen relies on
@@ -254,15 +252,12 @@ fn reserveGoneRooms(map: *Map, rand: std.Random) void {
 //
 
 //
-// Add a player to a good place on the map
+// Add an Entity to a good place on the map
 //
 
-pub fn addPlayer(map: *Map, player: *Player, world: *World) void {
+pub fn addEntity(world: *World, entity: *Entity, map: *Map) void {
     const floor = findAnyFloor(world.random, map);
-    mapgen.addEntityToMap(map, player.getEntity(), floor);
-    player.setDepth(@intCast(map.level));
-    actions.enterRoom(player, map);
-    player.notifyDisplay(map);
+    mapgen.addEntityToMap(map, entity, floor);
 }
 
 //

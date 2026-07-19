@@ -135,10 +135,6 @@ pub fn getWidth(self: *Self) Pos.Dim {
     return self.width;
 }
 
-pub fn getDepth(self: *Self) usize {
-    return self.level;
-}
-
 pub fn getTileset(self: *Self, p: Pos) Tileset {
     return self.toPlace(p).getTileset();
 }
