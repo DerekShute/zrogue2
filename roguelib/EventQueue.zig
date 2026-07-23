@@ -15,17 +15,17 @@ const Self = @This();
 
 pub const Tag = enum {
     action,
-    // TODO: entry,
+    entry,
     // FUTURE: departure
 };
 
 pub const Event = union(Tag) {
-    // entry: struct {
-    //    entity: *Entity,
-    //    map_id: usize,
-    // },
     action: struct {
         entity: *Entity,
+    },
+    entry: struct {
+        entity: *Entity,
+        map_id: usize,
     },
 };
 
@@ -124,6 +124,24 @@ test "basic use" {
     _ = s.next(std.testing.io, std.testing.allocator);
     _ = s.next(std.testing.io, std.testing.allocator);
     // The last is cleaned up
+}
+
+test "entry use" {
+    var e = MockEntity.init();
+    var s: Self = .init;
+    defer s.deinit(std.testing.allocator);
+
+    // Can't test for empty here because it will block
+
+    try s.enqueue(
+        std.testing.io,
+        std.testing.allocator,
+        Event{ .entry = .{ .map_id = 0, .entity = e.getEntity() } },
+    );
+    const n = s.next(std.testing.io, std.testing.allocator);
+    try expect(n == .entry);
+    try expect(n.entry.map_id == 0);
+    try expect(n.entry.entity == e.getEntity());
 }
 
 //
