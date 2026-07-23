@@ -4,7 +4,9 @@
 
 const std = @import("std");
 const Entity = @import("Entity.zig");
+const queue = @import("queue.zig");
 
+const Allocator = std.mem.Allocator;
 const Self = @This();
 
 //
@@ -27,11 +29,17 @@ pub const Event = union(Tag) {
     },
 };
 
+const Node = struct {
+    payload: Event,
+    node: queue.Node = .{},
+};
+const Queue = queue.Queue(Node, "node");
+
 //
 // Members
 //
 
-queue: Entity.Queue = undefined, // FUTURE: more abstract type
+q: Queue = undefined,
 mutex: std.Io.Mutex = undefined,
 condition: std.Io.Condition = undefined,
 
@@ -40,31 +48,47 @@ condition: std.Io.Condition = undefined,
 //
 
 pub const init: Self = .{
-    .queue = .config(),
+    .q = .config(),
     .mutex = .init,
     .condition = .init,
 };
 
-pub fn enqueue(self: *Self, io: std.Io, event: Event) void {
-    self.mutex.lock(io) catch unreachable; // TODO: Async
+pub fn deinit(self: *Self, allocator: Allocator) void {
+    var current: ?*Node = self.q.next();
+    while (current) |c| {
+        const n = self.q.next();
+        allocator.destroy(c);
+        current = n;
+    }
+}
+
+pub fn enqueue(self: *Self, io: std.Io, allocator: Allocator, event: Event) !void {
+    var node = try allocator.create(Node);
+    errdefer allocator.destroy(node);
+    node.payload = event;
+
+    try self.mutex.lock(io);
     defer self.mutex.unlock(io);
 
-    self.queue.enqueue(event.action.entity); // TODO
+    self.q.enqueue(node);
     self.condition.signal(io);
 }
 
 // FUTURE: dequeue, which will have to be a search
 
-pub fn next(self: *Self, io: std.Io) Event {
+pub fn next(self: *Self, io: std.Io, allocator: Allocator) Event {
     self.mutex.lock(io) catch unreachable; // TODO: Async
     defer self.mutex.unlock(io);
 
-    var entity: ?*Entity = self.queue.next();
-    while (entity == null) {
+    var node = self.q.next();
+    while (node == null) {
         self.condition.wait(io, &self.mutex) catch unreachable;
-        entity = self.queue.next();
+        node = self.q.next();
     }
-    return .{ .action = .{ .entity = entity.? } };
+
+    const payload = node.?.payload;
+    allocator.destroy(node.?);
+    return payload;
 }
 
 //
@@ -76,16 +100,30 @@ const expectError = std.testing.expectError;
 const tallocator = std.testing.allocator;
 const MockEntity = @import("testing/MockEntity.zig");
 
-test "action use" {
+test "basic use" {
     var e = MockEntity.init();
     var s: Self = .init;
+    defer s.deinit(std.testing.allocator);
 
-    // Can't test for empty here because it will block
+    try s.enqueue(
+        std.testing.io,
+        std.testing.allocator,
+        Event{ .action = .{ .entity = e.getEntity() } },
+    );
+    try s.enqueue(
+        std.testing.io,
+        std.testing.allocator,
+        Event{ .action = .{ .entity = e.getEntity() } },
+    );
+    try s.enqueue(
+        std.testing.io,
+        std.testing.allocator,
+        Event{ .action = .{ .entity = e.getEntity() } },
+    );
 
-    s.enqueue(std.testing.io, Event{ .action = .{ .entity = e.getEntity() } });
-    const n = s.next(std.testing.io);
-
-    try expect(n.action.entity == e.getEntity());
+    _ = s.next(std.testing.io, std.testing.allocator);
+    _ = s.next(std.testing.io, std.testing.allocator);
+    // The last is cleaned up
 }
 
 //

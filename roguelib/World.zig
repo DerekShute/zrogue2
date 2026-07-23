@@ -72,6 +72,7 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     while (iter.next()) |value_ptr| {
         value_ptr.*.deinit(allocator);
     }
+    self.queue.deinit(allocator);
 }
 
 //
@@ -94,11 +95,11 @@ pub fn addEntity(self: *Self, entity: *Entity, map_id: usize) void {
 // Event queue
 
 pub fn enqueueAction(self: *Self, entity: *Entity) void {
-    self.queue.enqueue(self.io, .{ .action = .{ .entity = entity } });
+    self.queue.enqueue(self.io, self.allocator, .{ .action = .{ .entity = entity } }) catch unreachable; // NOCOMMIT unacceptable
 }
 
 pub fn nextEvent(self: *Self) ?EventQueue.Event {
-    return self.queue.next(self.io);
+    return self.queue.next(self.io, self.allocator);
 }
 
 // FUTURE: dequeue by Entity pointer?
