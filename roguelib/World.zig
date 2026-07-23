@@ -122,7 +122,9 @@ pub fn removeMap(self: *Self, key: MapKey) void {
     }
 }
 
-// Play
+//
+// World Run
+//
 
 pub const State = enum { // Simple state machine: intro -> run -> end
     run,
@@ -133,29 +135,31 @@ pub const State = enum { // Simple state machine: intro -> run -> end
 
 pub fn run(self: *Self) State {
     const map = self.getMap(0); // NOCOMMIT stupid stupid
-    while (self.nextEvent()) |event| {
-        const entity = event.action.entity; // FUTURE: other event types
-        const result = entity.doAction(map) catch {
-            return .end;
-        };
-        switch (result) {
-            .continue_game => {
-                // FUTURE: do not requeue - figure out how to do so from
-                // an incoming command (via Client?).  Else server spins
-                self.enqueueAction(entity);
-                continue;
-            },
-            .end_game => {
-                map.removeEntity(entity.getPos()); // NOCOMMIT appalling
+    while (self.nextEvent()) |event| switch (event) {
+        .action => |action_event| {
+            const entity = action_event.entity;
+            const result = entity.doAction(map) catch {
+                // TODO: remove from map?
                 return .end;
-            },
-            // TODO: ascend/descend needs real map management and this breaks
-            // the current 'rogue' model of new maps on the way back up
-
-            .ascend => return .ascend,
-            .descend => return .descend,
-        }
-    }
+            };
+            switch (result) {
+                .continue_game => {
+                    // FUTURE: do not requeue - figure out how to do so from
+                    // an incoming command (via Client?).  Else server spins
+                    self.enqueueAction(entity);
+                    continue;
+                },
+                .end_game => {
+                    map.removeEntity(entity.getPos()); // NOCOMMIT appalling
+                    return .end;
+                },
+                // TODO: ascend/descend needs real map management, breaks
+                // the current 'rogue' model of new maps on the way back up
+                .ascend => return .ascend,
+                .descend => return .descend,
+            }
+        },
+    };
 
     // No entity left on queue
     return .run;
