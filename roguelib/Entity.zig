@@ -7,7 +7,6 @@ const std = @import("std");
 const Action = @import("Action.zig");
 const Map = @import("Map.zig");
 const Pos = @import("Pos.zig");
-const queue = @import("queue.zig");
 const Region = @import("Region.zig");
 const Tile = @import("common").Tile;
 
@@ -16,8 +15,6 @@ const Self = @This();
 //
 // Types
 //
-
-pub const Queue = queue.Queue(Self, "node");
 
 pub const VTable = struct {
     pub const Error = error{Failed};
@@ -40,7 +37,6 @@ tile: Tile = undefined,
 vtable: *const VTable = undefined,
 map_id: usize = undefined, // FUTURE: or pointer, uuid
 moves: i32 = 0,
-node: queue.Node = .{},
 
 //
 // Lifecycle
@@ -106,13 +102,6 @@ test "basic use" {
     var e = Self.init(testing_config);
     try expect(@intFromEnum(e.getTile()) == 4);
     e.setMapId(4);
-}
-
-test "entity queue" {
-    var eq = Queue.config();
-    var e = Self.init(testing_config);
-    eq.enqueue(&e);
-    try expect(eq.next() == &e);
 }
 
 //
