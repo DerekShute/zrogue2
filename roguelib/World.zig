@@ -95,7 +95,19 @@ pub fn addEntity(self: *Self, entity: *Entity, map_id: usize) void {
 // Event queue
 
 pub fn enqueueAction(self: *Self, entity: *Entity) void {
-    self.queue.enqueue(self.io, self.allocator, .{ .action = .{ .entity = entity } }) catch unreachable; // NOCOMMIT unacceptable
+    self.queue.enqueue(
+        self.io,
+        self.allocator,
+        .{ .action = .{ .entity = entity } },
+    ) catch unreachable; // NOCOMMIT unacceptable
+}
+
+pub fn enqueueEntry(self: *Self, entity: *Entity, map_id: usize) void {
+    self.queue.enqueue(
+        self.io,
+        self.allocator,
+        .{ .entry = .{ .entity = entity, .map_id = map_id } },
+    ) catch unreachable; // NOCOMMIT unacceptable
 }
 
 pub fn nextEvent(self: *Self) ?EventQueue.Event {
@@ -134,9 +146,27 @@ pub const State = enum { // Simple state machine: intro -> run -> end
     end,
 };
 
+fn entryEvent(self: *Self, entity: *Entity, map_id: usize) void {
+    _ = map_id; // TODO
+
+    // TODO: needs a callback to the Game for the entrance logic, and this
+    // all goes there
+
+    if (self.vtable) |vt| {
+        const map = self.getMap(0); // TODO
+        entity.setMapId(0); // TODO
+        vt.addEntity(self, entity, map);
+        self.enqueueEntry(entity, 0); // TODO
+    } else unreachable;
+}
+
 pub fn run(self: *Self) State {
     const map = self.getMap(0); // NOCOMMIT stupid stupid
     while (self.nextEvent()) |event| switch (event) {
+        .entry => |entry_event| {
+            self.entryEvent(entry_event.entity, entry_event.map_id);
+            continue;
+        },
         .action => |action_event| {
             const entity = action_event.entity;
             const result = entity.doAction(map) catch {
