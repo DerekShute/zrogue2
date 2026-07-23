@@ -7,18 +7,33 @@ const Entity = @import("Entity.zig");
 
 const Self = @This();
 
-queue: Entity.Queue = undefined, // FUTURE: more abstract type
-mutex: std.Io.Mutex = undefined,
-condition: std.Io.Condition = undefined,
-
 //
 // Types
 //
 
-pub const Event = struct {
-    // FUTURE: union, more flexible
-    entity: *Entity,
+pub const Tag = enum {
+    action,
+    // TODO: entry,
+    // FUTURE: departure
 };
+
+pub const Event = union(Tag) {
+    // entry: struct {
+    //    entity: *Entity,
+    //    map_id: usize,
+    // },
+    action: struct {
+        entity: *Entity,
+    },
+};
+
+//
+// Members
+//
+
+queue: Entity.Queue = undefined, // FUTURE: more abstract type
+mutex: std.Io.Mutex = undefined,
+condition: std.Io.Condition = undefined,
 
 //
 // Lifecycle
@@ -34,13 +49,13 @@ pub fn enqueue(self: *Self, io: std.Io, event: Event) void {
     self.mutex.lock(io) catch unreachable; // TODO: Async
     defer self.mutex.unlock(io);
 
-    self.queue.enqueue(event.entity);
+    self.queue.enqueue(event.action.entity); // TODO
     self.condition.signal(io);
 }
 
 // FUTURE: dequeue, which will have to be a search
 
-pub fn next(self: *Self, io: std.Io) ?Event {
+pub fn next(self: *Self, io: std.Io) Event {
     self.mutex.lock(io) catch unreachable; // TODO: Async
     defer self.mutex.unlock(io);
 
@@ -49,7 +64,7 @@ pub fn next(self: *Self, io: std.Io) ?Event {
         self.condition.wait(io, &self.mutex) catch unreachable;
         entity = self.queue.next();
     }
-    return .{ .entity = entity.? };
+    return .{ .action = .{ .entity = entity.? } };
 }
 
 //
@@ -59,19 +74,18 @@ pub fn next(self: *Self, io: std.Io) ?Event {
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 const tallocator = std.testing.allocator;
+const MockEntity = @import("testing/MockEntity.zig");
 
-test "basic use" {
-    var vt: Entity.VTable = .{};
-    var e = Entity.init(.{ .tile = @enumFromInt(4), .vtable = &vt });
-
+test "action use" {
+    var e = MockEntity.init();
     var s: Self = .init;
 
     // Can't test for empty here because it will block
 
-    s.enqueue(std.testing.io, Event{ .entity = &e });
+    s.enqueue(std.testing.io, Event{ .action = .{ .entity = e.getEntity() } });
     const n = s.next(std.testing.io);
 
-    try expect(n.?.entity == &e);
+    try expect(n.action.entity == e.getEntity());
 }
 
 //

@@ -82,7 +82,7 @@ pub fn addEntity(self: *Self, entity: *Entity, map_id: usize) void {
     if (self.vtable) |vt| {
         const map = self.getMap(map_id);
         entity.setMapId(map_id);
-        self.enqueueEvent(.{ .entity = entity }); // FUTURE: entrance event
+        self.enqueueAction(entity);
         vt.addEntity(self, entity, map);
     }
 }
@@ -93,8 +93,8 @@ pub fn addEntity(self: *Self, entity: *Entity, map_id: usize) void {
 
 // Event queue
 
-pub fn enqueueEvent(self: *Self, event: EventQueue.Event) void {
-    self.queue.enqueue(self.io, event);
+pub fn enqueueAction(self: *Self, entity: *Entity) void {
+    self.queue.enqueue(self.io, .{ .action = .{ .entity = entity } });
 }
 
 pub fn nextEvent(self: *Self) ?EventQueue.Event {
@@ -134,7 +134,7 @@ pub const State = enum { // Simple state machine: intro -> run -> end
 pub fn run(self: *Self) State {
     const map = self.getMap(0); // NOCOMMIT stupid stupid
     while (self.nextEvent()) |event| {
-        const entity = event.entity; // FUTURE: other event types
+        const entity = event.action.entity; // FUTURE: other event types
         const result = entity.doAction(map) catch {
             return .end;
         };
@@ -142,7 +142,7 @@ pub fn run(self: *Self) State {
             .continue_game => {
                 // FUTURE: do not requeue - figure out how to do so from
                 // an incoming command (via Client?).  Else server spins
-                self.enqueueEvent(.{ .entity = entity });
+                self.enqueueAction(entity);
                 continue;
             },
             .end_game => {
@@ -198,7 +198,7 @@ test "basic action use" {
     defer s.deinit(std.testing.allocator);
     try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
-    s.enqueueEvent(.{ .entity = m.getEntity() });
+    s.enqueueAction(m.getEntity());
     try expect(s.run() == .ascend);
 }
 
@@ -212,7 +212,7 @@ test "action error" {
     defer s.deinit(std.testing.allocator);
     try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
-    s.enqueueEvent(.{ .entity = m.getEntity() });
+    s.enqueueAction(m.getEntity());
     try expect(s.run() == .end);
 }
 
