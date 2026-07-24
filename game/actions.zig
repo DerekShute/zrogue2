@@ -21,7 +21,7 @@ const mapgen = @import("mapgen.zig");
 
 // Function call prototype
 
-const Handler = *const fn (self: *Player, action: *Action, map: *Map) Action.Result;
+const Handler = *const fn (self: *Player, action: *Action, world: *World, map: *Map) Action.Result;
 
 //
 // Action service
@@ -43,8 +43,8 @@ pub fn doAction(entity: *Entity, world: *World) !Action.Result {
         .wait => doNothing, // TODO untrue
     };
 
-    const ret = actFn(player, &action, map);
-    player.notifyDisplay(map);
+    const ret = actFn(player, &action, world, map);
+    player.notifyDisplay(map); // TODO down one step or recalculate
     return ret;
 }
 
@@ -52,16 +52,19 @@ pub fn doAction(entity: *Entity, world: *World) !Action.Result {
 // Handlers
 //
 
-fn doNothing(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doNothing(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = player;
     _ = action;
+    _ = world;
     _ = map;
 
     return .continue_game;
 }
 
-fn doAscend(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doAscend(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = action;
+    _ = world;
+
     if (mapgen.getFloor(map, player.getPos()) == .stairs_up) {
         player.addMessage("You ascend closer to the exit..."); // TODO stupid
         return .ascend;
@@ -70,8 +73,10 @@ fn doAscend(player: *Player, action: *Action, map: *Map) Action.Result {
     return .continue_game;
 }
 
-fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doDescend(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = action;
+    _ = world;
+
     if (mapgen.getFloor(map, player.getPos()) == .stairs_down) {
         player.addMessage("You go ever deeper into the dungeon...");
         return .descend;
@@ -81,7 +86,9 @@ fn doDescend(player: *Player, action: *Action, map: *Map) Action.Result {
     return .continue_game;
 }
 
-fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doMove(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
+    _ = world;
+
     const new_pos = Pos.add(player.getPos(), action.getPos());
 
     if (!map.isPassable(new_pos)) {
@@ -99,16 +106,18 @@ fn doMove(player: *Player, action: *Action, map: *Map) Action.Result {
     return .continue_game;
 }
 
-fn doQuit(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doQuit(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = player;
     _ = action;
+    _ = world;
     _ = map;
     // FUTURE: save, ask, etc.
     return .end_game;
 }
 
-fn doSearch(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doSearch(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = action;
+    _ = world;
 
     var r = Region.configRadius(player.getPos(), 1);
     var i = r.iterator();
@@ -127,7 +136,8 @@ fn doSearch(player: *Player, action: *Action, map: *Map) Action.Result {
     return .continue_game;
 }
 
-fn doTake(player: *Player, action: *Action, map: *Map) Action.Result {
+fn doTake(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
+    _ = world;
     if (mapgen.getItem(map, action.getPos()) == .gold) {
         player.addMessage("You pick up the gold!");
         player.incrementPurse();
