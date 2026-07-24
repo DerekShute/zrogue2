@@ -13,6 +13,7 @@ const Region = @import("roguelib").Region;
 const World = @import("roguelib").World;
 
 const features = @import("features.zig");
+const level = @import("level.zig");
 const mapgen = @import("mapgen.zig");
 
 //
@@ -29,7 +30,7 @@ const Handler = *const fn (self: *Player, action: *Action, world: *World, map: *
 
 pub fn doAction(entity: *Entity, world: *World) !Action.Result {
     const player: *Player = @ptrCast(@alignCast(entity));
-    const map = world.getMap(0); // TODO
+    const map = world.getMap(entity.getMapId());
 
     var action = player.getAction() catch return error.Failed;
     const actFn: Handler = switch (action.getType()) {
@@ -63,26 +64,60 @@ fn doNothing(player: *Player, action: *Action, world: *World, map: *Map) Action.
 
 fn doAscend(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = action;
-    _ = world;
-
-    if (mapgen.getFloor(map, player.getPos()) == .stairs_up) {
-        player.addMessage("You ascend closer to the exit..."); // TODO stupid
-        return .ascend;
+    if (mapgen.getFloor(map, player.getPos()) != .stairs_up) {
+        player.addMessage("I see no way up");
+        return .continue_game;
     }
-    player.addMessage("I see no way up");
+
+    var entity = player.getEntity();
+    if (entity.getMapId() == 0) {
+        return .end_game; // TODO very imperfect
+    }
+
+    player.addMessage("You ascend closer to the exit..."); // TODO stupid
+    player.resetFOV();
+
+    const new_id = entity.getMapId() - 1;
+    const new_map = world.getMap(new_id);
+    player.resetFOV();
+    map.removeEntity(entity.getPos());
+    entity.setMapId(new_map.level); // TODO blecch
+    new_map.addEntity(world, entity);
+    player.setDepth(@intCast(new_id));
+    enterRoom(player, new_map);
+    player.notifyDisplay(new_map);
+
     return .continue_game;
 }
 
 fn doDescend(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = action;
-    _ = world;
 
-    if (mapgen.getFloor(map, player.getPos()) == .stairs_down) {
-        player.addMessage("You go ever deeper into the dungeon...");
-        return .descend;
+    if (mapgen.getFloor(map, player.getPos()) != .stairs_down) {
+        player.addMessage("I see no way down");
+        return .continue_game;
     }
 
-    player.addMessage("I see no way down");
+    var entity = player.getEntity();
+    if (entity.getMapId() > 5) { // TODO do something better
+        player.addMessage("Something prevents you from descending...");
+        return .continue_game;
+    }
+
+    player.addMessage("You go ever deeper into the dungeon...");
+    player.resetFOV();
+
+    // REFACTOR: consolidate everywhere
+    const new_id = entity.getMapId() + 1;
+    const new_map = world.getMap(new_id);
+    player.resetFOV();
+    map.removeEntity(entity.getPos());
+    entity.setMapId(new_id); // TODO blecch
+    new_map.addEntity(world, entity);
+    player.setDepth(@intCast(new_id));
+    enterRoom(player, new_map);
+    player.notifyDisplay(new_map);
+
     return .continue_game;
 }
 
@@ -107,11 +142,12 @@ fn doMove(player: *Player, action: *Action, world: *World, map: *Map) Action.Res
 }
 
 fn doQuit(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
-    _ = player;
     _ = action;
     _ = world;
-    _ = map;
-    // FUTURE: save, ask, etc.
+
+    // FUTURE: save, etc.
+
+    map.removeEntity(player.getPos());
     return .end_game;
 }
 

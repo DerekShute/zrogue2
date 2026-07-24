@@ -154,7 +154,6 @@ pub fn run(self: *Self) State {
         },
         .action => |action_event| {
             const entity = action_event.entity;
-            const map = self.getMap(0); // NOCOMMIT stupid stupid
             const result = entity.doAction(self) catch {
                 // TODO: remove from map?
                 return .end;
@@ -167,13 +166,10 @@ pub fn run(self: *Self) State {
                     continue;
                 },
                 .end_game => {
-                    map.removeEntity(entity.getPos()); // NOCOMMIT appalling
-                    return .end;
+                    return .end; // NOCOMMIT need an answer here
                 },
-                // TODO: ascend/descend needs real map management, breaks
-                // the current 'rogue' model of new maps on the way back up
-                .ascend => return .ascend,
-                .descend => return .descend,
+                .ascend => unreachable, // NOCOMMIT remove this enum
+                .descend => unreachable, // NOCOMMIT remove this enum
             }
         },
     };
@@ -211,7 +207,7 @@ test "basic map use" {
 
 test "basic action use" {
     var m = MockEntity.init();
-    m.setNext(.ascend); // TODO this is a sleaze
+    m.setNext(.end_game);
 
     var s = Self.init(null);
     s.configIo(std.testing.io);
@@ -220,7 +216,7 @@ test "basic action use" {
     try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
     s.enqueueAction(m.getEntity());
-    try expect(s.run() == .ascend);
+    try expect(s.run() == .end);
 }
 
 test "action error" {

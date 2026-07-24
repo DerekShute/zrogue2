@@ -23,10 +23,12 @@ test "in-place boring stuff then quit" {
     var state = try State.init(test_allocator);
     defer state.deinit(test_allocator);
 
+    // TODO expect player at 6, 6
     try expect(try state.step(.wait) == .continue_game);
     try expect(try state.step(.ascend) == .continue_game);
     try expect(try state.step(.descend) == .continue_game);
     try expect(try state.step(.quit) == .end_game);
+    // TODO expect no player at 6, 6
 }
 
 test "move in a circle: all directions work" {
@@ -84,11 +86,16 @@ test "pick up gold and etc" {
     try state.expectFloor(.init(9, 5), .door); // secret door
 
     try expect(try state.step(.go_north) == .continue_game);
-    try expect(try state.step(.descend) == .descend);
+    try expect(try state.step(.descend) == .continue_game);
     try state.expectMessage("You go ever deeper into the dungeon...");
 
+    // Back to location 6,6
     try expect(try state.step(.go_north) == .continue_game);
-    try expect(try state.step(.ascend) == .ascend);
+    try expect(try state.step(.go_north) == .continue_game);
+    try expect(try state.step(.go_north) == .continue_game);
+    try expect(try state.step(.go_east) == .continue_game);
+    try expect(try state.step(.go_east) == .continue_game);
+    try expect(try state.step(.ascend) == .continue_game);
     try state.expectMessage("You ascend closer to the exit...");
 }
 
