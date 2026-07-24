@@ -160,7 +160,7 @@ pub fn expectVisible(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
 
 pub fn step(self: *Self, cmd: Client.Command) !Action.Result {
     self.client.setCommand(cmd);
-    return try actions.doAction(self.player.getEntity(), self.getMap());
+    return try actions.doAction(self.player.getEntity(), &self.world);
 }
 
 pub fn atXY(self: *Self, x: Pos.Dim, y: Pos.Dim) !void {
