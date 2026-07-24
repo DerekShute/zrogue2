@@ -33,7 +33,7 @@ world: World = undefined,
 //
 
 const world_vtable: World.VTable = .{
-    .addEntity = addEntity,
+    .enter = testEnter,
 };
 
 pub fn init(allocator: std.mem.Allocator) !*Self {
@@ -66,7 +66,12 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     try self.world.addMap(DEFAULT_MAPID, map);
     // map cleaned with world
 
-    self.world.addEntity(player.getEntity(), DEFAULT_MAPID); // To callback
+    self.world.enqueueEntry(player.getEntity());
+
+    mapgen.addEntityToMap(map, player.getEntity(), .init(6, 6));
+    actions.move(player, map, player.getPos());
+    player.notifyDisplay(map);
+
     return self;
 }
 
@@ -79,18 +84,18 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     allocator.destroy(self);
 }
 
-// This just proves that the World callback system works
-pub fn addEntity(world: *World, entity: *Entity, map: *Map) void {
-    _ = world;
+//
+// Methods
+//
+
+fn testEnter(world: *World, entity: *Entity) void {
+    // Callback from World action
     const player: *Player = @ptrCast(@alignCast(entity));
+    const map = world.getMap(DEFAULT_MAPID);
     mapgen.addEntityToMap(map, entity, .init(6, 6));
     actions.move(player, map, player.getPos());
     player.notifyDisplay(map);
 }
-
-//
-// Methods
-//
 
 pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
     const dt = self.client.getTile(x, y) catch @panic("getEntity fault");

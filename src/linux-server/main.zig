@@ -57,10 +57,8 @@ fn handleClient(g: *Game, conn: net.Stream) !void {
 
         const id = try g.initPlayer(.{ .client = rc.client() });
         defer g.deinitPlayer(id);
-        var player = g.getPlayer(id); // TODO: ugh
 
-        player.addMessage("Welcome to the Dungeon of Doom!");
-        g.addPlayer(player, 0);
+        g.addPlayer(g.getPlayer(id)); // Off to the event queue...
 
         // Feeds command gathering
         while (rc.getState() == .connected) {
