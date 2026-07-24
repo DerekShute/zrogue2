@@ -7,6 +7,7 @@ const std = @import("std");
 const Action = @import("../Action.zig");
 const Entity = @import("../Entity.zig");
 const Map = @import("../Map.zig");
+const World = @import("../World.zig");
 
 //
 // Types
@@ -61,8 +62,8 @@ pub fn setError(self: *Self) void {
 // Vtable methods
 //
 
-fn doAction(entity: *Entity, map: *Map) !Action.Result {
-    _ = map;
+fn doAction(entity: *Entity, world: *World) !Action.Result {
+    _ = world;
     const self: *Self = @ptrCast(@alignCast(entity));
     if (self.faults) {
         return error.Failed;
@@ -81,23 +82,19 @@ const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 
 test "basic use" {
-    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
-    defer map.deinit(std.testing.allocator);
-
+    var world = World.init(null);
     var self = init();
     self.setNext(.continue_game);
 
-    try expect(try doAction(self.getEntity(), map) == .continue_game);
+    try expect(try doAction(self.getEntity(), &world) == .continue_game);
 }
 
 test "action error" {
-    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
-    defer map.deinit(std.testing.allocator);
-
+    var world = World.init(null);
     var self = init();
     self.setError();
 
-    try expectError(error.Failed, doAction(self.getEntity(), map));
+    try expectError(error.Failed, doAction(self.getEntity(), &world));
 }
 
 // EOF

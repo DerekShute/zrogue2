@@ -9,6 +9,7 @@ const Map = @import("Map.zig");
 const Pos = @import("Pos.zig");
 const Region = @import("Region.zig");
 const Tile = @import("common").Tile;
+const World = @import("World.zig");
 
 const Self = @This();
 
@@ -19,7 +20,7 @@ const Self = @This();
 pub const VTable = struct {
     pub const Error = error{Failed};
 
-    doAction: ?*const fn (self: *Self, map: *Map) Error!Action.Result = null,
+    doAction: ?*const fn (self: *Self, world: *World) Error!Action.Result = null,
 };
 
 pub const Config = struct {
@@ -80,9 +81,9 @@ pub fn setMapId(self: *Self, id: usize) void {
 
 // VTable
 
-pub fn doAction(self: *Self, map: *Map) !Action.Result {
+pub fn doAction(self: *Self, world: *World) !Action.Result {
     if (self.vtable.doAction) |cb| {
-        return try cb(self, map);
+        return try cb(self, world);
     }
     return .continue_game;
 }

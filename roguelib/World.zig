@@ -147,7 +147,6 @@ fn entryEvent(self: *Self, entity: *Entity) void {
 }
 
 pub fn run(self: *Self) State {
-    const map = self.getMap(0); // NOCOMMIT stupid stupid
     while (self.nextEvent()) |event| switch (event) {
         .entry => |entry_event| {
             self.entryEvent(entry_event.entity);
@@ -155,7 +154,8 @@ pub fn run(self: *Self) State {
         },
         .action => |action_event| {
             const entity = action_event.entity;
-            const result = entity.doAction(map) catch {
+            const map = self.getMap(0); // NOCOMMIT stupid stupid
+            const result = entity.doAction(self) catch {
                 // TODO: remove from map?
                 return .end;
             };

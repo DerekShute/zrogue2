@@ -10,6 +10,8 @@ const Map = @import("roguelib").Map;
 const Player = @import("Player.zig");
 const Pos = @import("roguelib").Pos;
 const Region = @import("roguelib").Region;
+const World = @import("roguelib").World;
+
 const features = @import("features.zig");
 const mapgen = @import("mapgen.zig");
 
@@ -25,8 +27,9 @@ const Handler = *const fn (self: *Player, action: *Action, map: *Map) Action.Res
 // Action service
 //
 
-pub fn doAction(entity: *Entity, map: *Map) !Action.Result {
+pub fn doAction(entity: *Entity, world: *World) !Action.Result {
     const player: *Player = @ptrCast(@alignCast(entity));
+    const map = world.getMap(0); // TODO
 
     var action = player.getAction() catch return error.Failed;
     const actFn: Handler = switch (action.getType()) {
