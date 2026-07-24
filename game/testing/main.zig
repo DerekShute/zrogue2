@@ -53,11 +53,10 @@ test "run the game" {
     g.configRandom(prng.random());
     defer g.deinit();
 
+    try g.generate();
+
     const id = try g.initPlayer(.{ .client = m.client() });
     defer g.deinitPlayer(id);
-
-    try g.initLevel();
-    defer g.deinitLevel();
 
     g.addPlayer(g.getPlayer(id));
 

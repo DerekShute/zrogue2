@@ -11,9 +11,10 @@ const EventQueue = @import("roguelib").EventQueue;
 const Map = @import("roguelib").Map;
 const World = @import("roguelib").World;
 
-const actions = @import("actions.zig");
-const mapgen = @import("mapgen.zig");
 pub const Player = @import("Player.zig");
+const actions = @import("actions.zig");
+const level = @import("level.zig"); // TODO: vector in World
+const mapgen = @import("mapgen.zig");
 
 const Self = @This();
 
@@ -168,6 +169,7 @@ pub fn enter(world: *World, entity: *Entity) void {
 }
 
 // Mapgen
+// NOCOMMIT FIGURE THESE OUT
 
 pub fn setLevel(self: *Self, lvl: u16) void {
     self.level_config.level = lvl;
@@ -193,11 +195,25 @@ pub fn deinitLevel(self: *Self) void {
     self.world.removeMap(0); // NOCOMMIT awful
 }
 
+const MAX_DEPTH = 5;
+
+pub fn generate(self: *Self) !void {
+    self.level_config.stairs_down = true;
+    self.level_config.stairs_up = true; // TODO: No longer Rogue...
+
+    for (0..MAX_DEPTH) |i| {
+        if (i == MAX_DEPTH) {
+            self.level_config.stairs_down = false;
+        }
+        self.level_config.level = @intCast(i);
+        const map = try level.create(self.level_config, &self.world);
+        try self.world.addMap(i, map);
+    }
+}
+
 //
 // Game Run
 //
-
-const level = @import("level.zig");
 
 pub const State = World.State; // TODO: act of convenience
 

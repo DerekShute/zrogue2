@@ -119,40 +119,13 @@ pub fn main(init: std.process.Init) !void {
     g.configRandom(prng.random());
     defer g.deinit();
 
+    try g.generate();
+
     const id = try g.initPlayer(.{ .client = curses.client() });
     defer g.deinitPlayer(id);
 
-    // TODO: this is pretty broken and can't be fixed until leveling is
-
-    var player = g.getPlayer(id); // TODO: ugh
-    g.setGoingDown();
-
-    var level: u16 = 1;
-    var state: Game.State = .run;
-    while (state != .end) {
-        g.setLevel(level);
-        player.resetFOV();
-        try g.initLevel();
-        defer g.deinitLevel();
-
-        g.addPlayer(player);
-
-        state = g.run();
-
-        // Simple map management: only one, and we replace it at change
-        if (state == .descend) {
-            level += 1;
-            if (level >= MAX_DEPTH) {
-                g.setGoingUp();
-            }
-        } else if (state == .ascend) {
-            level -= 1;
-            if (level < 1) {
-                break;
-            }
-        }
-    } // Game run loop
-
+    g.addPlayer(g.getPlayer(id));
+    while (g.run() != .end) {}
     // FUTURE: game endings go here
 }
 

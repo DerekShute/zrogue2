@@ -75,15 +75,8 @@ fn handleClient(g: *Game, conn: net.Stream) !void {
 }
 
 fn server(g: *Game) void {
-    var state: Game.State = .run;
-
-    // TODO: the return value is based on the player result in the queue.
-
     while (true) {
-        state = g.run();
-
-        // TODO: ascend/descend requires proper map management within
-        // the player action context or something
+        _ = g.run(); // TODO: fix return value concept
     }
 }
 
@@ -101,8 +94,7 @@ pub fn main(init: std.process.Init) !void {
     g.configRandom(prng.random());
     defer g.deinit();
 
-    try g.initLevel();
-    defer g.deinitLevel();
+    try g.generate();
 
     const s_thread = try std.Thread.spawn(.{}, server, .{&g});
     s_thread.detach();
