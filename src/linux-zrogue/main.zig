@@ -122,10 +122,9 @@ pub fn main(init: std.process.Init) !void {
     const id = try g.initPlayer(.{ .client = curses.client() });
     defer g.deinitPlayer(id);
 
+    // TODO: this is pretty broken and can't be fixed until leveling is
+
     var player = g.getPlayer(id); // TODO: ugh
-
-    player.addMessage("Welcome to the Dungeon of Doom!");
-
     g.setGoingDown();
 
     var level: u16 = 1;
@@ -136,7 +135,7 @@ pub fn main(init: std.process.Init) !void {
         try g.initLevel();
         defer g.deinitLevel();
 
-        g.addPlayer(player, 0);
+        g.addPlayer(player);
 
         state = g.run();
 

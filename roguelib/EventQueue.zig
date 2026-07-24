@@ -25,7 +25,6 @@ pub const Event = union(Tag) {
     },
     entry: struct {
         entity: *Entity,
-        map_id: usize,
     },
 };
 
@@ -108,17 +107,17 @@ test "basic use" {
     try s.enqueue(
         std.testing.io,
         std.testing.allocator,
-        Event{ .action = .{ .entity = e.getEntity() } },
+        .{ .action = .{ .entity = e.getEntity() } },
     );
     try s.enqueue(
         std.testing.io,
         std.testing.allocator,
-        Event{ .action = .{ .entity = e.getEntity() } },
+        .{ .action = .{ .entity = e.getEntity() } },
     );
     try s.enqueue(
         std.testing.io,
         std.testing.allocator,
-        Event{ .action = .{ .entity = e.getEntity() } },
+        .{ .action = .{ .entity = e.getEntity() } },
     );
 
     _ = s.next(std.testing.io, std.testing.allocator);
@@ -136,11 +135,10 @@ test "entry use" {
     try s.enqueue(
         std.testing.io,
         std.testing.allocator,
-        Event{ .entry = .{ .map_id = 0, .entity = e.getEntity() } },
+        .{ .entry = .{ .entity = e.getEntity() } },
     );
     const n = s.next(std.testing.io, std.testing.allocator);
     try expect(n == .entry);
-    try expect(n.entry.map_id == 0);
     try expect(n.entry.entity == e.getEntity());
 }
 

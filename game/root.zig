@@ -51,7 +51,7 @@ next_player_id: PlayerUID = 0,
 //
 
 const world_vtable: World.VTable = .{
-    .addEntity = level.addEntity,
+    .enter = enter,
 };
 
 pub fn init() Self {
@@ -143,13 +143,27 @@ pub fn getPlayer(self: *Self, uid: PlayerUID) *Player {
     return p.?;
 }
 
-// NOCOMMIT: This races -- need an entry Event
-pub fn addPlayer(self: *Self, player: *Player, mapno: usize) void {
-    self.world.addEntity(player.getEntity(), mapno);
-    const map = self.world.getMap(mapno);
-    actions.enterRoom(player, map); // FUTURE: entry event
-    player.setDepth(@intCast(map.level)); // TODO: gross - needed while mapno never changes
-    player.notifyDisplay(map); // FUTURE: entry event
+//
+// Player enter game (from server or single player)
+//
+
+pub fn addPlayer(self: *Self, player: *Player) void {
+    self.world.enqueueEntry(player.getEntity());
+}
+
+// Enter game (world callback)
+
+pub fn enter(world: *World, entity: *Entity) void {
+    // TODO: take player ID or opaque?
+    const player: *Player = @ptrCast(@alignCast(entity));
+    const map = world.getMap(0); // TODO
+
+    entity.setMapId(0);
+    player.addMessage("Welcome to the Dungeon of Doom!");
+    level.addEntity(world, entity, map);
+    actions.enterRoom(player, map);
+    player.setDepth(@intCast(map.level));
+    player.notifyDisplay(map);
 }
 
 // Mapgen

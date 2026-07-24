@@ -22,7 +22,8 @@ const HashedMaps = std.AutoHashMapUnmanaged(MapKey, *Map);
 //
 
 pub const VTable = struct {
-    addEntity: *const fn (self: *Self, entity: *Entity, map: *Map) void,
+    // enter - player enters Game
+    enter: *const fn (self: *Self, entity: *Entity) void,
 };
 
 //
@@ -79,15 +80,6 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 // Methods
 //
 
-pub fn addEntity(self: *Self, entity: *Entity, map_id: usize) void {
-    if (self.vtable) |vt| {
-        const map = self.getMap(map_id);
-        entity.setMapId(map_id);
-        self.enqueueAction(entity);
-        vt.addEntity(self, entity, map);
-    }
-}
-
 // TODO: entropy
 
 // TODO: mapgen, map lookup
@@ -102,11 +94,12 @@ pub fn enqueueAction(self: *Self, entity: *Entity) void {
     ) catch unreachable; // NOCOMMIT unacceptable
 }
 
-pub fn enqueueEntry(self: *Self, entity: *Entity, map_id: usize) void {
+// enqueueEntry: Add player (Entity) to the Game.
+pub fn enqueueEntry(self: *Self, entity: *Entity) void {
     self.queue.enqueue(
         self.io,
         self.allocator,
-        .{ .entry = .{ .entity = entity, .map_id = map_id } },
+        .{ .entry = .{ .entity = entity } },
     ) catch unreachable; // NOCOMMIT unacceptable
 }
 
@@ -146,17 +139,10 @@ pub const State = enum { // Simple state machine: intro -> run -> end
     end,
 };
 
-fn entryEvent(self: *Self, entity: *Entity, map_id: usize) void {
-    _ = map_id; // TODO
-
-    // TODO: needs a callback to the Game for the entrance logic, and this
-    // all goes there
-
+fn entryEvent(self: *Self, entity: *Entity) void {
     if (self.vtable) |vt| {
-        const map = self.getMap(0); // TODO
-        entity.setMapId(0); // TODO
-        vt.addEntity(self, entity, map);
-        self.enqueueEntry(entity, 0); // TODO
+        vt.enter(self, entity);
+        self.enqueueAction(entity);
     } else unreachable;
 }
 
@@ -164,7 +150,7 @@ pub fn run(self: *Self) State {
     const map = self.getMap(0); // NOCOMMIT stupid stupid
     while (self.nextEvent()) |event| switch (event) {
         .entry => |entry_event| {
-            self.entryEvent(entry_event.entity, entry_event.map_id);
+            self.entryEvent(entry_event.entity);
             continue;
         },
         .action => |action_event| {
