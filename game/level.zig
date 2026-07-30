@@ -252,13 +252,16 @@ fn reserveGoneRooms(map: *Map, rand: std.Random) void {
 //
 
 //
-// Add an Entity to a good place on the map
+// Map VT: find a good location on the map for a new Entity
 //
 
-pub fn addEntity(world: *World, entity: *Entity, map: *Map) void {
-    const floor = findAnyFloor(world.random, map);
-    mapgen.addEntityToMap(map, entity, floor);
+pub fn posForEntity(map: *Map, world: *World) Pos {
+    return findAnyFloor(world.random, map);
 }
+
+const rogue_vt = Map.VTable{
+    .posForEntity = posForEntity,
+};
 
 //
 // Create a level using the traditional Rogue algorithms
@@ -366,6 +369,7 @@ pub fn create(config: mapgen.Config, world: *World) !*Map {
         mapgen.setFloor(map, pos, .stairs_up);
     }
 
+    map.vtable = &rogue_vt;
     return map;
 }
 

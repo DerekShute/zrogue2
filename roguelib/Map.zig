@@ -12,6 +12,7 @@ const Region = @import("Region.zig");
 const Room = @import("map/Room.zig");
 const Tileset = @import("map/Tileset.zig");
 const Tile = @import("common").Tile;
+const World = @import("World.zig");
 
 const PlaceGrid = Grid(Place);
 
@@ -27,9 +28,18 @@ pub const Error = error{
 };
 
 //
+// Types
+//
+
+pub const VTable = struct {
+    posForEntity: *const fn (self: *Self, world: *World) Pos,
+};
+
+//
 // Members
 //
 
+vtable: *const VTable = undefined,
 places: PlaceGrid = undefined,
 rooms: []Room = undefined,
 height: Pos.Dim = 0,
@@ -100,10 +110,13 @@ fn toPlace(self: *Self, p: Pos) *Place {
 // Methods
 //
 
-pub fn addEntity(self: *Self, e: *Entity, p: Pos) void {
-    if (!p.eql(e.getPos())) {
-        @panic("Map.addEntity: Entity not set to position\n");
-    }
+pub fn addEntity(self: *Self, world: *World, entity: *Entity) void {
+    const pos = self.vtable.posForEntity(self, world);
+    entity.setPos(pos);
+    self.toPlace(pos).setEntity(entity);
+}
+
+pub fn setEntity(self: *Self, e: *Entity, p: Pos) void {
     self.toPlace(p).setEntity(e);
 }
 

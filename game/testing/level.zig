@@ -32,8 +32,19 @@ const Entity = @import("roguelib").Entity;
 const Map = @import("roguelib").Map;
 const Pos = @import("roguelib").Pos;
 const Room = @import("roguelib").Room;
+const World = @import("roguelib").World;
 
 const mapgen = @import("../mapgen.zig");
+
+pub fn posForEntity(map: *Map, world: *World) Pos {
+    _ = map;
+    _ = world;
+    return .init(6, 6);
+}
+
+const test_vt = Map.VTable{
+    .posForEntity = posForEntity,
+};
 
 //
 // Fixed things at fixed locations for deterministic behavior
@@ -65,6 +76,7 @@ pub fn create(allocator: std.mem.Allocator) !*Map {
     mapgen.addSecretDoor(map, .init(9, 5));
     mapgen.addTrap(map, .init(8, 5));
 
+    map.vtable = &test_vt;
     return map;
 }
 
