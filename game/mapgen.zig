@@ -110,15 +110,6 @@ fn setLit(m: *Map, region: Region, lit: bool) void {
     }
 }
 
-//
-// Entities
-//
-
-pub fn addEntityToMap(m: *Map, e: *Entity, p: Pos) void {
-    e.setPos(p);
-    m.addEntity(e, p);
-}
-
 // Features
 
 pub const Feature = enum {

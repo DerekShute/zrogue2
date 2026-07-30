@@ -68,7 +68,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 
     self.world.enqueueEntry(player.getEntity());
 
-    mapgen.addEntityToMap(map, player.getEntity(), .init(6, 6));
+    map.addEntity(&self.world, player.getEntity());
     actions.move(player, map, player.getPos());
     player.notifyDisplay(map);
 
@@ -92,7 +92,7 @@ fn testEnter(world: *World, entity: *Entity) void {
     // Callback from World action
     const player: *Player = @ptrCast(@alignCast(entity));
     const map = world.getMap(DEFAULT_MAPID);
-    mapgen.addEntityToMap(map, entity, .init(6, 6));
+    map.addEntity(world, entity);
     actions.move(player, map, player.getPos());
     player.notifyDisplay(map);
 }

@@ -164,7 +164,7 @@ pub fn move(player: *Player, map: *Map, new_pos: Pos) void {
 
     map.removeEntity(old_pos);
     player.setPos(new_pos);
-    map.addEntity(player.getEntity(), new_pos);
+    map.setEntity(player.getEntity(), new_pos);
 
     const new_floor = mapgen.getFloor(map, new_pos);
     const old_floor = mapgen.getFloor(map, old_pos);

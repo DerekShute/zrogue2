@@ -160,7 +160,8 @@ pub fn enter(world: *World, entity: *Entity) void {
 
     entity.setMapId(0);
     player.addMessage("Welcome to the Dungeon of Doom!");
-    level.addEntity(world, entity, map);
+
+    map.addEntity(world, entity);
     actions.enterRoom(player, map);
     player.setDepth(@intCast(map.level));
     player.notifyDisplay(map);
