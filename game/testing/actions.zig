@@ -23,12 +23,12 @@ test "in-place boring stuff then quit" {
     var state = try State.init(test_allocator);
     defer state.deinit(test_allocator);
 
-    // TODO expect player at 6, 6
+    // NOCOMMIT expect player at 6, 6
     try expect(try state.step(.wait) == .continue_game);
     try expect(try state.step(.ascend) == .continue_game);
     try expect(try state.step(.descend) == .continue_game);
     try expect(try state.step(.quit) == .end_game);
-    // TODO expect no player at 6, 6
+    // NOCOMMIT expect no player at 6, 6
 }
 
 test "move in a circle: all directions work" {

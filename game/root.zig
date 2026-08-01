@@ -169,7 +169,7 @@ pub fn enter(world: *World, entity: *Entity) void {
 }
 
 // Mapgen
-// NOCOMMIT FIGURE THESE OUT
+// NOCOMMIT really FIGURE THESE OUT
 
 pub fn setLevel(self: *Self, lvl: u16) void {
     self.level_config.level = lvl;
@@ -188,11 +188,11 @@ pub fn setGoingUp(self: *Self) void {
 pub fn initLevel(self: *Self) !void {
     // FUTURE: world.configLevel()
     const map = try level.create(self.level_config, &self.world);
-    try self.world.addMap(0, map); // NOCOMMIT awful
+    try self.world.addMap(0, map); // NOCOMMIT really awful
 }
 
 pub fn deinitLevel(self: *Self) void {
-    self.world.removeMap(0); // NOCOMMIT awful
+    self.world.removeMap(0); // NOCOMMIT really awful
 }
 
 const MAX_DEPTH = 5;
