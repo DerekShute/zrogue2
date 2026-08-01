@@ -76,7 +76,7 @@ pub fn create(allocator: std.mem.Allocator) !*Map {
     mapgen.addSecretDoor(map, .init(9, 5));
     mapgen.addTrap(map, .init(8, 5));
 
-    map.level = 1;
+    map.level = 0;
     map.vtable = &test_vt;
     return map;
 }

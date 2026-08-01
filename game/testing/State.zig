@@ -62,10 +62,14 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     self.world.configAllocator(allocator);
     errdefer allocator.destroy(self);
 
-    const map = try level.create(allocator);
+    var map = try level.create(allocator);
+    map.level = DEFAULT_MAPID + 1;
+    try self.world.addMap(DEFAULT_MAPID + 1, map);
+
+    map = try level.create(allocator);
     try self.world.addMap(DEFAULT_MAPID, map);
-    try self.world.addMap(DEFAULT_MAPID + 1, try level.create(allocator));
-    // map cleaned with world
+
+    // maps cleaned with world
 
     self.world.enqueueEntry(player.getEntity());
 
