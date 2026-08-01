@@ -103,8 +103,9 @@ fn testEnter(world: *World, entity: *Entity) void {
 }
 
 pub fn getEntity(self: *Self, x: i16, y: i16) MapTile {
-    const dt = self.client.getTile(x, y) catch @panic("getEntity fault");
-    return @enumFromInt(dt.entity);
+    const map = self.world.getMap(DEFAULT_MAPID);
+    const tile = map.getTileset(.init(x, y));
+    return @enumFromInt(@intFromEnum(tile.entity));
 }
 
 fn getMap(self: *Self) *Map {

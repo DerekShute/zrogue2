@@ -133,7 +133,6 @@ fn doQuit(player: *Player, action: *Action, world: *World, map: *Map) Action.Res
     _ = world;
 
     // FUTURE: save, etc.
-
     map.removeEntity(player.getPos());
     return .end_game;
 }
