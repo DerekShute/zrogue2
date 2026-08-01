@@ -125,7 +125,7 @@ pub fn getMap(self: *Self, key: MapKey) *Map {
     if (self.maps.get(key)) |map| {
         return map;
     }
-    unreachable; // NOCOMMIT panic
+    @panic("getMap: no such key");
 }
 
 pub fn removeMap(self: *Self, key: MapKey) void {
