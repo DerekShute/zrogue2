@@ -93,7 +93,9 @@ pub fn enqueueAction(self: *Self, entity: *Entity) void {
         self.io,
         self.allocator,
         .{ .action = .{ .entity = entity } },
-    ) catch unreachable; // NOCOMMIT panic instead?
+    ) catch {
+        @panic("enqueueAction: error");
+    };
 }
 
 // enqueueEntry: Add player (Entity) to the Game.
@@ -102,7 +104,9 @@ pub fn enqueueEntry(self: *Self, entity: *Entity) void {
         self.io,
         self.allocator,
         .{ .entry = .{ .entity = entity } },
-    ) catch unreachable; // NOCOMMIT panic instead?
+    ) catch {
+        @panic("enqueueEntry: error");
+    };
 }
 
 pub fn nextEvent(self: *Self) ?EventQueue.Event {
