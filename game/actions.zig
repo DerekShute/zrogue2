@@ -49,6 +49,18 @@ pub fn doAction(entity: *Entity, world: *World) !Action.Result {
     return ret;
 }
 
+fn changeMap(world: *World, player: *Player, old: *Map, new: *Map) void {
+    const entity = player.getEntity();
+
+    player.resetFOV();
+    old.removeEntity(entity.getPos());
+    entity.setMapId(new.level);
+    new.addEntity(world, entity);
+    player.setDepth(@intCast(new.level)); // TODO not thrilled by this
+    enterRoom(player, new);
+    player.notifyDisplay(new);
+}
+
 //
 // Handlers
 //
@@ -69,25 +81,12 @@ fn doAscend(player: *Player, action: *Action, world: *World, map: *Map) Action.R
         return .continue_game;
     }
 
-    var entity = player.getEntity();
-    if (entity.getMapId() == 0) {
+    if (map.level == 0) {
         return .end_game; // TODO very imperfect
     }
 
     player.addMessage("You ascend closer to the exit..."); // TODO stupid
-    player.resetFOV();
-
-    // NOCOMMIT: consolidate
-    const new_id = entity.getMapId() - 1;
-    const new_map = world.getMap(new_id);
-    player.resetFOV();
-    map.removeEntity(entity.getPos());
-    entity.setMapId(new_map.level); // TODO blecch
-    new_map.addEntity(world, entity);
-    player.setDepth(@intCast(new_id));
-    enterRoom(player, new_map);
-    player.notifyDisplay(new_map);
-
+    changeMap(world, player, map, world.getMap(map.level - 1));
     return .continue_game;
 }
 
@@ -99,26 +98,13 @@ fn doDescend(player: *Player, action: *Action, world: *World, map: *Map) Action.
         return .continue_game;
     }
 
-    var entity = player.getEntity();
-    if (entity.getMapId() > 5) { // TODO do something better
+    if (map.level > 5) { // TODO do something better
         player.addMessage("Something prevents you from descending...");
         return .continue_game;
     }
 
     player.addMessage("You go ever deeper into the dungeon...");
-    player.resetFOV();
-
-    // NOCOMMIT: consolidate everywhere
-    const new_id = entity.getMapId() + 1;
-    const new_map = world.getMap(new_id);
-    player.resetFOV();
-    map.removeEntity(entity.getPos());
-    entity.setMapId(new_id);
-    new_map.addEntity(world, entity);
-    player.setDepth(@intCast(new_id));
-    enterRoom(player, new_map);
-    player.notifyDisplay(new_map);
-
+    changeMap(world, player, map, world.getMap(map.level + 1));
     return .continue_game;
 }
 
