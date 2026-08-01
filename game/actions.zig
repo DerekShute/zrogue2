@@ -77,6 +77,7 @@ fn doAscend(player: *Player, action: *Action, world: *World, map: *Map) Action.R
     player.addMessage("You ascend closer to the exit..."); // TODO stupid
     player.resetFOV();
 
+    // NOCOMMIT: consolidate
     const new_id = entity.getMapId() - 1;
     const new_map = world.getMap(new_id);
     player.resetFOV();
@@ -107,12 +108,12 @@ fn doDescend(player: *Player, action: *Action, world: *World, map: *Map) Action.
     player.addMessage("You go ever deeper into the dungeon...");
     player.resetFOV();
 
-    // REFACTOR: consolidate everywhere
+    // NOCOMMIT: consolidate everywhere
     const new_id = entity.getMapId() + 1;
     const new_map = world.getMap(new_id);
     player.resetFOV();
     map.removeEntity(entity.getPos());
-    entity.setMapId(new_id); // TODO blecch
+    entity.setMapId(new_id);
     new_map.addEntity(world, entity);
     player.setDepth(@intCast(new_id));
     enterRoom(player, new_map);

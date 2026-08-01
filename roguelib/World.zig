@@ -37,6 +37,8 @@ io: std.Io = undefined,
 random: std.Random = undefined,
 vtable: ?*const VTable = null,
 
+single_user_game: bool = false, // NOCOMMIT
+
 // Game elements and environment
 
 maps: HashedMaps = undefined,
@@ -91,7 +93,7 @@ pub fn enqueueAction(self: *Self, entity: *Entity) void {
         self.io,
         self.allocator,
         .{ .action = .{ .entity = entity } },
-    ) catch unreachable; // NOCOMMIT unacceptable
+    ) catch unreachable; // NOCOMMIT panic instead?
 }
 
 // enqueueEntry: Add player (Entity) to the Game.
@@ -100,7 +102,7 @@ pub fn enqueueEntry(self: *Self, entity: *Entity) void {
         self.io,
         self.allocator,
         .{ .entry = .{ .entity = entity } },
-    ) catch unreachable; // NOCOMMIT unacceptable
+    ) catch unreachable; // NOCOMMIT panic instead?
 }
 
 pub fn nextEvent(self: *Self) ?EventQueue.Event {
@@ -119,7 +121,7 @@ pub fn getMap(self: *Self, key: MapKey) *Map {
     if (self.maps.get(key)) |map| {
         return map;
     }
-    unreachable; // Assumption for the moment
+    unreachable; // NOCOMMIT panic
 }
 
 pub fn removeMap(self: *Self, key: MapKey) void {
@@ -152,10 +154,13 @@ pub fn run(self: *Self) State {
             self.entryEvent(entry_event.entity);
             continue;
         },
+
+        // NOCOMMIT: need better answers to all of this
+
         .action => |action_event| {
             const entity = action_event.entity;
             const result = entity.doAction(self) catch {
-                // TODO: remove from map?
+                // NOCOMMIT: remove from map?
                 return .end;
             };
             switch (result) {
@@ -166,10 +171,10 @@ pub fn run(self: *Self) State {
                     continue;
                 },
                 .end_game => {
-                    return .end; // NOCOMMIT need an answer here
+                    return .end; // NOCOMMIT really need an answer here
                 },
-                .ascend => unreachable, // NOCOMMIT remove this enum
-                .descend => unreachable, // NOCOMMIT remove this enum
+                .ascend => unreachable, // NOCOMMIT really remove this enum
+                .descend => unreachable, // NOCOMMIT really remove this enum
             }
         },
     };
