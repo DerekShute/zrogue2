@@ -48,6 +48,7 @@ test "run the game" {
     var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
     var g = Game.init();
+    g.configSinglePlayer();
     g.configAllocator(std.testing.allocator);
     g.configIo(std.testing.io);
     g.configRandom(prng.random());
@@ -60,10 +61,7 @@ test "run the game" {
 
     g.addPlayer(g.getPlayer(id));
 
-    var state: Game.State = .run;
-    while (state != .end) {
-        state = g.run();
-    } // Game run loop
+    g.run();
 }
 
 // EOF

@@ -84,9 +84,9 @@ const expectError = std.testing.expectError;
 test "basic use" {
     var world = World.init(null);
     var self = init();
-    self.setNext(.continue_game);
+    self.setNext(.play);
 
-    try expect(try doAction(self.getEntity(), &world) == .continue_game);
+    try expect(try doAction(self.getEntity(), &world) == .play);
 }
 
 test "action error" {

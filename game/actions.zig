@@ -71,23 +71,23 @@ fn doNothing(player: *Player, action: *Action, world: *World, map: *Map) Action.
     _ = world;
     _ = map;
 
-    return .continue_game;
+    return .play;
 }
 
 fn doAscend(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
     _ = action;
     if (mapgen.getFloor(map, player.getPos()) != .stairs_up) {
         player.addMessage("I see no way up");
-        return .continue_game;
+        return .play;
     }
 
     if (map.level == 0) {
-        return .end_game; // TODO very imperfect
+        return .depart; // TODO very imperfect
     }
 
     player.addMessage("You ascend closer to the exit..."); // TODO stupid
     changeMap(world, player, map, world.getMap(map.level - 1));
-    return .continue_game;
+    return .play;
 }
 
 fn doDescend(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
@@ -95,17 +95,17 @@ fn doDescend(player: *Player, action: *Action, world: *World, map: *Map) Action.
 
     if (mapgen.getFloor(map, player.getPos()) != .stairs_down) {
         player.addMessage("I see no way down");
-        return .continue_game;
+        return .play;
     }
 
     if (map.level > 5) { // TODO do something better
         player.addMessage("Something prevents you from descending...");
-        return .continue_game;
+        return .play;
     }
 
     player.addMessage("You go ever deeper into the dungeon...");
     changeMap(world, player, map, world.getMap(map.level + 1));
-    return .continue_game;
+    return .play;
 }
 
 fn doMove(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
@@ -115,17 +115,16 @@ fn doMove(player: *Player, action: *Action, world: *World, map: *Map) Action.Res
 
     if (!map.isPassable(new_pos)) {
         player.addMessage("Ouch!"); // FUTURE: 'bump' callback
-        return .continue_game;
+        return .play;
     }
 
     if (map.getEntity(new_pos) != null) {
         player.addMessage("Somebody is there!"); // FUTURE: bump or combat
-        return .continue_game;
+        return .play;
     }
 
     move(player, map, new_pos);
-
-    return .continue_game;
+    return .play;
 }
 
 fn doQuit(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
@@ -134,7 +133,7 @@ fn doQuit(player: *Player, action: *Action, world: *World, map: *Map) Action.Res
 
     // FUTURE: save, etc.
     map.removeEntity(player.getPos());
-    return .end_game;
+    return .depart;
 }
 
 fn doSearch(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
@@ -155,7 +154,7 @@ fn doSearch(player: *Player, action: *Action, world: *World, map: *Map) Action.R
         player.addMessage("You find nothing!");
     }
 
-    return .continue_game;
+    return .play;
 }
 
 fn doTake(player: *Player, action: *Action, world: *World, map: *Map) Action.Result {
@@ -168,7 +167,7 @@ fn doTake(player: *Player, action: *Action, world: *World, map: *Map) Action.Res
         player.addMessage("Nothing here to take!");
     }
 
-    return .continue_game;
+    return .play;
 }
 
 //

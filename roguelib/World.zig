@@ -37,7 +37,7 @@ io: std.Io = undefined,
 random: std.Random = undefined,
 vtable: ?*const VTable = null,
 
-single_user_game: bool = false, // NOCOMMIT
+single_player: bool = false, // true - end when player departs
 
 // Game elements and environment
 
@@ -138,13 +138,6 @@ pub fn removeMap(self: *Self, key: MapKey) void {
 // World Run
 //
 
-pub const State = enum { // Simple state machine: intro -> run -> end
-    run,
-    descend, // hacky - let wrapper determine what this entails
-    ascend,
-    end,
-};
-
 fn entryEvent(self: *Self, entity: *Entity) void {
     if (self.vtable) |vt| {
         vt.enter(self, entity);
@@ -152,39 +145,38 @@ fn entryEvent(self: *Self, entity: *Entity) void {
     } else unreachable;
 }
 
-pub fn run(self: *Self) State {
-    while (self.nextEvent()) |event| switch (event) {
+fn actionEvent(self: *Self, entity: *Entity) bool {
+    const result = entity.doAction(self) catch {
+        // TODO: message etc
+        return false;
+    };
+    if (result == .depart) {
+        // TODO: distill .depart into an Error?
+        return if (self.single_player) false else true;
+    }
+    // FUTURE: do not requeue - figure out how to do so from
+    // an incoming command (via Client?).  Else server spins
+
+    self.enqueueAction(entity);
+    return true;
+}
+
+pub fn step(self: *Self) bool { // true: keep going
+    if (self.nextEvent()) |event| switch (event) {
         .entry => |entry_event| {
             self.entryEvent(entry_event.entity);
-            continue;
+            return true;
         },
-
-        // NOCOMMIT: need better answers to all of this
-
         .action => |action_event| {
-            const entity = action_event.entity;
-            const result = entity.doAction(self) catch {
-                // NOCOMMIT: remove from map?
-                return .end;
-            };
-            switch (result) {
-                .continue_game => {
-                    // FUTURE: do not requeue - figure out how to do so from
-                    // an incoming command (via Client?).  Else server spins
-                    self.enqueueAction(entity);
-                    continue;
-                },
-                .end_game => {
-                    return .end; // NOCOMMIT really need an answer here
-                },
-                .ascend => unreachable, // NOCOMMIT really remove this enum
-                .descend => unreachable, // NOCOMMIT really remove this enum
-            }
+            return self.actionEvent(action_event.entity);
         },
     };
+    return false; // For lack of a better idea
+}
 
-    // No entity left on queue
-    return .run;
+pub fn run(self: *Self) void {
+    // TODO: clock tick here?
+    while (self.step()) {}
 }
 
 //
@@ -216,16 +208,17 @@ test "basic map use" {
 
 test "basic action use" {
     var m = MockEntity.init();
-    m.setNext(.end_game);
+    m.setNext(.depart);
 
     var s = Self.init(null);
+    s.single_player = true;
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);
     try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
     s.enqueueAction(m.getEntity());
-    try expect(s.run() == .end);
+    try expect(s.step() == false);
 }
 
 test "action error" {
@@ -233,13 +226,14 @@ test "action error" {
     m.setError();
 
     var s = Self.init(null);
+    s.single_player = true;
     s.configIo(std.testing.io);
     s.configAllocator(std.testing.allocator);
     defer s.deinit(std.testing.allocator);
     try s.addMap(0, try Map.init(std.testing.allocator, 20, 20, 1, 1));
 
     s.enqueueAction(m.getEntity());
-    try expect(s.run() == .end);
+    try expect(s.step() == false);
 }
 
 //

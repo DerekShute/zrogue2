@@ -15,7 +15,6 @@ const net = std.Io.net;
 // Client connection
 //
 
-// NOCOMMIT: need better Io and Allocator access
 fn handleClient(g: *Game, conn: net.Stream) !void {
     defer conn.close(g.world.io);
 
@@ -75,9 +74,7 @@ fn handleClient(g: *Game, conn: net.Stream) !void {
 }
 
 fn server(g: *Game) void {
-    while (true) {
-        _ = g.run(); // TODO: fix return value concept
-    }
+    g.run();
 }
 
 //

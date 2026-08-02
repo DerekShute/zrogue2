@@ -85,7 +85,7 @@ pub fn doAction(self: *Self, world: *World) !Action.Result {
     if (self.vtable.doAction) |cb| {
         return try cb(self, world);
     }
-    return .continue_game;
+    return .play;
 }
 
 //
