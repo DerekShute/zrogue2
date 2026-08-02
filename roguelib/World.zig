@@ -150,14 +150,14 @@ fn actionEvent(self: *Self, entity: *Entity) bool {
         // TODO: message etc
         return false;
     };
-    if (result == .depart) {
-        // TODO: distill .depart into an Error?
-        return if (self.single_player) false else true;
-    }
-    // FUTURE: do not requeue - figure out how to do so from
-    // an incoming command (via Client?).  Else server spins
+    if (self.single_player) {
+        if (result == .depart) {
+            return false;
+        }
 
-    self.enqueueAction(entity);
+        self.enqueueAction(entity); // May need callback here
+    }
+
     return true;
 }
 

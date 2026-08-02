@@ -55,6 +55,8 @@ pub fn init(allocator: Allocator, config: Config, width: usize, height: usize) !
         .vtable = &player_vtable,
     };
 
+    // NOCOMMIT can patch Entity pointer into client here
+
     return .{
         .entity = Entity.init(c),
         .client = config.client,
