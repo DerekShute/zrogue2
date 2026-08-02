@@ -82,6 +82,10 @@ pub fn configRandom(self: *Self, random: std.Random) void {
     self.world.configRandom(random);
 }
 
+pub fn configSinglePlayer(self: *Self) void {
+    self.world.single_player = true;
+}
+
 pub fn deinit(self: *Self) void {
     const allocator = self.allocator;
 
@@ -190,9 +194,7 @@ pub fn generate(self: *Self) !void {
 // Game Run
 //
 
-pub const State = World.State; // TODO: act of convenience
-
-pub fn run(self: *Self) World.State {
+pub fn run(self: *Self) void {
     // TODO: invoke world run directly?
     return self.world.run();
 }

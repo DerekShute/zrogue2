@@ -114,6 +114,7 @@ pub fn main(init: std.process.Init) !void {
     var prng: std.Random.DefaultPrng = .init(@intCast(seed));
 
     var g = Game.init();
+    g.configSinglePlayer();
     g.configAllocator(allocator);
     g.configIo(init.io);
     g.configRandom(prng.random());
@@ -125,7 +126,7 @@ pub fn main(init: std.process.Init) !void {
     defer g.deinitPlayer(id);
 
     g.addPlayer(g.getPlayer(id));
-    while (g.run() != .end) {}
+    g.run();
     // FUTURE: game endings go here
 }
 

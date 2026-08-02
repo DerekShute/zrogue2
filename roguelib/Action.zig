@@ -25,10 +25,8 @@ pub const Type = enum {
 
 // Return value of action handlers
 pub const Result = enum {
-    continue_game, // Game still in progress
-    end_game, // Quit, death, etc.
-    ascend,
-    descend,
+    play, // Game still in progress
+    depart, // Player leaving
 };
 
 //

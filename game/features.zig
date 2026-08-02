@@ -71,7 +71,7 @@ pub fn find(player: *Player, map: *Map, pos: Pos) bool {
             .secret_door => findSecretDoor(player, map, pos),
         };
     }
-    return false; // NOCOMMIT: needed?
+    return false;
 }
 
 // FUTURE: take, open, climb, descend, etc.
