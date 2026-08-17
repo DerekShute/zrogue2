@@ -8,6 +8,7 @@
 const std = @import("std");
 pub const Command = @import("common").Command;
 pub const DisplayTile = @import("common").DisplayTile;
+const Entity = @import("Entity.zig");
 const Pos = @import("Pos.zig");
 
 const Self = @This();
@@ -52,6 +53,7 @@ pub const VTable = struct {
 
 ptr: *anyopaque = undefined,
 vtable: *const VTable,
+entity: *Entity = undefined,
 
 //
 // Lifecycle
@@ -66,13 +68,17 @@ pub fn init(config: Config) !Self {
         .vtable = config.vtable,
     };
 
-    // TODO: caller manages p.ptr and that is suboptimal
+    // NOCOMMIT: caller manages p.ptr and that is suboptimal.  builder pattern
 
     return p;
 }
 
+pub fn configEntity(self: *Self, entity: *Entity) void {
+    self.entity = entity;
+}
+
 pub inline fn deinit(self: *Self) void {
-    _ = self;
+    self.entity = undefined;
 }
 
 //
@@ -107,7 +113,7 @@ pub fn setStatInt(self: *Self, name: []const u8, value: i32) void {
 // Unit tests
 //
 
-// See testing/MockProvider.zig
+// See testing/MockClient.zig
 
 //
 // Visualization

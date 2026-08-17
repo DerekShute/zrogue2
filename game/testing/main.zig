@@ -56,7 +56,7 @@ test "run the game" {
 
     try g.generate();
 
-    const id = try g.initPlayer(.{ .client = m.client() });
+    const id = try g.initPlayer(m.client());
     defer g.deinitPlayer(id);
 
     g.addPlayer(g.getPlayer(id));

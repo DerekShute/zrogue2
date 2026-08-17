@@ -122,7 +122,7 @@ pub fn main(init: std.process.Init) !void {
 
     try g.generate();
 
-    const id = try g.initPlayer(.{ .client = curses.client() });
+    const id = try g.initPlayer(curses.client());
     defer g.deinitPlayer(id);
 
     g.addPlayer(g.getPlayer(id));
