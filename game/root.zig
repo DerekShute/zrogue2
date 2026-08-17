@@ -6,6 +6,7 @@
 
 const std = @import("std");
 
+const Client = @import("roguelib").Client;
 const Entity = @import("roguelib").Entity;
 const EventQueue = @import("roguelib").EventQueue;
 const Map = @import("roguelib").Map;
@@ -107,7 +108,7 @@ pub fn deinit(self: *Self) void {
 // API
 //
 
-pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
+pub fn initPlayer(self: *Self, client: *Client) !PlayerUID {
     // The Player is parcel of the player map (part of the node) and is
     // owned by the Game, not the World
     const allocator = self.allocator;
@@ -121,7 +122,9 @@ pub fn initPlayer(self: *Self, config: Player.Config) !PlayerUID {
     }
     const player = gop.value_ptr;
 
-    player.* = try .init(allocator, config, mapgen.XSIZE, mapgen.YSIZE);
+    // TODO: fov becomes builder pattern
+    player.* = try .init(allocator, mapgen.XSIZE, mapgen.YSIZE);
+    player.configClient(client);
     errdefer player.deinit(allocator);
 
     self.next_player_id += 1;
@@ -221,9 +224,9 @@ test "basic use" { // If this fails then something has changed
     var m = try MockClient.init(tallocator, 50, 50);
     defer m.deinit(tallocator);
 
-    const id = try self.initPlayer(.{ .client = m.client() });
+    const id = try self.initPlayer(m.client());
     defer self.deinitPlayer(id);
-    const id2 = try self.initPlayer(.{ .client = m.client() });
+    const id2 = try self.initPlayer(m.client()); // Don't look too hard here
     defer self.deinitPlayer(id2);
 
     _ = self.getPlayer(id);
@@ -241,7 +244,7 @@ test "alloc failure 0" {
     var m = try MockClient.init(tallocator, 50, 50);
     defer m.deinit(tallocator);
 
-    try expectError(error.OutOfMemory, self.initPlayer(.{ .client = m.client() }));
+    try expectError(error.OutOfMemory, self.initPlayer(m.client()));
 }
 
 test "alloc failure 1" {
@@ -256,7 +259,7 @@ test "alloc failure 1" {
     var m = try MockClient.init(tallocator, 50, 50);
     defer m.deinit(tallocator);
 
-    try expectError(error.OutOfMemory, self.initPlayer(.{ .client = m.client() }));
+    try expectError(error.OutOfMemory, self.initPlayer(m.client()));
 }
 
 comptime {

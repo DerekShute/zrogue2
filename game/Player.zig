@@ -24,10 +24,6 @@ const Allocator = std.mem.Allocator;
 // Types
 //
 
-pub const Config = struct {
-    client: *Client,
-};
-
 const player_vtable = Entity.VTable{
     .doAction = actions.doAction,
 };
@@ -49,17 +45,22 @@ purse: u16 = 0,
 // Lifecycle
 //
 
-pub fn init(allocator: Allocator, config: Config, width: usize, height: usize) !Self {
+pub fn init(allocator: Allocator, width: usize, height: usize) !Self {
     const c = Entity.Config{
         .tile = .fromOther(MapTile.player),
         .vtable = &player_vtable,
     };
 
     return .{
-        .entity = Entity.init(c),
-        .client = config.client,
+        .entity = .init(c),
         .fov = try .init(allocator, width, height),
     };
+}
+
+// Point the client back at this Entity, for world/game notifications
+pub fn configClient(self: *Self, client: *Client) void {
+    client.configEntity(self.getEntity());
+    self.client = client;
 }
 
 pub fn deinit(self: *Self, allocator: Allocator) void {

@@ -46,10 +46,10 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
     errdefer allocator.destroy(player);
     player.* = try Player.init(
         allocator,
-        .{ .client = mc.client() },
         mapgen.XSIZE,
         mapgen.YSIZE,
     );
+    player.configClient(mc.client());
     errdefer player.deinit(allocator);
     player.setMapId(DEFAULT_MAPID);
 

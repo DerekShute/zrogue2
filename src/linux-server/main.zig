@@ -54,7 +54,7 @@ fn handleClient(g: *Game, conn: net.Stream) !void {
     if (rc.getState() == .starting) {
         rc.setState(.connected);
 
-        const id = try g.initPlayer(.{ .client = rc.client() });
+        const id = try g.initPlayer(rc.client());
         defer g.deinitPlayer(id);
 
         g.addPlayer(g.getPlayer(id)); // Off to the event queue...
