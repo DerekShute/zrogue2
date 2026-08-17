@@ -56,6 +56,7 @@ pub fn init(allocator: Allocator, config: Config, width: usize, height: usize) !
     };
 
     // NOCOMMIT can patch Entity pointer into client here
+    // NOCOMMIT : no - this entity is automatic
 
     return .{
         .entity = Entity.init(c),
