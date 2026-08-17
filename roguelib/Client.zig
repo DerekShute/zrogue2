@@ -59,26 +59,23 @@ entity: *Entity = undefined,
 // Lifecycle
 //
 
-pub const Config = struct {
-    vtable: *const VTable,
-};
-
-pub fn init(config: Config) !Self {
-    const p: Self = .{
-        .vtable = config.vtable,
+pub fn init(vtable: *const VTable) !Self {
+    return .{
+        .vtable = vtable,
     };
-
-    // NOCOMMIT: caller manages p.ptr and that is suboptimal.  builder pattern
-
-    return p;
 }
 
 pub fn configEntity(self: *Self, entity: *Entity) void {
     self.entity = entity;
 }
 
+pub fn configContext(self: *Self, ctx: *anyopaque) void {
+    self.ptr = ctx;
+}
+
 pub inline fn deinit(self: *Self) void {
     self.entity = undefined;
+    self.ptr = undefined;
 }
 
 //

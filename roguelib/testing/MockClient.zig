@@ -34,20 +34,18 @@ dg: DisplayGrid = undefined,
 map_updates: i32 = 0, // Update messages
 tile_updates: i32 = 0, // Individual tiles updated
 
+const vtable = Client.VTable{
+    .addMessage = mockAddMessage,
+    .getCommand = mockGetCommand,
+    .setMapTile = mockSetMapTile,
+    .setStatInt = mockSetStatInt,
+};
+
 //
 // Constructor / Destructor
 //
 
 pub fn init(allocator: std.mem.Allocator, x: usize, y: usize) !Self {
-    const pc: Client.Config = .{
-        .vtable = &.{
-            .addMessage = mockAddMessage,
-            .getCommand = mockGetCommand,
-            .setMapTile = mockSetMapTile,
-            .setStatInt = mockSetStatInt,
-        },
-    };
-
     const dg = try DisplayGrid.config(allocator, x, y);
     errdefer dg.deinit(allocator);
 
@@ -57,14 +55,14 @@ pub fn init(allocator: std.mem.Allocator, x: usize, y: usize) !Self {
     }
 
     return .{
-        .c = try Client.init(pc),
+        .c = try Client.init(&vtable),
         .dg = dg,
     };
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-    self.c.deinit();
     self.dg.deinit(allocator);
+    self.c.deinit();
     return;
 }
 
@@ -73,7 +71,7 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
 //
 
 pub fn client(self: *Self) *Client {
-    self.c.ptr = self;
+    self.c.configContext(self);
     return &self.c;
 }
 
