@@ -22,6 +22,13 @@ const Self = @This();
 c: Client = undefined,
 ui: UI = undefined,
 
+const vtable = Client.VTable{
+    .addMessage = cursesAddMessage,
+    .getCommand = cursesGetCommand,
+    .setMapTile = cursesSetMapTile,
+    .setStatInt = cursesSetStatInt,
+};
+
 //
 // Lifecycle
 //
@@ -30,27 +37,19 @@ pub fn init() !Self {
     var ui = try UI.init();
     errdefer ui.deinit();
 
-    const c: Client.Config = .{
-        .vtable = &.{
-            .addMessage = cursesAddMessage,
-            .getCommand = cursesGetCommand,
-            .setMapTile = cursesSetMapTile,
-            .setStatInt = cursesSetStatInt,
-        },
-    };
-
     return .{
-        .c = try Client.init(c),
+        .c = try Client.init(&vtable),
         .ui = ui,
     };
 }
 
 pub fn deinit(self: *Self) void {
     self.ui.deinit();
+    self.c.deinit();
 }
 
 pub fn client(self: *Self) *Client {
-    self.c.ptr = self;
+    self.c.configContext(self);
     return &self.c;
 }
 

@@ -40,6 +40,13 @@ name: []const u8 = undefined,
 next_command: ?Client.Command = null,
 state: State = .init,
 
+const vtable = Client.VTable{
+    .addMessage = remoteAddMessage,
+    .getCommand = remoteGetCommand,
+    .setMapTile = remoteSetMapTile,
+    .setStatInt = remoteSetStatInt,
+};
+
 //
 // Lifecycle
 //
@@ -54,17 +61,8 @@ pub fn init(allocator: Allocator, config: Config) !*Self {
     const rc: *Self = try allocator.create(Self);
     errdefer allocator.destroy(rc);
 
-    const pc: Client.Config = .{
-        .vtable = &.{
-            .addMessage = remoteAddMessage,
-            .getCommand = remoteGetCommand,
-            .setMapTile = remoteSetMapTile,
-            .setStatInt = remoteSetStatInt,
-        },
-    };
-
     rc.allocator = allocator;
-    rc.c = try Client.init(pc);
+    rc.c = try Client.init(&vtable);
     errdefer rc.c.deinit(allocator);
     rc.name = config.name;
     rc.connector = Connector{
@@ -85,7 +83,7 @@ pub fn deinit(self: *Self, allocator: Allocator) void {
 }
 
 pub fn client(self: *Self) *Client {
-    self.c.ptr = self;
+    self.c.configContext(self);
     return &self.c;
 }
 
