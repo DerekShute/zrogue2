@@ -222,30 +222,24 @@ pub fn move(player: *Player, map: *Map, new_pos: Pos) void {
 // Enter a room
 
 pub fn enterRoom(player: *Player, map: *Map) void {
-    if (map.isLit(player.getPos())) {
+    if (map.getLitRoomRegion(player.getPos())) |region| {
         // Entering a lit room : update what is now visible
-        if (map.getRoomRegion(player.getPos())) |region| {
-            player.setRegionVisible(region, true);
-        }
+        player.setRegionVisible(region, true);
     } else {
         // When being inserted onto a new level and initial room is dark...
 
         player.setRegionVisible(.configRadius(player.getPos(), 1), true);
     }
-
     // FUTURE: triggers for monsters, etc.
 }
 
 // Leave a room
 
 pub fn leaveRoom(player: *Player, map: *Map, old_pos: Pos) void {
-    if (map.isLit(old_pos)) {
+    if (map.getLitRoomRegion(old_pos)) |region| {
         // Leaving a lit room : update what is now visible
-        if (map.getRoomRegion(old_pos)) |region| {
-            player.setRegionVisible(region, false);
-        }
+        player.setRegionVisible(region, false);
     }
-
     // FUTURE: triggers for monsters, etc.
 }
 
