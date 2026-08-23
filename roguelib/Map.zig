@@ -206,20 +206,14 @@ pub fn iterator(self: *Self) Pos.Range {
 
 // Rooms
 //
-// FUTURE: getRoomNum is a mapgen thing, but no idea how to make it generic
+// FUTURE: getRoomNum, roomFromPos are mapgen things, roomFromNum is entirely
+// mapgen/level
 
-fn getRoom(self: *Self, p: Pos) ?*Room {
-    if (self.getRoomNum(p)) |loc| { // TODO does this make sense?
-        return &self.rooms[loc];
-    }
-    return null;
-}
-
-fn getRoomNum(self: *Self, p: Pos) ?usize {
+fn getRoomNum(self: *Self, p: Pos) usize {
     if ((p.getX() < 0) or (p.getY() < 0)) {
-        return null;
+        @panic("getRoomNum: negative coordinate");
     } else if ((p.getX() >= self.width) or (p.getY() >= self.height)) {
-        return null;
+        @panic("getRoomNum: oob coordinate");
     }
 
     const xsize = @divTrunc(self.width, self.roomsx); // spaces per column
@@ -229,20 +223,10 @@ fn getRoomNum(self: *Self, p: Pos) ?usize {
     const loc: usize = @intCast(row * self.roomsy + column);
 
     if (loc >= self.rooms.len) {
-        return null;
+        @panic("getRoomNum: calcuation exceeds room array");
     }
 
     return loc;
-}
-
-// REFACTOR: game/actions.zig
-pub fn getRoomRegion(self: *Self, p: Pos) ?Region {
-    if (self.getRoom(p)) |room| {
-        if (room.isInside(p)) {
-            return room.getRegion();
-        }
-    }
-    return null; // p not in actual room
 }
 
 pub fn roomFromNum(self: *Self, num: usize) *Room {
@@ -252,6 +236,28 @@ pub fn roomFromNum(self: *Self, num: usize) *Room {
     return &self.rooms[num];
 }
 
+fn roomFromPos(self: *Self, p: Pos) *Room {
+    const loc = self.getRoomNum(p);
+    return &self.rooms[loc];
+}
+
+fn getRoomRegionIfInside(self: *Self, p: Pos) ?Region {
+    const room = self.roomFromPos(p);
+    if (room.isInside(p)) {
+        return room.getRegion();
+    }
+    return null;
+}
+
+// When entering or leaving a room
+pub fn getLitRoomRegion(self: *Self, p: Pos) ?Region {
+    if (self.isLit(p)) {
+        return self.getRoomRegionIfInside(p);
+    }
+    return null; // can't be in a lit room
+}
+
+// FUTURE: calcuations etc are mapgen-specific
 pub fn addRoom(self: *Self, room: Room) void {
     var r = room; // force to var reference
 
@@ -266,23 +272,17 @@ pub fn addRoom(self: *Self, room: Room) void {
     // getRoom() validates coordinates
 
     // Make sure that the region fits in one 'grid' location
-    var sr = self.getRoom(.init(r.getMinX(), r.getMinY()));
-    const sr2 = self.getRoom(.init(r.getMaxX(), r.getMaxY()));
-    if (sr == null) {
-        @panic("addRoom: room minimum off of map");
-    } else if (sr2 == null) {
-        @panic("addRoom: room maximum off of map");
-    } else if (sr != sr2) {
+    var sr = self.roomFromPos(.init(r.getMinX(), r.getMinY()));
+    const sr2 = self.roomFromPos(.init(r.getMaxX(), r.getMaxY()));
+    if (sr != sr2) {
         @panic("addRoom: room spans a room box");
     }
 
-    // sr proven non-null above
-
-    if (sr.?.getMaxX() != 0) {
+    if (sr.getMaxX() != 0) {
         @panic("addRoom: Room already defined");
     }
 
-    sr.?.* = r;
+    sr.* = r;
 }
 
 //
@@ -300,7 +300,11 @@ test "add a room" {
 
     const r1 = Room.config(.init(5, 5), .init(10, 10));
     map.addRoom(r1);
-    var region = map.getRoomRegion(.init(7, 7));
+
+    try expect(map.getLitRoomRegion(.init(7, 7)) == null);
+
+    map.setLit(.init(7, 7), true);
+    var region = map.getLitRoomRegion(.init(7, 7));
     try expect(region.?.getMin().getX() == 5);
     try expect(region.?.getMin().getY() == 5);
 }
@@ -387,16 +391,15 @@ test "inquire about room at invalid location" {
     var map = try init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit(std.testing.allocator);
 
-    try expect(map.getRoomRegion(.init(21, 21)) == null);
-    try expect(map.getRoomRegion(.init(-1, -1)) == null);
-
     try expect(map.getRoomNum(.init(19, 0)) == 0);
-    try expect(map.getRoomNum(.init(20, 0)) == null);
-    try expect(map.getRoomNum(.init(0, 20)) == null);
     try expect(map.getRoomNum(.init(0, 19)) == 0);
 
     // It is invalid to even ask
     //
+    // try expect(map.getRoomNum(.init(20, 0)) == null);
+    // try expect(map.getRoomNum(.init(0, 20)) == null);
+    // try expect(map.getLitRoomRegion(.init(21, 21)) == null);
+    // try expect(map.getLitRoomRegion(.init(-1, -1)) == null);
     // try expect(map.isLit(.init(-1, -1)) == false);
     // try expect(map.isLit(.init(100, 100)) == false);
 }
