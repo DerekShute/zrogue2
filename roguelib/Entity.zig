@@ -37,7 +37,6 @@ p: Pos = undefined,
 tile: Tile = undefined,
 vtable: *const VTable = undefined,
 map_id: usize = undefined, // FUTURE: or pointer, uuid
-moves: i32 = 0,
 
 //
 // Lifecycle
@@ -65,10 +64,6 @@ pub fn getPos(self: *Self) Pos {
 
 pub fn setPos(self: *Self, p: Pos) void {
     self.p = p;
-}
-
-pub fn getMoves(self: *Self) i32 { // REFACTOR: cruft
-    return self.moves;
 }
 
 pub fn getMapId(self: *Self) usize {
