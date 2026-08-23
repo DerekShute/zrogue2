@@ -45,7 +45,7 @@ purse: u16 = 0,
 // Lifecycle
 //
 
-pub fn init(allocator: Allocator, width: usize, height: usize) !Self {
+pub fn init() Self {
     const c = Entity.Config{
         .tile = .fromOther(MapTile.player),
         .vtable = &player_vtable,
@@ -53,7 +53,6 @@ pub fn init(allocator: Allocator, width: usize, height: usize) !Self {
 
     return .{
         .entity = .init(c),
-        .fov = try .init(allocator, width, height),
     };
 }
 
@@ -63,9 +62,19 @@ pub fn configClient(self: *Self, client: *Client) void {
     self.client = client;
 }
 
-pub fn deinit(self: *Self, allocator: Allocator) void {
-    self.fov.deinit(allocator);
+pub fn configFOV(self: *Self, fov: FOVMap) void {
+    self.fov = fov;
 }
+
+pub fn deinit(self: *Self, allocator: Allocator) void {
+    // Player deallocates FOV because of list management in game
+    self.fov.deinit(allocator);
+    self.client = undefined;
+}
+
+//
+// Methods
+//
 
 pub fn getFOV(self: *Self) *FOVMap {
     return &self.fov;
@@ -261,7 +270,25 @@ pub fn takeItem(self: *Self, map: *Map, pos: Pos) void {
 //
 // Unit Tests
 //
+const expect = std.testing.expect;
+const expectError = std.testing.expectError;
+const tallocator = std.testing.allocator;
+const MockClient = @import("roguelib").MockClient;
+const FailingAllocator = std.testing.FailingAllocator;
 
-// Part of the larger test rig...no mock Clients here
+test "basic use" {
+    // If this fails, must recalibrate the rest
+
+    var failing = FailingAllocator.init(tallocator, .{ .fail_index = 2 });
+    var m = try MockClient.init(failing.allocator(), 50, 50);
+    defer m.deinit(failing.allocator());
+
+    const fov = try FOVMap.init(failing.allocator(), 50, 50);
+
+    var p = init();
+    p.configClient(m.client());
+    p.configFOV(fov);
+    defer p.deinit(failing.allocator()); // fov destroyed here
+}
 
 // EOF
