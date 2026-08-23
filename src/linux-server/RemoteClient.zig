@@ -201,6 +201,7 @@ fn command(ctx: *anyopaque, cmd: u16) !void {
         log.info("[{f}] requesting depart", .{self});
         self.connector.writeDepart("ACK depart") catch {}; // nothing to do
     }
+    self.c.addEntityEvent();
 }
 
 fn depart(ctx: *anyopaque, text: []const u8) !void {

@@ -10,6 +10,7 @@ pub const Command = @import("common").Command;
 pub const DisplayTile = @import("common").DisplayTile;
 const Entity = @import("Entity.zig");
 const Pos = @import("Pos.zig");
+const World = @import("World.zig");
 
 const Self = @This();
 
@@ -54,6 +55,7 @@ pub const VTable = struct {
 ptr: *anyopaque = undefined,
 vtable: *const VTable,
 entity: *Entity = undefined,
+world: *World = undefined,
 
 //
 // Lifecycle
@@ -65,17 +67,22 @@ pub fn init(vtable: *const VTable) !Self {
     };
 }
 
+pub fn configContext(self: *Self, ctx: *anyopaque) void {
+    self.ptr = ctx;
+}
+
 pub fn configEntity(self: *Self, entity: *Entity) void {
     self.entity = entity;
 }
 
-pub fn configContext(self: *Self, ctx: *anyopaque) void {
-    self.ptr = ctx;
+pub fn configWorld(self: *Self, world: *World) void {
+    self.world = world;
 }
 
 pub inline fn deinit(self: *Self) void {
     self.entity = undefined;
     self.ptr = undefined;
+    self.world = undefined;
 }
 
 //
@@ -98,6 +105,10 @@ pub fn setMapTile(self: *Self, pos: Pos, count: u8, tile: DisplayTile) void {
 
 pub inline fn getCommand(self: *Self) Error!Command {
     return try self.vtable.getCommand(self.ptr);
+}
+
+pub fn addEntityEvent(self: *Self) void {
+    self.world.enqueueAction(self.entity);
 }
 
 // Stats
