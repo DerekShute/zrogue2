@@ -9,6 +9,7 @@ const std = @import("std");
 const Client = @import("roguelib").Client;
 const Entity = @import("roguelib").Entity;
 const EventQueue = @import("roguelib").EventQueue;
+const FOVMap = @import("roguelib").FOVMap;
 const Map = @import("roguelib").Map;
 const World = @import("roguelib").World;
 
@@ -122,13 +123,14 @@ pub fn initPlayer(self: *Self, client: *Client) !PlayerUID {
     }
     const player = gop.value_ptr;
 
-    // REFACTOR: fov becomes builder pattern
-    player.* = try .init(allocator, mapgen.XSIZE, mapgen.YSIZE);
+    const fov = try FOVMap.init(allocator, mapgen.XSIZE, mapgen.YSIZE);
+    player.* = .init();
     // Stitch the world/client/entity together so that the client can notify
     // World about the Player
     player.configClient(client);
     client.configWorld(&self.world);
-    errdefer player.deinit(allocator);
+    player.configFOV(fov);
+    errdefer player.deinit(allocator); // fov destroyed here
 
     self.next_player_id += 1;
     return id;

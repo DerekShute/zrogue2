@@ -25,6 +25,7 @@ const Self = @This();
 const DEFAULT_MAPID: usize = 0;
 
 client: *MockClient,
+fov: FOVMap = undefined,
 player: *Player,
 world: World = undefined,
 
@@ -44,18 +45,19 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 
     var player = try allocator.create(Player);
     errdefer allocator.destroy(player);
-    player.* = try Player.init(
-        allocator,
-        mapgen.XSIZE,
-        mapgen.YSIZE,
-    );
+
+    const fov = try FOVMap.init(allocator, mapgen.XSIZE, mapgen.YSIZE);
+
+    player.* = Player.init();
     player.configClient(mc.client());
-    errdefer player.deinit(allocator);
+    player.configFOV(fov);
+    errdefer player.deinit(allocator); // owns fov destruction
     player.setMapId(DEFAULT_MAPID);
 
     const self = try allocator.create(Self);
     self.* = .{
         .client = mc,
+        .fov = fov,
         .player = player,
         .world = .init(&world_vtable),
     };
@@ -82,7 +84,7 @@ pub fn init(allocator: std.mem.Allocator) !*Self {
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     self.world.deinit(allocator);
-    self.player.deinit(allocator);
+    self.player.deinit(allocator); // fov deinit
     allocator.destroy(self.player);
     self.client.deinit(allocator);
     allocator.destroy(self.client);
