@@ -122,9 +122,12 @@ pub fn initPlayer(self: *Self, client: *Client) !PlayerUID {
     }
     const player = gop.value_ptr;
 
-    // TODO: fov becomes builder pattern
+    // REFACTOR: fov becomes builder pattern
     player.* = try .init(allocator, mapgen.XSIZE, mapgen.YSIZE);
+    // Stitch the world/client/entity together so that the client can notify
+    // World about the Player
     player.configClient(client);
+    client.configWorld(&self.world);
     errdefer player.deinit(allocator);
 
     self.next_player_id += 1;
